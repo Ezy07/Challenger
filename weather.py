@@ -215,6 +215,35 @@ def sky_icon(name):
     return "None"  # 아직 모르면 글자로 None
 
 
+def feel_celsius(text):
+    """체감 글자에서 숫자만 꺼낸다. 체감(21.7°C) → 21.7"""
+    num = ""  # 숫자를 한 글자씩 모을 상자
+    for ch in text or "":  # 글자를 앞에서부터
+        if ch.isdigit() or ch == ".":  # 숫자나 소수점만
+            num += ch  # 이어 붙임
+        elif num:  # 숫자를 모으다 다른 글자가 나오면
+            break  # 그만 모음
+    if not num or num == ".":  # 숫자가 없으면
+        return None  # 온도를 모른다는 뜻
+    return float(num)  # 글자를 실수(21.7)로 바꿈
+
+
+def heat_warning(text):
+    """체감온도로 폭염 단계 글자를 정한다. 높은 단계부터 본다."""
+    deg = feel_celsius(text)  # 체감에서 숫자만
+    if deg is None:  # 아직 값을 못 읽었으면
+        return ""  # 경고 없음
+    if deg >= 38:  # 28도 이상
+        return "위험(중대경보)"
+    if deg >= 35:  # 25도 이상
+        return "폭염경보"
+    if deg >= 33:  # 23도 이상
+        return "폭염주의"
+    if deg >= 31:  # 21도 이상 (21도일 때 포함)
+        return "관심"
+    return "--"  # 21도 미만은 경고 없음
+
+
 def load_weather_file():
     """이미 있는 weather.json을 읽는다. 없거나 예전 형식이면 빈 칸으로 시작한다."""
     empty = empty_day("")  # 날짜 없는 빈 하루
@@ -246,6 +275,7 @@ def save_weather():
         "습도": hum,  # 습도
         "풍속": wind,  # 바람
         "강수": rain,  # 비/눈 양
+        "폭염": heat_warning(feel),  # 체감온도 기준 경고
     }
 
     data: dict = load_weather_file()  # 기존 파일을 읽음
@@ -311,14 +341,18 @@ try:  # Ctrl+C로 끝낼 수 있게
             pass  # 직전 값을 유지하고 다음 초에 다시 시도
 
         gap = "  "  # 아이콘과 글자 사이 빈칸
+        heat = heat_warning(feel)  # 체감온도로 정한 폭염 단계
+        heat_txt = f"{gap}{heat}" if heat else ""  # 경고가 있을 때만 뒤에 붙임
         show_block([  # 아래 줄들을 같은 자리에 다시 그림
             f"{'=' * 6} {now}  {place} {'=' * 6}",  # 시각과 지역
             f"{sky_icon(sky)}{gap}날씨:{sky}",  # 날씨 아이콘과 글자
-            f"🌡️{gap}온도:{temp}{gap}{feel}  💧{gap}습도:{hum}",  # 온도, 체감, 습도
+            f"🌡️{gap}온도:{temp}{gap}{feel} 💧{gap}습도:{hum}",  # 온도, 체감, 습도
             f"💨{gap}풍속:{wind}  🌧️{gap}강수:{rain}",  # 바람, 강수
             f"🌫️{gap}초미세:{pm25}㎍/m³-{pm25_status}  미세:{pm10}㎍/m³-{pm10_status}  오존:{o3}ppm-{o3_status}",  # 대기질
             f"⚠️{gap}특보:{news}",  # 특보
+            f"🔥{gap}경고:{heat_txt}",  # 폭염 경고
             f"🌅{gap}일출:{sumrise}  🌇{gap}일몰:{sumset}",  # 일출, 일몰
+            
         ])
         time.sleep(1)  # 1초 쉬고 다시 위부터
 except KeyboardInterrupt:  # Ctrl+C를 누르면
