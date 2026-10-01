@@ -7,7 +7,7 @@ from selenium.webdriver.chrome.options import Options  # 창 숨기기, 창 크�
 
 from datetime import datetime  # 지금 날짜와 시각을 가져옴
 import ctypes  # 윈도우 콘솔에서 줄 지우기 기능을 켜기 위함
-import json  # weater.json 파일을 읽고 쓰기 위함
+import json  # weather.json 파일을 읽고 쓰기 위함
 import os  # 파일 경로를 만들 때 사용
 import sys  # 화면에 글자를 바로 출력할 때 사용
 import time  # 1초 쉬기, 새로고침 간격 재기
@@ -93,7 +93,7 @@ SKY_NAME = {  # 아이콘 클래스 코드 → 한글 날씨
 }
 
 REFRESH_SEC = 60  # 60초마다 홈페이지를 새로고침
-SAVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weater.json")  # 이 파일과 같은 폴더의 json
+SAVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "weather.json")  # 이 파일과 같은 폴더의 json
 _last_saved = None  # 직전에 파일에 저장한 내용. 같으면 다시 쓰지 않음
 
 driver.get(URL)  # 위에서 정한 주소로 이동
@@ -216,7 +216,7 @@ def sky_icon(name):
 
 
 def load_weather_file():
-    """이미 있는 weater.json을 읽는다. 없거나 예전 형식이면 빈 칸으로 시작한다."""
+    """이미 있는 weather.json을 읽는다. 없거나 예전 형식이면 빈 칸으로 시작한다."""
     empty = empty_day("")  # 날짜 없는 빈 하루
     if not os.path.exists(SAVE_PATH):  # 파일이 아직 없으면
         return empty  # 빈 내용으로 시작
