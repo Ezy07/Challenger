@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>공동주택 건설현장 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root {
+      --bg: #0c1016;
+      --panel: #161c26;
+      --panel-2: #1c2430;
+      --ink: #eef3f8;
+      --muted: #8e9aab;
+      --line: rgba(255, 255, 255, 0.08);
+      --orange: #ff9a1f;
+      --green: #3ddc84;
+      --amber: #ffb020;
+      --red: #ff5d5d;
+      --gold: #f5c400;
+      --blue: #6cb6ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      color: var(--ink);
+      font-family: Pretendard, "Malgun Gothic", sans-serif;
+      background:
+        radial-gradient(1200px 500px at 50% -10%, rgba(255, 154, 31, 0.08), transparent 55%),
+        var(--bg);
+    }
+
+    .board {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 272px 1fr 1fr 312px;
+      grid-template-rows: 72px minmax(0, 1fr) minmax(0, 1fr) 176px;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .cell {
+      min-height: 0;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+    }
+
+    .site {
+      grid-column: 2 / 4;
+      grid-row: 1;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 0 18px;
+    }
+
+    .live {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 0 rgba(255, 93, 93, 0.7);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      70% { box-shadow: 0 0 0 7px rgba(255, 93, 93, 0); }
+    }
+
+    .site h1 {
+      text-align: center;
+      font-size: 26px;
+      font-weight: 750;
+      letter-spacing: -0.04em;
+    }
+
+    .site-side {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pager {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #121820;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .pager.on {
+      background: var(--orange);
+      color: #1a1206;
+      border-color: transparent;
+    }
+
+    .hello {
+      margin-left: 8px;
+      text-align: right;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .hello b { color: var(--ink); font-weight: 650; }
+
+    .zone { grid-column: 1; grid-row: 1 / 3; overflow: auto; }
+    .alerts { grid-column: 1; grid-row: 3 / 5; }
+    .crew { grid-column: 4; grid-row: 1 / 4; }
+
+    .pad {
+      height: 100%;
+      padding: 16px 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: #c5d0dc;
+    }
+
+    .label span { color: var(--muted); font-weight: 600; font-size: 11px; }
+
+    .tc-card, .item, .person {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .tc-card {
+      padding: 12px 12px 11px;
+      border-left: 3px solid var(--blue);
+    }
+
+    .tc-card.active { border-left-color: var(--orange); }
+
+    .tc-card .code {
+      font-size: 11px;
+      color: var(--orange);
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .tc-card strong { display: block; font-size: 15px; letter-spacing: -0.03em; }
+    .tc-card p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+
+    .item, .person { padding: 9px 11px; }
+
+    .item { display: grid; gap: 6px; }
+    .item-top, .person {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .item b, .person b { font-size: 13px; font-weight: 700; }
+    .desc { font-size: 12px; color: var(--muted); }
+
+    .status {
+      flex: none;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .ok { color: #07351c; background: var(--green); }
+    .warn { color: #3a2500; background: var(--amber); }
+    .stop { color: #fff; background: var(--red); }
+
+    .bar {
+      height: 4px;
+      border-radius: 99px;
+      background: #2a3342;
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .bar.stop i { background: var(--red); width: 85%; }
+    .bar.warn i { background: var(--amber); width: 96%; }
+    .bar.ok i { width: 100%; }
+
+    .cam { position: relative; background: #10151c; color: #fff; }
+    .cam-1 { grid-column: 2; grid-row: 2; }
+    .cam-2 { grid-column: 3; grid-row: 2; }
+    .cam-3 { grid-column: 2; grid-row: 3; }
+    .cam-4 { grid-column: 3; grid-row: 3; }
+
+    .cam-2 { box-shadow: inset 0 0 0 1px rgba(255, 93, 93, 0.55), 0 10px 30px rgba(0, 0, 0, 0.22); cursor: pointer; }
+    .cam-2:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; }
+    .cam-alarm {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      background: rgba(196, 24, 24, 0.78);
+      pointer-events: none;
+      animation: cam-flash 1.05s ease-in-out infinite;
+    }
+    .cam-2.alarm-off .cam-alarm { display: none; }
+    @keyframes cam-flash {
+      0%, 42% { opacity: 1; }
+      58%, 100% { opacity: 0.16; }
+    }
+    .cam-lead {
+      margin: 14px 0 12px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.5;
+    }
+    .pop-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .pop-act {
+      border: 1px solid var(--line);
+      background: #121820;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .pop-act:hover,
+    .pop-act:focus-visible { border-color: rgba(255, 154, 31, 0.7); outline: none; }
+    .pop-act.stop { background: var(--red); border-color: transparent; color: #fff; }
+    .pop-act:disabled { opacity: 0.45; cursor: default; }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), transparent 24%),
+        linear-gradient(180deg, #243044 0%, #1a2433 42%, #121820 42%, #0e141c 100%);
+    }
+
+    .cam-2 .scene { background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 24%), linear-gradient(180deg, #3a2a2a 0%, #241c1c 42%, #161212 42%, #100e0e 100%); }
+    .cam-3 .scene { background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 24%), linear-gradient(180deg, #2c3428 0%, #1d261c 42%, #141910 42%, #10140e 100%); }
+    .cam-4 .scene { background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 24%), linear-gradient(180deg, #24343a 0%, #1a282e 42%, #12191c 42%, #0e1416 100%); }
+
+    .scene::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0,0,0,0.08) 3px 4px);
+      pointer-events: none;
+    }
+
+    .bld {
+      position: absolute;
+      bottom: 18%;
+      background: linear-gradient(180deg, #8ea0b5, #5d6d80);
+      border-radius: 2px 2px 0 0;
+    }
+
+    .bld::before {
+      content: "";
+      position: absolute;
+      inset: 8px 6px auto 6px;
+      height: 70%;
+      background:
+        repeating-linear-gradient(90deg, rgba(190,220,255,0.55) 0 6px, transparent 6px 12px),
+        repeating-linear-gradient(0deg, transparent 0 8px, rgba(0,0,0,0.15) 8px 9px);
+    }
+
+    .mast, .jib, .cable {
+      position: absolute;
+      background: #d5dde6;
+    }
+
+    .mast { width: 4px; bottom: 18%; }
+    .jib { height: 4px; }
+    .cable { width: 1px; background: #9aa7b6; }
+    .cam-3 .mast { background: #c9842a; }
+    .cam-3 .jib { background: #e0a24a; }
+
+    .ground-line {
+      position: absolute;
+      left: 0; right: 0; bottom: 18%;
+      height: 2px;
+      background: rgba(255,255,255,0.18);
+    }
+
+    .box {
+      position: absolute;
+      border: 2px solid var(--green);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.45);
+      z-index: 2;
+    }
+
+    .box.stop { border-color: var(--red); }
+    .box.warn { border-color: var(--amber); }
+
+    .box em {
+      position: absolute;
+      top: -18px;
+      left: -2px;
+      font-style: normal;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 5px;
+      color: #08140d;
+      background: var(--green);
+      white-space: nowrap;
+    }
+
+    .box.stop em { background: var(--red); color: #fff; }
+    .box.warn em { background: var(--amber); color: #2b1c00; }
+
+    .cam-tag, .cam-time, .cam-zone {
+      position: absolute;
+      z-index: 3;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(8, 12, 18, 0.72);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 4px 8px;
+    }
+
+    .cam-tag { top: 10px; left: 10px; }
+    .cam-time { top: 10px; right: 10px; font-weight: 600; color: #d5deea; }
+    .cam-zone { left: 10px; bottom: 10px; color: #d5deea; font-weight: 600; }
+
+    .role {
+      font-size: 11px;
+      font-weight: 800;
+      color: #1a1206;
+      background: var(--orange);
+      border-radius: 999px;
+      padding: 3px 8px;
+    }
+
+    .person small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+
+    button.person {
+      width: 100%;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    button.person:hover,
+    button.person:focus-visible,
+    button.tc-card:hover,
+    button.tc-card:focus-visible {
+      border-color: rgba(255, 154, 31, 0.7);
+      outline: none;
+    }
+
+    button.tc-card {
+      width: 100%;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      appearance: none;
+    }
+
+    .zone .tc-card { padding: 8px 10px; }
+    .zone .tc-card strong { font-size: 13px; }
+    .zone .pad { gap: 8px; }
+
+    #tc-pop {
+      padding: 8px;
+      place-items: stretch;
+    }
+    .tc-pop-card {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 16px;
+    }
+    .tc-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 12px;
+      margin-top: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+    #tc-map {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      background: #10151c;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .tc-side {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      min-height: 0;
+    }
+    .tc-side .check { margin-bottom: 0; }
+    .tc-pop .status,
+    .tc-pop .check b,
+    .tc-pop .check small,
+    .tc-pop .tc-msg,
+    .hook-alert,
+    .hook-alert b { color: #fff; }
+    .cmp {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 5px 12px;
+      align-items: center;
+      flex: 1;
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #121820;
+      color: #fff;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .cmp b { font-size: 14px; }
+    .cmp .k { color: rgba(255, 255, 255, 0.62); font-size: 12px; font-weight: 700; }
+    .cmp .v { color: #fff; font-size: 14px; font-weight: 750; text-align: right; }
+    .cmp.on { border-color: var(--orange); background: rgba(255, 154, 31, 0.12); }
+    .hook-slot {
+      flex: none;
+      height: 46px;
+      margin-top: 10px;
+    }
+    .hook-alert {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 46px;
+      margin: 0;
+      padding: 0 14px;
+      border-radius: 12px;
+      background: #2a1214;
+      border: 1px solid #ff5d5d;
+      font-size: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .hook-alert[hidden] { display: none; }
+    .hook-alert span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hook-alert b {
+      flex: none;
+      border-radius: 999px;
+      background: #ff5d5d;
+      padding: 3px 8px;
+      font-size: 12px;
+    }
+    .hook-alert.soon { background: #2a2112; border-color: var(--amber); }
+    .hook-alert.soon b { background: var(--amber); color: #1a1206; }
+    .hook-slot + .hook-slot { margin-top: 8px; }
+    .hook-alert.wind { background: #142033; border-color: #6cb6ff; }
+    .hook-alert.wind b { background: #6cb6ff; color: #061018; }
+    .tc-msg {
+      flex: none;
+      height: 44px;
+      margin-top: 12px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #121820;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--green);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 650;
+    }
+    .tc-msg.warn { border-left-color: var(--amber); }
+    .tc-msg.stop { border-left-color: var(--red); }
+
+    .pop {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(6, 8, 12, 0.72);
+    }
+
+    .pop[hidden] { display: none; }
+
+    .pop-card {
+      width: min(480px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      padding: 18px;
+    }
+
+    .pop-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .pop-head h2 {
+      margin-top: 8px;
+      font-size: 22px;
+      letter-spacing: -0.04em;
+    }
+
+    .pop-head p {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pop-x {
+      flex: none;
+      border: 1px solid var(--line);
+      background: #121820;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .pop-score {
+      display: flex;
+      gap: 8px;
+      margin: 14px 0 12px;
+    }
+
+    .pop-score span {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .pop-score .good { color: #07351c; background: var(--green); }
+    .pop-score .bad { color: #3a2500; background: var(--amber); }
+
+    .check {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      padding: 11px 12px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--green);
+      border-radius: 12px;
+    }
+
+    .check:last-child { margin-bottom: 0; }
+    .check.warn { border-left-color: var(--amber); }
+    .check.stop { border-left-color: var(--red); }
+    .check b { display: block; font-size: 14px; letter-spacing: -0.03em; }
+    .check small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+
+    .clock {
+      grid-column: 2 / 4;
+      grid-row: 4;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px 18px 12px;
+      background:
+        linear-gradient(90deg, rgba(108, 182, 255, 0.08), transparent 34%),
+        var(--panel);
+    }
+
+    .wx-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+      column-gap: 18px;
+    }
+
+    .wx-hero {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .wx-ico {
+      width: 68px;
+      height: 68px;
+      flex: none;
+      border-radius: 18px;
+      background: #243044;
+      display: grid;
+      place-items: center;
+      font-size: 36px;
+    }
+
+    .wx-read {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 92px;
+    }
+
+    .wx-read + .wx-read {
+      padding-left: 16px;
+      border-left: 1px solid var(--line);
+    }
+
+    .wx-cap {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .wx-read strong {
+      font-size: 36px;
+      font-weight: 760;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wx-read.feel {
+      min-width: 132px;
+      height: 76px;
+      margin-left: 2px;
+      padding: 0 16px;
+      border: 1px solid rgba(255, 224, 138, 0.7);
+      border-radius: 12px;
+      background: rgba(255, 224, 138, 0.14);
+    }
+    .wx-read.feel .wx-cap {
+      color: #ffe08a;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .wx-read.feel strong {
+      color: #ffe08a;
+      font-size: 44px;
+    }
+
+    .wx-meta {
+      flex: 1;
+      min-width: 0;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 18px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+    .wx-meta b {
+      min-width: 0;
+      font-size: 18px;
+      font-weight: 760;
+      letter-spacing: -0.04em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .wx-meta span {
+      flex: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+    }
+
+    .wx-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(118px, 142px));
+      gap: 8px;
+    }
+
+    .wx-stats > div {
+      height: 68px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      min-width: 0;
+    }
+
+    .wx-stat-ico {
+      width: 36px;
+      height: 36px;
+      flex: none;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      background: rgba(108, 182, 255, 0.16);
+    }
+
+    .wx-stats .stat-copy { min-width: 0; }
+    .wx-stats .stat-copy span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .wx-stats b {
+      display: block;
+      font-size: 16px;
+      font-weight: 780;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .wx-stats .hum .wx-stat-ico { background: rgba(108, 182, 255, 0.2); }
+    .wx-stats .wind .wx-stat-ico { background: rgba(61, 220, 132, 0.16); }
+    .wx-stats .rain .wx-stat-ico { background: rgba(108, 182, 255, 0.12); }
+    .wx-stats .hum b { color: #c5e4ff; }
+    .wx-stats .wind b { color: #d9ffe8; }
+    .wx-stats .rain b { color: #d7e7ff; }
+
+    .wx-now {
+      min-width: 128px;
+      padding-left: 16px;
+      border-left: 1px solid var(--line);
+      text-align: right;
+    }
+
+    .now {
+      font-size: 26px;
+      font-weight: 760;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .now-date {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wx-bottom {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      align-items: stretch;
+      min-width: 0;
+    }
+
+    .wx-bottom.has-alert {
+      grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+    }
+
+    .wx-alert {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      height: 40px;
+      padding: 0 10px;
+      border-radius: 10px;
+      background: #2a1214;
+      border: 1px solid #ff5d5d;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .wx-alert[hidden] { display: none; }
+
+    .wx-alert b {
+      flex: none;
+      border-radius: 999px;
+      background: #ff5d5d;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .wx-alert span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .wx-hours {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(92px, 1fr);
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .hour {
+      height: 40px;
+      border-radius: 10px;
+      background: #121820;
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hour b {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .hour.on {
+      border-color: rgba(255, 154, 31, 0.85);
+      background: rgba(255, 154, 31, 0.12);
+    }
+
+    .hour.warn {
+      border-color: rgba(255, 93, 93, 0.85);
+      background: rgba(255, 93, 93, 0.14);
+    }
+
+    .hour em {
+      flex: none;
+      font-style: normal;
+      font-size: 11px;
+      font-weight: 800;
+      color: #ffb4b4;
+    }
+
+    .safe {
+      grid-column: 4;
+      grid-row: 4;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 10px;
+      background: #141a14;
+    }
+
+    .kpi {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      padding: 4px 4px 4px 2px;
+    }
+
+    .ring {
+      --p: 70;
+      --c: var(--green);
+      width: 58px;
+      height: 58px;
+      flex: none;
+      border-radius: 50%;
+      background: conic-gradient(var(--c) calc(var(--p) * 1%), #2a3340 0);
+      display: grid;
+      place-items: center;
+    }
+
+    .ring span {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #121810;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 1px;
+      padding-top: 12px;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .ring span i { font-style: normal; font-size: 10px; font-weight: 700; color: var(--muted); }
+
+    .kpi .cap { font-size: 12px; font-weight: 700; line-height: 1.3; }
+    .kpi .cap em { display: block; font-style: normal; color: var(--muted); font-size: 10px; font-weight: 600; }
+
+    .safe .kpi:nth-child(1) .ring { --c: #7dcea0; }
+    .safe .kpi:nth-child(2) .ring { --c: #ff9a1f; }
+    .safe .kpi:nth-child(3) .ring { --c: #6cb6ff; }
+    .kpi.gold .ring { --c: var(--gold); --p: 100; }
+    .kpi.gold .ring span { color: var(--gold); }
+
+    @media (max-width: 1100px) {
+      body { overflow: auto; }
+      .board {
+        height: auto;
+        min-height: 100%;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 220px 220px auto auto auto;
+      }
+      .zone, .alerts, .crew, .site, .clock, .safe,
+      .cam-1, .cam-2, .cam-3, .cam-4 { grid-column: auto; grid-row: auto; }
+      .site, .clock { grid-column: 1 / -1; }
+      .cam { min-height: 220px; }
+      .safe { grid-column: 1 / -1; }
+      #tc-pop .tc-body { grid-template-columns: 1fr; }
+      #tc-map { height: 52vh; }
+    }
+
+    /* .pop-card 의 480px 너비보다 뒤에 두어 TC 팝업만 화면을 채운다 */
+    #tc-pop > .pop-card {
+      width: calc(100vw - 16px);
+      height: calc(100vh - 16px);
+      min-width: calc(100vw - 16px);
+      min-height: calc(100vh - 16px);
+      max-width: none;
+      max-height: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="board">
+    <header class="cell site">
+      <div class="live"><i class="dot"></i> LIVE · CCTV 4</div>
+      <h1>공동주택 건설현장</h1>
+      <div class="site-side">
+        <div class="pager on">1</div>
+        <div class="pager">2</div>
+        <div class="hello"><b>안전관제</b><br>OO단지 101~103동</div>
+      </div>
+    </header>
+
+    <aside class="cell zone">
+      <div class="pad">
+        <div class="label">TC / 작업구역 <span>크레인 4대</span></div>
+        <button type="button" class="tc-card active" data-tc="0">
+          <div class="code">1호기 · T-CRN-01</div>
+          <strong>101동 갱폼 인양구역</strong>
+          <p>T형 · 지브 55m</p>
+        </button>
+        <button type="button" class="tc-card" data-tc="1">
+          <div class="code">2호기 · T-CRN-02</div>
+          <strong>102동 대형거푸집구역</strong>
+          <p>러핑 · 지브 50m</p>
+        </button>
+        <button type="button" class="tc-card" data-tc="2">
+          <div class="code">3호기 · M-CRN-01</div>
+          <strong>중앙 자재하역장</strong>
+          <p>T형 · 지브 48m</p>
+        </button>
+        <button type="button" class="tc-card" data-tc="3">
+          <div class="code">4호기 · T-CRN-03</div>
+          <strong>103동 외벽 인양구역</strong>
+          <p>러핑 · 지브 46m</p>
+        </button>
+      </div>
+    </aside>
+
+    <section class="cell cam cam-1">
+      <div class="scene">
+        <div class="ground-line"></div>
+        <div class="bld" style="left:8%; width:16%; height:46%;"></div>
+        <div class="bld" style="left:27%; width:12%; height:34%;"></div>
+        <div class="mast" style="left:62%; height:58%;"></div>
+        <div class="jib" style="left:62%; top:24%; width:28%;"></div>
+        <div class="cable" style="left:84%; top:24%; height:30%;"></div>
+        <div class="box" style="left:18%; top:40%; width:12%; height:28%;"><em>작업자</em></div>
+        <div class="box" style="left:48%; top:46%; width:10%; height:24%;"><em>신호수</em></div>
+      </div>
+      <div class="cam-tag">CAM_0001</div>
+      <div class="cam-time js-cam-time"></div>
+      <div class="cam-zone">101동 갱폼 인양구역</div>
+    </section>
+
+    <section class="cell cam cam-2" id="cam-2" role="button" tabindex="0" aria-label="CAM_0002 작업중지 경보">
+      <div class="scene">
+        <div class="ground-line"></div>
+        <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+        <div class="mast" style="left:48%; height:64%;"></div>
+        <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+        <div class="cable" style="left:76%; top:18%; height:36%;"></div>
+        <div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em>신호수 없음</em></div>
+      </div>
+      <div class="cam-tag">CAM_0002</div>
+      <div class="cam-time js-cam-time"></div>
+      <div class="cam-zone">102동 대형거푸집구역</div>
+      <div class="cam-alarm" id="cam-alarm" aria-hidden="true"></div>
+    </section>
+
+    <aside class="cell alerts">
+      <div class="pad">
+        <div class="label">CCTV 섹터 탐지경보 <span>산안법 기준</span></div>
+        <div class="item">
+          <div class="item-top"><b>CAM_0001</b><span class="status ok">정상</span></div>
+          <div class="desc">작업자 2명 · 신호수 배치</div>
+          <div class="bar ok"><i></i></div>
+        </div>
+        <div class="item">
+          <div class="item-top"><b>CAM_0002</b><span class="status stop">작업중지</span></div>
+          <div class="desc">제38조 신호수 미배치 · 85%</div>
+          <div class="bar stop"><i></i></div>
+        </div>
+        <div class="item">
+          <div class="item-top"><b>CAM_0003</b><span class="status warn">현장점검</span></div>
+          <div class="desc">제38조 지반침하방지 · 96%</div>
+          <div class="bar warn"><i></i></div>
+        </div>
+        <div class="item">
+          <div class="item-top"><b>CAM_0004</b><span class="status ok">정상</span></div>
+          <div class="desc">외곽 야적장 · 이상 없음</div>
+          <div class="bar ok"><i></i></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="cell cam cam-3">
+      <div class="scene">
+        <div class="ground-line"></div>
+        <div class="bld" style="left:62%; width:18%; height:28%;"></div>
+        <div class="mast" style="left:22%; height:20%; bottom:18%; width:28px; border-radius:4px;"></div>
+        <div class="jib" style="left:24%; bottom:30%; width:18%; height:8px; transform:rotate(-18deg);"></div>
+        <div class="box warn" style="left:30%; top:42%; width:16%; height:28%;"><em>점검</em></div>
+      </div>
+      <div class="cam-tag">CAM_0003</div>
+      <div class="cam-time js-cam-time"></div>
+      <div class="cam-zone">Sector A 토공 / EXC_01</div>
+    </section>
+
+    <section class="cell cam cam-4">
+      <div class="scene">
+        <div class="ground-line"></div>
+        <div class="bld" style="left:14%; width:14%; height:16%;"></div>
+        <div class="bld" style="left:32%; width:18%; height:20%;"></div>
+        <div class="bld" style="left:54%; width:12%; height:14%;"></div>
+      </div>
+      <div class="cam-tag">CAM_0004</div>
+      <div class="cam-time js-cam-time"></div>
+      <div class="cam-zone">외곽 야적장</div>
+    </section>
+
+    <aside class="cell crew">
+      <div class="pad">
+        <div class="label">작업 정보 <span>당일 배치</span></div>
+        <button type="button" class="person" data-work="lift"><div><b>박진우 차장</b><small>양중 · 1호기 감독</small></div><span class="role">양중</span></button>
+        <button type="button" class="person" data-work="earth"><div><b>정민수 부장</b><small>토공 · Sector A</small></div><span class="role">토공</span></button>
+        <button type="button" class="person" data-work="pour"><div><b>김철수 과장</b><small>타설 · 101동</small></div><span class="role">타설</span></button>
+        <button type="button" class="person" data-work="drive"><div><b>김창식 기사</b><small>T-CRN-01 조종</small></div><span class="role">조종</span></button>
+        <button type="button" class="person" data-work="guard"><div><b>최동현 과장</b><small>현장 안전</small></div><span class="role">안전</span></button>
+      </div>
+    </aside>
+
+    <footer class="cell clock" aria-label="포항 송도 날씨">
+      <div class="wx-row">
+        <div class="wx-hero">
+          <div class="wx-ico" id="wx-ico" aria-hidden="true">⛅</div>
+          <div class="wx-read">
+            <span class="wx-cap">기온</span>
+            <strong id="wx-temp">--°</strong>
+          </div>
+          <div class="wx-read feel">
+            <span class="wx-cap">체감온도</span>
+            <strong id="wx-feel">--°</strong>
+          </div>
+          <div class="wx-meta">
+            <b id="wx-sky">날씨 불러오는 중</b>
+            <span id="wx-place">포항 송도동</span>
+          </div>
+        </div>
+        <div class="wx-stats">
+          <div class="hum"><span class="wx-stat-ico" aria-hidden="true">💧</span><div class="stat-copy"><span>습도</span><b id="wx-hum">--</b></div></div>
+          <div class="wind"><span class="wx-stat-ico" aria-hidden="true">💨</span><div class="stat-copy"><span>풍속</span><b id="wx-wind">--</b></div></div>
+          <div class="rain"><span class="wx-stat-ico" aria-hidden="true">🌧️</span><div class="stat-copy"><span>강수</span><b id="wx-rain">--</b></div></div>
+        </div>
+        <div class="wx-now">
+          <div class="now" id="now-time">--:--:--</div>
+          <div class="now-date" id="now-date">----.--.--</div>
+        </div>
+      </div>
+      <div class="wx-bottom" id="wx-bottom">
+        <div class="wx-alert" id="wx-alert" hidden>
+          <b id="wx-alert-tag">경보</b>
+          <span id="wx-alert-text"></span>
+        </div>
+        <div class="wx-hours" id="wx-hours"></div>
+      </div>
+    </footer>
+
+    <aside class="cell safe" aria-label="특수형태근로자와 전체 출력인원">
+      <div class="kpi">
+        <div class="ring" style="--p:62"><span>12<i>명</i></span></div>
+        <div class="cap">고령자<em>출력 인원</em></div>
+      </div>
+      <div class="kpi">
+        <div class="ring" style="--p:38"><span>7<i>명</i></span></div>
+        <div class="cap">고혈압<em>건강 주의</em></div>
+      </div>
+      <div class="kpi">
+        <div class="ring" style="--p:24"><span>4<i>명</i></span></div>
+        <div class="cap">특수형태<em>근로자</em></div>
+      </div>
+      <div class="kpi gold">
+        <div class="ring"><span>127<i>명</i></span></div>
+        <div class="cap">전체<em>출력 인원</em></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pop" id="tc-pop" hidden>
+    <div class="pop-card tc-pop-card" role="dialog" aria-modal="true" aria-labelledby="tc-title">
+      <div class="pop-head">
+        <div>
+          <span class="role" id="tc-role">1호기</span>
+          <h2 id="tc-title">T-CRN-01</h2>
+          <p id="tc-place">101동 갱폼 인양구역 · T형</p>
+        </div>
+        <button type="button" class="pop-x" id="tc-close">닫기</button>
+      </div>
+      <div class="hook-slot">
+        <div class="hook-alert" id="hook-alert" hidden>
+          <b id="hook-alert-tag">사전 경보</b>
+          <span id="hook-alert-text"></span>
+        </div>
+      </div>
+      <div class="hook-slot">
+        <div class="hook-alert wind" id="wind-alert" hidden>
+          <b id="wind-alert-tag">강풍</b>
+          <span id="wind-alert-text">순간풍속 10m/s. 인양을 멈추세요.</span>
+        </div>
+      </div>
+      <div class="tc-body">
+        <canvas id="tc-map" width="1000" height="620"></canvas>
+        <div class="tc-side" id="tc-side"></div>
+      </div>
+      <div class="tc-msg" id="tc-msg"></div>
+    </div>
+  </div>
+
+  <div class="pop" id="work-pop" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="pop-title">
+      <div class="pop-head">
+        <div>
+          <span class="role" id="pop-role">타설</span>
+          <h2 id="pop-title">타설작업</h2>
+          <p id="pop-who">김철수 과장 · 101동</p>
+        </div>
+        <button type="button" class="pop-x" id="pop-close">닫기</button>
+      </div>
+      <div class="pop-score" id="pop-score"></div>
+      <div id="pop-list"></div>
+    </div>
+  </div>
+
+  <div class="pop" id="cam-pop" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="cam-title">
+      <div class="pop-head">
+        <div>
+          <span class="role">작업중지</span>
+          <h2 id="cam-title">CAM_0002</h2>
+          <p>102동 대형거푸집구역 · 신호수 미배치</p>
+        </div>
+        <button type="button" class="pop-x" id="cam-close">닫기</button>
+      </div>
+      <p class="cam-lead">신호수가 없는 양중이 감지되어 작업이 중지되었습니다. 화면의 빨간 점멸은 이 경보입니다.</p>
+      <div class="check stop"><div><b>중지 사유</b><small>제38조 신호수 미배치</small></div><span class="status stop">작업중지</span></div>
+      <div class="check stop"><div><b>탐지</b><small>신호수 없음 · 신뢰도 85%</small></div><span class="status stop">경보</span></div>
+      <div class="check stop"><div><b>조치</b><small>인양을 멈추고 신호수를 배치한 뒤 재개</small></div><span class="status stop">인양금지</span></div>
+      <div class="pop-actions">
+        <button type="button" class="pop-act" id="cam-cancel">취소</button>
+        <button type="button" class="pop-act stop" id="cam-clear">오버랩 해제</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function tick() {
+      const now = new Date();
+      const time = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+      const date = now.getFullYear() + "." + pad(now.getMonth() + 1) + "." + pad(now.getDate());
+      document.getElementById("now-time").textContent = time;
+      document.getElementById("now-date").textContent = date;
+      document.querySelectorAll(".js-cam-time").forEach((el) => { el.textContent = time; });
+    }
+
+    function skyIcon(name) {
+      name = name || "";
+      if (name.includes("비 또는 눈") || name.includes("빗방울/눈날림")) return "🌨️";
+      if (name.includes("눈")) return "🌨️";
+      if (name.includes("비") || name.includes("소나기") || name.includes("빗방울")) return "☔";
+      if (name.includes("구름")) return "⛅";
+      if (name.includes("흐림")) return "☁️";
+      if (name.includes("맑음")) return "☀️";
+      return "⛅";
+    }
+
+    function gapUnit(text) {
+      return (text || "--").replace(/([가-힣])(\d)/, "$1 $2");
+    }
+
+    function feelText(text) {
+      const found = (text || "").match(/(-?\d+(?:\.\d+)?)/);
+      return found ? found[1] + "°" : "--°";
+    }
+
+    function rainText(text) {
+      if (!text || text === "-mm" || text === "-" || text === "--") return "없음";
+      return text;
+    }
+
+    function tempParts(text) {
+      const found = (text || "").match(/(-?\d+(?:\.\d+)?)(.*)/);
+      if (!found) return { num: "--", unit: "" };
+      return { num: found[1], unit: found[2] || "°C" };
+    }
+
+    function filledHours(data) {
+      const rows = [];
+      for (let h = 0; h < 24; h++) {
+        const key = String(h).padStart(2, "0") + "시";
+        const slot = data[key];
+        if (slot && slot.온도) rows.push({ key, slot });
+      }
+      return rows;
+    }
+
+    function currentSlot(data) {
+      const key = String(new Date().getHours()).padStart(2, "0") + "시";
+      if (data[key] && data[key].온도) return { key, slot: data[key] };
+      const rows = filledHours(data);
+      return rows.length ? rows[rows.length - 1] : null;
+    }
+
+    function activeHeat(slot) {
+      const heat = ((slot && slot.폭염) || "").trim();
+      if (!heat || heat === "--") return "";
+      return heat;
+    }
+
+    function activeNews(data) {
+      const news = ((data && data.특보) || "").trim();
+      if (!news || news === "--" || news.includes("없")) return "";
+      return news;
+    }
+
+    function paintAlert(data, slot) {
+      const bits = [];
+      const news = activeNews(data);
+      const heat = activeHeat(slot);
+      if (news) bits.push(news);
+      if (heat) bits.push(heat);
+      const box = document.getElementById("wx-alert");
+      const row = document.getElementById("wx-bottom");
+      if (!bits.length) {
+        box.hidden = true;
+        row.classList.remove("has-alert");
+        return;
+      }
+      const text = bits.join(" · ");
+      document.getElementById("wx-alert-tag").textContent = text.includes("경보") || text.includes("위험") ? "경보" : "주의";
+      document.getElementById("wx-alert-text").textContent = text;
+      box.hidden = false;
+      row.classList.add("has-alert");
+    }
+
+    function renderWeather(data) {
+      const picked = currentSlot(data);
+      const place = document.getElementById("wx-place");
+      const skyEl = document.getElementById("wx-sky");
+      if (!picked) {
+        place.textContent = "포항 송도동";
+        skyEl.textContent = (data.날짜 || "오늘") + " 관측값 없음";
+        paintAlert(data, null);
+        return;
+      }
+      const slot = picked.slot;
+      const temp = tempParts(slot.온도);
+      document.getElementById("wx-ico").textContent = skyIcon(slot.날씨);
+      place.textContent = "포항 송도동 · " + picked.key;
+      document.getElementById("wx-temp").textContent = temp.num + "°";
+      skyEl.textContent = slot.날씨 || "날씨";
+      document.getElementById("wx-feel").textContent = feelText(slot.체감온도);
+      document.getElementById("wx-hum").textContent = slot.습도 || "--";
+      document.getElementById("wx-wind").textContent = gapUnit(slot.풍속);
+      document.getElementById("wx-rain").textContent = rainText(slot.강수);
+      paintAlert(data, slot);
+
+      const hours = document.getElementById("wx-hours");
+      hours.innerHTML = filledHours(data).map((row) => {
+        const on = row.key === picked.key ? " on" : "";
+        const heat = activeHeat(row.slot);
+        const warn = heat ? " warn" : "";
+        const mark = heat ? "<em>" + heat + "</em>" : "";
+        const short = tempParts(row.slot.온도).num + "°";
+        return '<div class="hour' + on + warn + '"><span>' + row.key + "</span><b>" + skyIcon(row.slot.날씨) + " " + short + "</b>" + mark + "</div>";
+      }).join("");
+    }
+
+    function loadWeather() {
+      fetch("weather/weather.json?t=" + Date.now())
+        .then((res) => { if (!res.ok) throw new Error("weather"); return res.json(); })
+        .then(renderWeather)
+        .catch(() => {
+          document.getElementById("wx-sky").textContent = "weather.json을 읽지 못했습니다";
+        });
+    }
+
+    const WORK = {
+      lift: {
+        role: "양중", title: "양중작업", who: "박진우 차장 · 101동 갱폼 인양구역",
+        rows: [
+          ["장비작업계획서", "제출 완료", "승인", "ok"],
+          ["작업배치인원", "계획서와 동일", "일치", "ok"],
+          ["근로자 교육", "당일 교육 수료", "수료", "ok"],
+          ["장비 점검", "T-CRN-01 점검 완료", "완료", "ok"],
+          ["작업구간 통제", "인양 반경 통제 중", "통제", "ok"]
+        ]
+      },
+      earth: {
+        role: "토공", title: "토공작업", who: "정민수 부장 · Sector A",
+        rows: [
+          ["장비작업계획서", "제출 완료", "승인", "ok"],
+          ["작업배치인원", "계획서와 동일", "일치", "ok"],
+          ["근로자 교육", "당일 교육 수료", "수료", "ok"],
+          ["장비 점검", "EXC_01 점검 완료", "완료", "ok"],
+          ["작업구간 통제", "지반 침하 구간 추가 통제 필요", "미통제", "warn"]
+        ]
+      },
+      pour: {
+        role: "타설", title: "타설작업", who: "김철수 과장 · 101동",
+        rows: [
+          ["장비작업계획서", "제출 완료", "승인", "ok"],
+          ["작업배치인원", "계획서와 동일", "일치", "ok"],
+          ["근로자 교육", "당일 교육 수료", "수료", "ok"],
+          ["장비 점검", "펌프카·바이브레이터 점검 완료", "완료", "ok"],
+          ["작업구간 통제", "타설 구간 주변 통제 중", "통제", "ok"]
+        ]
+      },
+      drive: {
+        role: "조종", title: "장비작업", who: "김창식 기사 · T-CRN-01",
+        rows: [
+          ["장비작업계획서", "제출 완료", "승인", "ok"],
+          ["작업배치인원", "신호수 미배치", "불일치", "stop"],
+          ["근로자 교육", "당일 교육 수료", "수료", "ok"],
+          ["장비 점검", "운전 전 점검 완료", "완료", "ok"],
+          ["작업구간 통제", "하부 작업 반경 개방", "미통제", "stop"]
+        ]
+      },
+      guard: {
+        role: "안전", title: "안전점검", who: "최동현 과장 · 현장 순회",
+        rows: [
+          ["장비작업계획서", "양중·타설 계획서 확인", "승인", "ok"],
+          ["작업배치인원", "배치표와 출근 인원 대조", "일치", "ok"],
+          ["근로자 교육", "특수형태·고령 교육 확인", "수료", "ok"],
+          ["장비 점검", "금일 장비 점검표 회수", "완료", "ok"],
+          ["작업구간 통제", "102동 통제선 재확인 필요", "미통제", "warn"]
+        ]
+      }
+    };
+
+    const TC_SPEC = [
+      { id: "1호기", code: "T-CRN-01", zone: "101동 갱폼 인양구역", kind: "T", name: "TC-1 T형", x: -8, y: -8, jib: 55, rear: 16.5, speed: 0.08, phase: 300, trolleyPhase: 0, color: "#6cb6ff" },
+      { id: "2호기", code: "T-CRN-02", zone: "102동 대형거푸집구역", kind: "L", name: "TC-2 러핑", x: 42, y: 52, jib: 50, rear: 13.5, speed: -0.05, minLuff: 15, maxLuff: 80, color: "#ff9a1f" },
+      { id: "3호기", code: "M-CRN-01", zone: "중앙 자재하역장", kind: "T", name: "TC-3 T형", x: 80, y: -8, jib: 55, rear: 15.5, speed: -0.08, phase: 240, trolleyPhase: 0.9, color: "#c084fc" },
+      { id: "4호기", code: "T-CRN-03", zone: "103동 외벽 인양구역", kind: "L", name: "TC-4 러핑", x: 14, y: 90, jib: 46, rear: 13.5, speed: 0.042, minLuff: 15, maxLuff: 80, color: "#ffb020" }
+    ];
+    const TC_WARN = 16;
+    const TC_STOP = 6;
+    const HOOK_HIT = 14;
+    const TC_VIEW = { minX: -70, maxX: 150, minY: -70, maxY: 150 };
+    const tcPop = document.getElementById("tc-pop");
+    const tcCanvas = document.getElementById("tc-map");
+    let tcFrame = 0;
+    let tcTimer = 0;
+    let tcSelected = 0;
+    let tcLast = 0;
+    let hookQuiet = 0;
+
+    function mod(n, m) { return ((n % m) + m) % m; }
+
+    function craneGeometry(spec, frame) {
+      if (spec.kind === "T") {
+        const angle = mod((spec.phase || 0) + frame * spec.speed, 360);
+        const trolley = spec.jib * (0.55 + 0.30 * Math.sin(frame * 0.008 + (spec.trolleyPhase || 0)));
+        const rad = angle * Math.PI / 180;
+        const tip = [spec.x + spec.jib * Math.cos(rad), spec.y + spec.jib * Math.sin(rad)];
+        const counter = [spec.x - spec.rear * Math.cos(rad), spec.y - spec.rear * Math.sin(rad)];
+        const load = [spec.x + trolley * Math.cos(rad), spec.y + trolley * Math.sin(rad)];
+        return { angle, trolley, luff: null, radius: spec.jib, counter, tip, load };
+      }
+      const angle = mod(180 + frame * spec.speed, 360);
+      const range = spec.maxLuff - spec.minLuff;
+      const luff = spec.minLuff + range / 2 + (range / 2) * Math.sin(frame * 0.006);
+      const horiz = spec.jib * Math.cos(luff * Math.PI / 180);
+      const rad = angle * Math.PI / 180;
+      const tip = [spec.x + horiz * Math.cos(rad), spec.y + horiz * Math.sin(rad)];
+      const counter = [spec.x - spec.rear * Math.cos(rad), spec.y - spec.rear * Math.sin(rad)];
+      return { angle, trolley: horiz, luff, radius: horiz, counter, tip, load: tip };
+    }
+
+    function mapPoint(x, y, w, h) {
+      const worldW = TC_VIEW.maxX - TC_VIEW.minX;
+      const worldH = TC_VIEW.maxY - TC_VIEW.minY;
+      const scale = Math.min(w / worldW, h / worldH);
+      const ox = (w - worldW * scale) / 2;
+      const oy = (h - worldH * scale) / 2;
+      return [ox + (x - TC_VIEW.minX) * scale, oy + (TC_VIEW.maxY - y) * scale];
+    }
+
+    function closestHooks(geos) {
+      let best = { d: Infinity, a: 0, b: 1 };
+      for (let i = 0; i < geos.length; i++) {
+        for (let j = i + 1; j < geos.length; j++) {
+          const d = Math.hypot(geos[i].load[0] - geos[j].load[0], geos[i].load[1] - geos[j].load[1]);
+          if (d < best.d) best = { d, a: i, b: j };
+        }
+      }
+      return best;
+    }
+
+    function drawCranes() {
+      const box = tcCanvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const nextW = Math.max(1, Math.round(box.width * dpr));
+      const nextH = Math.max(1, Math.round(box.height * dpr));
+      if (tcCanvas.width !== nextW || tcCanvas.height !== nextH) {
+        tcCanvas.width = nextW;
+        tcCanvas.height = nextH;
+      }
+      const geos = TC_SPEC.map((spec) => craneGeometry(spec, tcFrame));
+      let worst = { d: Infinity, a: 0, b: 1 };
+      for (let i = 0; i < geos.length; i++) {
+        for (let j = i + 1; j < geos.length; j++) {
+          const dx = geos[i].tip[0] - geos[j].tip[0];
+          const dy = geos[i].tip[1] - geos[j].tip[1];
+          const d = Math.hypot(dx, dy);
+          if (d < worst.d) worst = { d, a: i, b: j };
+        }
+      }
+      const ctx = tcCanvas.getContext("2d");
+      const w = tcCanvas.width;
+      const h = tcCanvas.height;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#10151c";
+      ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      ctx.lineWidth = 1;
+      for (let g = 1; g < 8; g++) {
+        ctx.beginPath();
+        ctx.moveTo(g * w / 8, 0);
+        ctx.lineTo(g * w / 8, h);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, g * h / 8);
+        ctx.lineTo(w, g * h / 8);
+        ctx.stroke();
+      }
+      geos.forEach((geo, i) => {
+        const spec = TC_SPEC[i];
+        const mast = mapPoint(spec.x, spec.y, w, h);
+        const worldW = TC_VIEW.maxX - TC_VIEW.minX;
+        const worldH = TC_VIEW.maxY - TC_VIEW.minY;
+        const scale = Math.min(w / worldW, h / worldH);
+        ctx.beginPath();
+        ctx.arc(mast[0], mast[1], geo.radius * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = spec.color;
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([12, 10]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        const counter = mapPoint(geo.counter[0], geo.counter[1], w, h);
+        const tip = mapPoint(geo.tip[0], geo.tip[1], w, h);
+        ctx.beginPath();
+        ctx.moveTo(counter[0], counter[1]);
+        ctx.lineTo(mast[0], mast[1]);
+        ctx.lineTo(tip[0], tip[1]);
+        ctx.strokeStyle = spec.color;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 9;
+        ctx.stroke();
+        const load = mapPoint(geo.load[0], geo.load[1], w, h);
+        const jibDx = tip[0] - mast[0];
+        const jibDy = tip[1] - mast[1];
+        const jibLen = Math.hypot(jibDx, jibDy) || 1;
+        const sideX = -jibDy / jibLen;
+        const sideY = jibDx / jibLen;
+        const tick = Math.max(18, 12 * dpr);
+        ctx.beginPath();
+        ctx.moveTo(load[0] - sideX * tick, load[1] - sideY * tick);
+        ctx.lineTo(load[0] + sideX * tick, load[1] + sideY * tick);
+        ctx.strokeStyle = "#ff5d5d";
+        ctx.lineWidth = Math.max(5, 3 * dpr);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(load[0], load[1], Math.max(8, 6 * dpr), 0, Math.PI * 2);
+        ctx.fillStyle = "#ff5d5d";
+        ctx.fill();
+        ctx.lineWidth = Math.max(2, 2 * dpr);
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(mast[0], mast[1], 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        const arcR = 26 * dpr;
+        ctx.beginPath();
+        ctx.arc(mast[0], mast[1], arcR, 0, -geo.angle * Math.PI / 180, true);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = Math.max(1, dpr);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(mast[0], mast[1]);
+        ctx.lineTo(mast[0] + arcR, mast[1]);
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.stroke();
+        const labelAt = geo.angle * Math.PI / 180;
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "700 " + Math.round(14 * dpr) + "px Malgun Gothic, sans-serif";
+        ctx.fillText(spec.id + "  " + geo.angle.toFixed(1) + "°", mast[0] + Math.cos(labelAt) * (arcR + 8 * dpr), mast[1] - Math.sin(labelAt) * (arcR + 8 * dpr));
+      });
+      const ta = mapPoint(geos[worst.a].tip[0], geos[worst.a].tip[1], w, h);
+      const tb = mapPoint(geos[worst.b].tip[0], geos[worst.b].tip[1], w, h);
+      ctx.beginPath();
+      ctx.moveTo(ta[0], ta[1]);
+      ctx.lineTo(tb[0], tb[1]);
+      ctx.strokeStyle = "#ff5d5d";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 " + Math.round(15 * dpr) + "px Malgun Gothic, sans-serif";
+      ctx.fillText(worst.d.toFixed(1) + " m", (ta[0] + tb[0]) / 2 + 8, (ta[1] + tb[1]) / 2);
+
+      const rows = geos.map((geo, i) => {
+        let near = { d: Infinity, i: i === 0 ? 1 : 0 };
+        geos.forEach((other, j) => {
+          if (j === i) return;
+          const d = Math.hypot(geo.tip[0] - other.tip[0], geo.tip[1] - other.tip[1]);
+          if (d < near.d) near = { d, i: j };
+        });
+        return { i, angle: geo.angle, trolley: geo.trolley, near };
+      });
+      const spec = TC_SPEC[tcSelected];
+      document.getElementById("tc-role").textContent = spec.id;
+      document.getElementById("tc-title").textContent = spec.code;
+      document.getElementById("tc-place").textContent = spec.zone + " · 네 대 비교";
+      const side = document.getElementById("tc-side");
+      if (side.childElementCount !== rows.length) {
+        side.innerHTML = rows.map((row) =>
+          '<button type="button" class="cmp" data-tc="' + row.i + '">' +
+          '<b>' + TC_SPEC[row.i].id + '</b><span class="status"></span>' +
+          '<span class="k">선회각</span><span class="v"></span>' +
+          '<span class="k">트롤리</span><span class="v"></span>' +
+          '<span class="k">최근접</span><span class="v"></span>' +
+          '<span class="k">지브 간격</span><span class="v"></span></button>'
+        ).join("");
+        side.querySelectorAll(".cmp").forEach((btn) => {
+          btn.addEventListener("click", () => openTc(Number(btn.dataset.tc)));
+        });
+      }
+      rows.forEach((row) => {
+        const btn = side.children[row.i];
+        const level = row.near.d <= TC_STOP ? "stop" : row.near.d <= TC_WARN ? "warn" : "ok";
+        const word = level === "ok" ? "정상" : level === "warn" ? "주의" : "정지";
+        btn.className = "cmp" + (row.i === tcSelected ? " on" : "");
+        const status = btn.querySelector(".status");
+        status.className = "status " + level;
+        status.textContent = word;
+        const values = btn.querySelectorAll(".v");
+        values[0].textContent = row.angle.toFixed(1) + "°";
+        values[1].textContent = row.trolley.toFixed(1) + "m";
+        values[2].textContent = TC_SPEC[row.near.i].id;
+        values[3].textContent = row.near.d.toFixed(1) + "m";
+      });
+      const nowHook = closestHooks(geos);
+      let aheadHit = null;
+      [200, 400, 800].some((ahead) => {
+        const future = TC_SPEC.map((item) => craneGeometry(item, tcFrame + ahead));
+        const hit = closestHooks(future);
+        if (hit.d <= HOOK_HIT && hit.d < nowHook.d - 1) {
+          aheadHit = { ahead, hit };
+          return true;
+        }
+        return false;
+      });
+      const alertBox = document.getElementById("hook-alert");
+      const leftName = (i) => TC_SPEC[i].id;
+      if (nowHook.d <= HOOK_HIT) {
+        hookQuiet = 0;
+        alertBox.hidden = false;
+        alertBox.className = "hook-alert";
+        document.getElementById("hook-alert-tag").textContent = "겹침";
+        document.getElementById("hook-alert-text").textContent =
+          leftName(nowHook.a) + " 후크와 " + leftName(nowHook.b) + " 후크가 겹쳤습니다. 인양을 멈추세요.";
+      } else if (aheadHit) {
+        hookQuiet = 0;
+        const sec = Math.max(1, Math.round(aheadHit.ahead * 0.025));
+        alertBox.hidden = false;
+        alertBox.className = "hook-alert soon";
+        document.getElementById("hook-alert-tag").textContent = "다가옴";
+        document.getElementById("hook-alert-text").textContent =
+          leftName(aheadHit.hit.a) + " 후크와 " + leftName(aheadHit.hit.b) + " 후크가 가까워집니다. 약 " + sec + "초 뒤 겹칩니다.";
+      } else if (hookQuiet < 12) {
+        hookQuiet += 1;
+      } else {
+        alertBox.hidden = true;
+      }
+      const windBox = document.getElementById("wind-alert");
+      const gustPhase = tcFrame % 1000;
+      windBox.hidden = !(gustPhase >= 200 && gustPhase < 520);
+      const msg = document.getElementById("tc-msg");
+      msg.className = "tc-msg " + (worst.d <= TC_STOP ? "stop" : worst.d <= TC_WARN ? "warn" : "ok");
+      const pair = TC_SPEC[worst.a].id + " · " + TC_SPEC[worst.b].id;
+      msg.textContent = worst.d <= TC_STOP
+        ? pair + " 지브 간격 " + worst.d.toFixed(1) + "m · 정지 기준 6m 진입"
+        : worst.d <= TC_WARN
+          ? pair + " 지브 간격 " + worst.d.toFixed(1) + "m · 주의 기준 16m 진입, 감속"
+          : "최근접 " + pair + " " + worst.d.toFixed(1) + "m · 안전 거리 유지";
+    }
+
+    function tickTc(now) {
+      if (tcPop.hidden) { tcTimer = 0; return; }
+      if (now - tcLast >= 25) {
+        tcFrame += 1;
+        tcLast = now;
+        drawCranes();
+      }
+      tcTimer = requestAnimationFrame(tickTc);
+    }
+
+    function openTc(index) {
+      tcSelected = index;
+      document.querySelectorAll(".tc-card").forEach((el, i) => el.classList.toggle("active", i === index));
+      pop.hidden = true;
+      camPop.hidden = true;
+      tcPop.hidden = false;
+      document.getElementById("tc-close").focus();
+      if (!tcTimer) tcTimer = requestAnimationFrame(tickTc);
+    }
+
+    document.querySelectorAll(".tc-card").forEach((btn) => {
+      btn.addEventListener("click", () => openTc(Number(btn.dataset.tc)));
+    });
+    document.getElementById("tc-close").addEventListener("click", () => { tcPop.hidden = true; });
+    tcPop.addEventListener("click", (event) => { if (event.target === tcPop) tcPop.hidden = true; });
+
+    const pop = document.getElementById("work-pop");
+    const popList = document.getElementById("pop-list");
+
+    function openWork(key) {
+      const work = WORK[key];
+      if (!work) return;
+      document.getElementById("pop-role").textContent = work.role;
+      document.getElementById("pop-title").textContent = work.title;
+      document.getElementById("pop-who").textContent = work.who;
+      const bad = work.rows.filter((row) => row[3] !== "ok").length;
+      const good = work.rows.length - bad;
+      const score = document.getElementById("pop-score");
+      score.innerHTML = '<span class="good">충족 ' + good + '</span>' +
+        (bad ? '<span class="bad">확인 ' + bad + '</span>' : "");
+      popList.innerHTML = work.rows.map((row) => {
+        const level = row[3] === "ok" ? "" : " " + row[3];
+        return '<div class="check' + level + '"><div><b>' + row[0] + '</b><small>' + row[1] +
+          '</small></div><span class="status ' + row[3] + '">' + row[2] + '</span></div>';
+      }).join("");
+      tcPop.hidden = true;
+      camPop.hidden = true;
+      pop.hidden = false;
+      document.getElementById("pop-close").focus();
+    }
+
+    document.querySelectorAll(".person[data-work]").forEach((btn) => {
+      btn.addEventListener("click", () => openWork(btn.dataset.work));
+    });
+
+    document.getElementById("pop-close").addEventListener("click", () => { pop.hidden = true; });
+    pop.addEventListener("click", (event) => { if (event.target === pop) pop.hidden = true; });
+
+    const camPop = document.getElementById("cam-pop");
+    const cam2 = document.getElementById("cam-2");
+    const camClear = document.getElementById("cam-clear");
+    function openCamAlarm() {
+      pop.hidden = true;
+      tcPop.hidden = true;
+      camPop.hidden = false;
+      camClear.focus();
+    }
+    function closeCamAlarm() { camPop.hidden = true; }
+    cam2.addEventListener("click", openCamAlarm);
+    cam2.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openCamAlarm();
+      }
+    });
+    document.getElementById("cam-cancel").addEventListener("click", closeCamAlarm);
+    document.getElementById("cam-close").addEventListener("click", closeCamAlarm);
+    camPop.addEventListener("click", (event) => { if (event.target === camPop) closeCamAlarm(); });
+    camClear.addEventListener("click", () => {
+      cam2.classList.add("alarm-off");
+      camClear.disabled = true;
+      camClear.textContent = "오버랩 해제됨";
+      closeCamAlarm();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        pop.hidden = true;
+        tcPop.hidden = true;
+        camPop.hidden = true;
+      }
+    });
+
+    tick();
+    setInterval(tick, 1000);
+    loadWeather();
+    setInterval(loadWeather, 60000);
+  </script>
+</body>
+</html>
