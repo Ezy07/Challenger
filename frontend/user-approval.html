@@ -16,29 +16,35 @@
     .req dd { display: inline; color: #c5d0dc; font-weight: 600; }
     .req .acts { display: flex; gap: 6px; align-items: center; }
     .req.done { opacity: 0.5; }
-    .bar-top { padding: 12px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; overflow: hidden; }
     @media (max-width: 700px) { .req { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad" id="tabs">
-        <div class="label">신청 상태</div>
-        <button class="tc-card active" data-status="PENDING"><strong>승인 대기 <span class="status warn" id="n-PENDING">0</span></strong><p>관리자 확인이 필요한 신청</p></button>
-        <button class="tc-card" data-status="ACTIVE"><strong>승인됨 <span class="muted" id="n-ACTIVE">0</span></strong><p>지금 쓰는 계정</p></button>
-        <button class="tc-card" data-status="REJECTED"><strong>반려됨 <span class="muted" id="n-REJECTED">0</span></strong><p>로그인할 수 없는 신청</p></button>
-        <div class="hint">신청자는 <b>회원가입</b> 화면에서 신청합니다. 승인하면 <b>status</b>가 <b>PENDING → ACTIVE</b>로 바뀌고 <b>approved_by</b>에 승인한 관리자가 남습니다.</div>
-      </div>
-    </aside>
-
+  <div class="page no-left">
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell bar-top">
-        <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디 · 소속으로 찾기" />
-        <span class="grow"></span>
-        <a class="btn" href="signup.html">회원가입 화면 보기</a>
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디 · 소속으로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <b id="n-shown"></b>
+          <span class="grow"></span>
+          <a class="btn" href="signup.html">회원가입 화면 보기</a>
+        </div>
+        <div class="search-panel" id="filter" hidden>
+          <div class="search-fields">
+            <div class="field">신청 상태
+              <div class="chips" id="f-status" data-single>
+                <span class="chip on" data-v="PENDING">승인 대기 <b id="n-PENDING">0</b></span>
+                <span class="chip" data-v="ACTIVE">승인됨 <b id="n-ACTIVE">0</b></span>
+                <span class="chip" data-v="REJECTED">반려됨 <b id="n-REJECTED">0</b></span>
+              </div>
+            </div>
+            <div class="hint">신청자는 <b>회원가입</b> 화면에서 신청합니다. 승인하면 <b>status</b>가 <b>PENDING → ACTIVE</b>로 바뀌고 <b>approved_by</b>에 승인한 관리자가 남습니다.</div>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
       </section>
       <section class="cell" id="list"></section>
     </main>
@@ -71,7 +77,7 @@
   <script>
     requireLogin();
     const $ = (id) => document.getElementById(id);
-    let users = [], orgs = {}, tab = "PENDING", rejectId = null;
+    let users = [], orgs = {}, rejectId = null;
 
     async function load() {
       const [list, orgList] = await Promise.all([api("/api/users"), api("/api/orgs")]);
@@ -82,10 +88,12 @@
 
     function render() {
       ["PENDING", "ACTIVE", "REJECTED"].forEach((st) => { $("n-" + st).textContent = users.filter((u) => u.status === st).length; });
-      document.querySelectorAll("#tabs [data-status]").forEach((b) => b.classList.toggle("active", b.dataset.status === tab));
+      const chip = document.querySelector("#f-status .chip.on"), tab = chip.dataset.v;
+      searchSummary(chip.firstChild.textContent.trim());
       const q = $("q").value.trim().toLowerCase();
       const rows = users.filter((u) => u.status === tab)
         .filter((u) => !q || [u.name, u.login_id, orgs[u.org_id]].join(" ").toLowerCase().includes(q));
+      $("n-shown").textContent = `${rows.length}건`;
       $("list").innerHTML = rows.length ? rows.map((u) => `
         <div class="req" data-id="${u.id}">
           <div>
@@ -132,10 +140,7 @@
         await load();
       } catch (err) { toast(err.message); }
     });
-    $("tabs").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-status]");
-      if (b) { tab = b.dataset.status; render(); }
-    });
+    $("filter").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
     $("q").addEventListener("input", render);
 
     load().catch((err) => toast(err.message));

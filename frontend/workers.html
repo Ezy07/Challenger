@@ -8,33 +8,33 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
-    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
     .tbl td { vertical-align: middle; }
     .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad" data-pick>
-        <div class="label">협력사 <span>10명</span></div>
-        <button class="tc-card active"><strong>전체 <span class="muted">10</span></strong></button>
-        <button class="tc-card"><strong>대한골조 <span class="muted">4</span></strong><p>형틀 · 철근 · 타설</p></button>
-        <button class="tc-card"><strong>한빛토건 <span class="muted">3</span></strong><p>토공 · 굴착</p></button>
-        <button class="tc-card"><strong>세진크레인 <span class="muted">2</span></strong><p>TC 운전 · 신호</p></button>
-        <button class="tc-card"><strong>우리설비 <span class="muted">1</span></strong><p>배관</p></button>
-        <div class="hint">현장작업자는 로그인하지 않습니다. 작업 배정과 <b>특별관리근로자</b> 패널에 쓰입니다.</div>
-      </div>
-    </aside>
+  <div class="page no-left">
 
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell bar-top">
-        <input class="input" style="width:220px" placeholder="이름 · 직종으로 찾기" />
-        <label class="row muted" style="gap:6px; font-size:12.5px"><input type="checkbox" /> 특별관리 대상만</label>
-        <span class="grow"></span>
-        <button class="btn primary" id="add">＋ 작업자 등록</button>
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <input class="input" style="width:220px" placeholder="이름 · 직종으로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="grow"></span>
+          <button class="btn primary" id="add">＋ 작업자 등록</button>
+        </div>
+        <div class="search-panel" hidden data-auto-summary>
+          <div class="search-fields">
+            <div class="field wide">협력사
+              <div class="chips" data-single><span class="chip on">전체 <b>10</b></span><span class="chip">대한골조 <b>4</b></span><span class="chip">한빛토건 <b>3</b></span><span class="chip">세진크레인 <b>2</b></span><span class="chip">우리설비 <b>1</b></span></div>
+            </div>
+            <label class="row muted" style="gap:6px; font-size:12.5px"><input type="checkbox" /> 특별관리 대상만</label>
+            <div class="hint">현장작업자는 로그인하지 않습니다. 작업 배정과 <b>특별관리근로자</b> 패널에 쓰입니다.</div>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl" id="tbl">

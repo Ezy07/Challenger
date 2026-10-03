@@ -8,36 +8,35 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
-    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
     .tbl td { vertical-align: middle; }
     .tbl select.input { padding: 5px 8px; font-size: 12.5px; min-width: 150px; }
     .tbl tr.changed td { background: rgba(255, 154, 31, 0.07); }
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad" data-pick>
-        <div class="label">장비 종류 <span>9대</span></div>
-        <button class="tc-card active"><strong>전체 <span class="muted">9</span></strong></button>
-        <button class="tc-card"><strong>🏗 타워크레인 <span class="muted">4</span></strong></button>
-        <button class="tc-card"><strong>🚒 펌프카 <span class="muted">1</span></strong></button>
-        <button class="tc-card"><strong>🚛 믹서트럭 <span class="muted">2</span></strong></button>
-        <button class="tc-card"><strong>🚜 굴착기 <span class="muted">1</span></strong></button>
-        <button class="tc-card"><strong>🚚 덤프트럭 <span class="muted">1</span></strong></button>
-        <div class="hint">하루 한 번 아침 조회 때 <b>투입 구역 · 운전원 · 상태</b>를 바꾸고 [오늘 기록 저장]을 누르면 장비 상세의 일일 기록에 남습니다.</div>
-      </div>
-    </aside>
+  <div class="page no-left">
 
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell bar-top">
-        <input class="input" style="width:220px" placeholder="장비명 · 등록번호로 찾기" />
-        <span class="muted" id="changed">바뀐 항목 없음</span>
-        <span class="grow"></span>
-        <button class="btn" data-open="pop">＋ 장비 등록</button>
-        <button class="btn primary" id="save">오늘 기록 저장</button>
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <input class="input" style="width:220px" placeholder="장비명 · 등록번호로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="muted" id="changed">바뀐 항목 없음</span>
+          <span class="grow"></span>
+          <button class="btn" data-open="pop">＋ 장비 등록</button>
+          <button class="btn primary" id="save">오늘 기록 저장</button>
+        </div>
+        <div class="search-panel" hidden data-auto-summary>
+          <div class="search-fields">
+            <div class="field wide">장비 종류
+              <div class="chips" data-single><span class="chip on">전체 <b>9</b></span><span class="chip">🏗 타워크레인 <b>4</b></span><span class="chip">🚒 펌프카 <b>1</b></span><span class="chip">🚛 믹서트럭 <b>2</b></span><span class="chip">🚜 굴착기 <b>1</b></span><span class="chip">🚚 덤프트럭 <b>1</b></span></div>
+            </div>
+            <div class="hint">하루 한 번 아침 조회 때 <b>투입 구역 · 운전원 · 상태</b>를 바꾸고 [오늘 기록 저장]을 누르면 장비 상세의 일일 기록에 남습니다.</div>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
       </section>
       <section class="cell" style="padding:0 6px 6px; overflow:auto">
         <table class="tbl" id="tbl">

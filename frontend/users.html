@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
-    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
     .tbl td { vertical-align: middle; }
     .av { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #243044; font-weight: 800; font-size: 13px; margin-right: 8px; vertical-align: middle; }
     .pending-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 12px; background: rgba(255, 176, 32, 0.1); border: 1px solid rgba(255, 176, 32, 0.5); font-size: 13px; font-weight: 700; }
@@ -16,26 +15,35 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad" id="roles">
-        <div class="label">역할 <span id="n-all-label">0명</span></div>
-        <button class="tc-card active" data-role=""><strong>전체 <span class="muted" id="n-all">0</span></strong></button>
-        <button class="tc-card" data-role="ADMIN"><strong>관리자 <span class="muted" id="n-ADMIN">0</span></strong><p>모든 화면 · 관리자 메뉴</p></button>
-        <button class="tc-card" data-role="MANAGER"><strong>안전관리자 <span class="muted" id="n-MANAGER">0</span></strong><p>관제 · 이벤트 처리 · 안전관리 업무</p></button>
-        <button class="tc-card" data-role="VIEWER"><strong>조회 전용 <span class="muted" id="n-VIEWER">0</span></strong><p>화면 보기만</p></button>
-        <a class="pending-link" href="user-approval.html"><span>가입 승인 대기</span><span class="status warn" id="n-pending">0명</span></a>
-      </div>
-    </aside>
-
+  <div class="page no-left">
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell bar-top">
-        <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디로 찾기" />
-        <select class="input" id="f-status" style="width:160px"><option value="">모든 상태</option><option value="ACTIVE">활성</option><option value="LOCKED">잠금</option></select>
-        <span class="grow"></span>
-        <button class="btn primary" data-open="pop">＋ 회원 등록</button>
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <b id="n-shown"></b>
+          <span class="grow"></span>
+          <a class="btn" href="user-approval.html">가입 승인 대기 <span class="status warn" id="n-pending">0명</span></a>
+          <button class="btn primary" data-open="pop">＋ 회원 등록</button>
+        </div>
+        <div class="search-panel" id="filter" hidden>
+          <div class="search-fields">
+            <div class="field">역할
+              <div class="chips" id="f-role" data-single>
+                <span class="chip on" data-v="">전체 <b id="n-all">0</b></span><span class="chip" data-v="ADMIN">관리자 <b id="n-ADMIN">0</b></span>
+                <span class="chip" data-v="MANAGER">안전관리자 <b id="n-MANAGER">0</b></span><span class="chip" data-v="VIEWER">조회 전용 <b id="n-VIEWER">0</b></span>
+              </div>
+            </div>
+            <div class="field">계정 상태
+              <div class="chips" id="f-status" data-single>
+                <span class="chip on" data-v="">전체</span><span class="chip" data-v="ACTIVE">활성</span><span class="chip" data-v="LOCKED">잠금</span>
+              </div>
+            </div>
+          </div>
+          <div class="row end"><button class="btn" type="button" id="reset">초기화</button><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
@@ -102,7 +110,8 @@
     requireLogin();
     const $ = (id) => document.getElementById(id);
     const me = getAuth() && getAuth().user;
-    let users = [], orgs = {}, role = "", delId = null;
+    let users = [], orgs = {}, delId = null;
+    const pickedChip = (id) => document.querySelector(`#${id} .chip.on`).dataset.v;
 
     async function load() {
       const [list, orgList] = await Promise.all([api("/api/users"), api("/api/orgs")]);
@@ -116,14 +125,14 @@
     function render() {
       const members = users.filter((u) => u.status === "ACTIVE" || u.status === "LOCKED");
       $("n-all").textContent = members.length;
-      $("n-all-label").textContent = members.length + "명";
       ["ADMIN", "MANAGER", "VIEWER"].forEach((r) => { $("n-" + r).textContent = members.filter((u) => u.role === r).length; });
       $("n-pending").textContent = users.filter((u) => u.status === "PENDING").length + "명";
-      document.querySelectorAll("#roles [data-role]").forEach((b) => b.classList.toggle("active", b.dataset.role === role));
 
-      const q = $("q").value.trim().toLowerCase(), st = $("f-status").value;
+      const q = $("q").value.trim().toLowerCase(), role = pickedChip("f-role"), st = pickedChip("f-status");
+      searchSummary([role && LABEL.role[role][1], st && LABEL.userStatus[st][1]].filter(Boolean).join(" · "));
       const rows = members.filter((u) => (!role || u.role === role) && (!st || u.status === st)
         && (!q || (u.name + " " + u.login_id).toLowerCase().includes(q)));
+      $("n-shown").textContent = `${rows.length}명`;
       $("rows").innerHTML = rows.length ? rows.map((u) => {
         const self = me && me.id === u.id;
         const lastLogin = self ? "지금 접속 중" : u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "접속 기록 없음";
@@ -174,12 +183,13 @@
       } catch (err) { toast(err.message); }
     });
 
-    $("roles").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-role]");
-      if (b) { role = b.dataset.role; render(); }
+    // 칩은 common.js 가 켜고 끈 뒤(같은 클릭이 위로 올라옴) 바로 다시 그린다
+    $("filter").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
+    $("reset").addEventListener("click", () => {
+      document.querySelectorAll("#filter .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === ""));
+      render();
     });
     $("q").addEventListener("input", render);
-    $("f-status").addEventListener("change", render);
 
     load().catch((err) => toast(err.message));
   </script>

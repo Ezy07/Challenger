@@ -8,44 +8,45 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
-    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
     .tbl-wrap { padding: 0 6px 6px; }
   </style>
 </head>
 <body>
-  <div class="page no-right">
-    <aside class="cell left">
-      <form class="pad" id="filter">
-        <div class="label">검색 조건</div>
-        <label class="field">날짜<input class="input" type="date" id="f-date" /></label>
-        <label class="field">구역
-          <select class="input" id="f-zone"><option value="">전체 구역</option></select>
-        </label>
-        <div class="field">이벤트 종류
-          <div class="chips" id="f-type"></div>
-        </div>
-        <div class="field">심각도
-          <div class="chips" id="f-severity"><span class="chip on" data-v="HIGH">높음</span><span class="chip on" data-v="MEDIUM">중간</span><span class="chip on" data-v="LOW">낮음</span></div>
-        </div>
-        <div class="field">처리 상태
-          <div class="chips" id="f-status"><span class="chip on" data-v="NEW">미처리</span><span class="chip on" data-v="ACK">확인중</span><span class="chip on" data-v="DONE">처리완료</span><span class="chip" data-v="FALSE">오탐</span></div>
-        </div>
-        <div class="row">
-          <button class="btn primary grow">검색</button>
-          <button class="btn" type="button" id="reset">초기화</button>
-        </div>
-      </form>
-    </aside>
-
+  <div class="page full">
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell bar-top">
-        <b id="count">불러오는 중…</b><span class="muted" id="summary">줄을 누르면 상세 화면으로 이동</span>
-        <span class="grow"></span>
-        <select class="input" id="sort" style="width:150px"><option value="latest">최신순</option><option value="severity">심각도 높은 순</option><option value="confidence">신뢰도 높은 순</option></select>
-        <a class="btn" href="event-snapshot.html">🖼 스냅샷으로 보기</a>
-        <a class="btn primary" href="event-export.html">⬇ CSV 내보내기</a>
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <b id="count">불러오는 중…</b>
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="muted">줄을 누르면 상세 화면으로 이동</span>
+          <span class="grow"></span>
+          <select class="input" id="sort" style="width:150px" aria-label="정렬"><option value="latest">최신순</option><option value="severity">심각도 높은 순</option><option value="confidence">신뢰도 높은 순</option></select>
+          <a class="btn" href="event-snapshot.html">🖼 스냅샷으로 보기</a>
+          <a class="btn primary" href="event-export.html">⬇ CSV 내보내기</a>
+        </div>
+        <form class="search-panel" id="filter" hidden>
+          <div class="search-fields">
+            <label class="field">날짜<input class="input" type="date" id="f-date" /></label>
+            <label class="field">구역
+              <select class="input" id="f-zone"><option value="">전체 구역</option></select>
+            </label>
+            <div class="field">심각도
+              <div class="chips" id="f-severity"><span class="chip on" data-v="HIGH">높음</span><span class="chip on" data-v="MEDIUM">중간</span><span class="chip on" data-v="LOW">낮음</span></div>
+            </div>
+            <div class="field">처리 상태
+              <div class="chips" id="f-status"><span class="chip on" data-v="NEW">미처리</span><span class="chip on" data-v="ACK">확인중</span><span class="chip on" data-v="DONE">처리완료</span><span class="chip" data-v="FALSE">오탐</span></div>
+            </div>
+            <div class="field wide">이벤트 종류
+              <div class="chips" id="f-type"></div>
+            </div>
+          </div>
+          <div class="row end">
+            <button class="btn" type="button" id="reset">초기화</button>
+            <button class="btn primary">검색</button>
+          </div>
+        </form>
       </section>
       <section class="cell tbl-wrap">
         <table class="tbl">
@@ -63,7 +64,8 @@
     const $ = (id) => document.getElementById(id);
     const SIZE = 10;
     const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    const picked = (box) => [...$(box).querySelectorAll(".chip.on")].map((c) => c.dataset.v);
+    const chips = (box) => [...$(box).querySelectorAll(".chip")];
+    const picked = (box) => chips(box).filter((c) => c.classList.contains("on")).map((c) => c.dataset.v);
     const toggleChip = (e) => { if (e.target.classList.contains("chip")) e.target.classList.toggle("on"); };
     let page = 1;
 
@@ -73,7 +75,26 @@
       $("f-type").innerHTML = types.map((t) => `<span class="chip on" data-v="${t.code}">${esc(t.label)}</span>`).join("");
     }
 
+    // 검색 조건 버튼 옆 요약. 칩을 전부 고른 조건은 생략한다 (예: "2026.10.03 · 상태 미처리 외 2")
+    function chipText(box) {
+      const all = chips(box), on = all.filter((c) => c.classList.contains("on"));
+      if (on.length === all.length) return "";
+      if (!on.length) return "없음";
+      return on.length <= 2 ? on.map((c) => c.textContent).join("·") : `${on[0].textContent} 외 ${on.length - 1}`;
+    }
+    function summary() {
+      const type = chipText("f-type"), sev = chipText("f-severity"), st = chipText("f-status");
+      return [
+        ($("f-date").value || "전체 기간").replaceAll("-", "."),
+        $("f-zone").value && $("f-zone").selectedOptions[0].textContent,
+        type && "종류 " + type,
+        sev && "심각도 " + sev,
+        "상태 " + (st || "전체"),
+      ].filter(Boolean).join(" · ");
+    }
+
     async function load() {
+      searchSummary(summary());
       const types = picked("f-type"), sev = picked("f-severity"), st = picked("f-status");
       if (!types.length || !sev.length || !st.length) return render({ total: 0, items: [] });
       const date = $("f-date").value;
@@ -87,12 +108,9 @@
 
     function render({ total, items }) {
       $("count").textContent = `검색 결과 ${total}건`;
-      const zone = $("f-zone").selectedOptions[0].textContent;
-      $("summary").textContent = `${($("f-date").value || "전체 기간").replaceAll("-", ".")} · ${zone} · 줄을 누르면 상세 화면으로 이동`;
       $("rows").innerHTML = items.length ? items.map((e) => {
-        const time = fmtTime(e.detected_at, { date: false });
         const conf = e.confidence == null ? "-" : Math.round(e.confidence * 100) + "%";
-        return `<tr data-href="event-detail.html?id=${e.id}"><td class="num">EV-${e.id}</td><td class="num">${time}</td>
+        return `<tr data-href="event-detail.html?id=${e.id}"><td class="num">EV-${e.id}</td><td class="num">${fmtTime(e.detected_at, { date: false })}</td>
           <td>${esc(e.camera_name || "-")}</td><td>${esc(e.work_zone_name || "-")}</td><td>${esc(e.detection_label)}</td>
           <td>${badge("severity", e.severity)}</td><td class="num">${conf}</td><td>${badge("eventStatus", e.status)}</td></tr>`;
       }).join("") : `<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">조건에 맞는 이벤트가 없습니다</td></tr>`;
@@ -104,7 +122,7 @@
     }
 
     const search = () => { page = 1; load().catch((err) => toast(err.message)); };
-    $("filter").addEventListener("submit", (e) => { e.preventDefault(); search(); });
+    $("filter").addEventListener("submit", (e) => { e.preventDefault(); closeSearch(); search(); });
     $("sort").addEventListener("change", search);
     $("f-type").addEventListener("click", toggleChip); // 심각도 · 상태 칩은 common.js 가 켜고 끈다 (종류 칩은 나중에 그려서 직접)
     $("pagers").addEventListener("click", (e) => {
@@ -116,7 +134,6 @@
       $("f-date").value = today();
       $("f-zone").value = "";
       document.querySelectorAll("#filter .chip").forEach((c) => c.classList.toggle("on", c.dataset.v !== "FALSE"));
-      search();
     });
 
     $("f-date").value = today();

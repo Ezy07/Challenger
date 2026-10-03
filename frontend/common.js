@@ -158,6 +158,12 @@ function renderShell(file, found) {
       ${where}
       <span class="grow"></span>
       <div class="gnb-side">
+        <div class="gnb-wx" id="gnb-wx" title="포항 송도동 날씨" hidden>
+          <span class="wx-chip alert" id="wx-alert" hidden><b id="wx-alert-tag">주의</b><span id="wx-alert-text"></span></span>
+          <span class="wx-chip"><span class="ico" id="wx-ico">⛅</span><b id="wx-temp">--°</b><span id="wx-sky"></span></span>
+          <span class="wx-chip">체감 <b id="wx-feel">--°</b></span>
+          <span class="wx-chip">풍속 <b id="wx-wind">--</b></span>
+        </div>
         <a class="gnb-btn" href="monitor.html#alerts" id="gnb-alert" title="실시간 알림">🔔 알림 <span class="badge">${ALERT_COUNT}</span></a>
         <span class="gnb-user"><b>${USER.name}</b><br>${USER.role}</span>
         <a class="gnb-btn" href="login.html" data-logout>로그아웃</a>
@@ -199,24 +205,6 @@ function renderShell(file, found) {
   });
 }
 
-// 같은 소제목(또는 같은 대분류) 안의 화면만 탭으로 보여 준다
-function sectionPages(found) {
-  const list = found.group.pages;
-  const at = list.indexOf(found.page);
-  let start = at;
-  while (start > 0 && list[start - 1][0]) start--;
-  let end = at;
-  while (end < list.length - 1 && list[end + 1][0]) end++;
-  return list.slice(start, end + 1);
-}
-
-function tabsHtml(found) {
-  if (!found) return "";
-  return sectionPages(found).map((p) =>
-    `<a class="tab${p === found.page ? " on" : ""}${p[3] ? " sub" : ""}" href="${p[0]}"><b>${pageNo(found.group, p)}</b>${p[1]}</a>`
-  ).join("");
-}
-
 function renderHead(file, found) {
   // 브라우저 탭 제목도 메뉴 번호와 맞춘다
   if (found) document.title = `${pageNo(found.group, found.page)} ${found.page[1]} · 안전관제`;
@@ -234,10 +222,85 @@ function renderHead(file, found) {
     head.innerHTML = `
       <div class="where"><i class="dot"></i><b>${no}</b>${groupName}</div>
       <div class="title"><h1>${title}</h1><p>${text}</p></div>
-      <div class="tabs">${tabsHtml(found)}</div>`;
+      <div></div>`;
   }
-  // monitor.html 처럼 제목 칸을 직접 만든 화면은 탭 자리만 채운다
-  document.querySelectorAll("[data-tabs]").forEach((el) => { el.innerHTML = tabsHtml(found); el.classList.add("tabs"); });
+}
+
+/* ---------------------------------------------------------------- 헤더 날씨 */
+function skyIcon(name) {
+  name = name || "";
+  if (name.includes("비 또는 눈") || name.includes("빗방울/눈날림")) return "🌨️";
+  if (name.includes("눈")) return "🌨️";
+  if (name.includes("비") || name.includes("소나기") || name.includes("빗방울")) return "☔";
+  if (name.includes("구름")) return "⛅";
+  if (name.includes("흐림")) return "☁️";
+  if (name.includes("맑음")) return "☀️";
+  return "⛅";
+}
+const firstNumber = (text) => { const m = (text || "").match(/-?\d+(?:\.\d+)?/); return m ? m[0] : "--"; };
+const gapUnit = (text) => (text || "--").replace(/([가-힣])(\d)/, "$1 $2");
+
+// 지금 시각의 관측값, 없으면 가장 최근 시각 것
+function currentSlot(data) {
+  for (let h = new Date().getHours(); h >= 0; h--) {
+    const slot = data[pad2(h) + "시"];
+    if (slot && slot.온도) return slot;
+  }
+  return null;
+}
+
+// 특보 · 폭염 정보가 있으면 빨간 칩으로
+function weatherAlert(data, slot) {
+  const bits = [(data.특보 || "").trim(), ((slot && slot.폭염) || "").trim()]
+    .filter((t) => t && t !== "--" && !t.includes("없"));
+  return bits.join(" · ");
+}
+
+function renderWeather(data) {
+  const box = document.getElementById("gnb-wx");
+  const slot = currentSlot(data);
+  if (!box || !slot) return;
+  document.getElementById("wx-ico").textContent = skyIcon(slot.날씨);
+  document.getElementById("wx-temp").textContent = firstNumber(slot.온도) + "°";
+  document.getElementById("wx-sky").textContent = slot.날씨 || "";
+  document.getElementById("wx-feel").textContent = firstNumber(slot.체감온도) + "°";
+  document.getElementById("wx-wind").textContent = gapUnit(slot.풍속);
+  const alertText = weatherAlert(data, slot);
+  const chip = document.getElementById("wx-alert");
+  chip.hidden = !alertText;
+  chip.title = alertText;
+  document.getElementById("wx-alert-tag").textContent = /경보|위험/.test(alertText) ? "경보" : "주의";
+  document.getElementById("wx-alert-text").textContent = alertText;
+  box.hidden = false;
+}
+
+function loadWeather() {
+  fetch("../weather/weather.json?t=" + Date.now())
+    .then((res) => { if (!res.ok) throw new Error("weather"); return res.json(); })
+    .then(renderWeather)
+    .catch(() => { /* 날씨 파일이 없으면 헤더에서 날씨 칸을 숨긴 채로 둔다 */ });
+}
+
+/* ---------------------------------------------------------------- 검색 조건 칸
+   목록 화면 맨 위의 .searchbar 안에서 [data-search-toggle] 버튼을 누르면 .search-panel 이 내려온다.
+   검색 조건이 바뀌면 화면 쪽에서 searchSummary("오늘 · 미처리 외 2") 처럼 요약을 버튼 옆에 적는다. */
+function setSearchOpen(bar, open) {
+  const panel = bar.querySelector(".search-panel");
+  const btn = bar.querySelector("[data-search-toggle]");
+  panel.hidden = !open;
+  bar.classList.toggle("open", open);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function searchSummary(text) {
+  document.querySelectorAll(".searchbar .search-sum").forEach((el) => {
+    el.textContent = text || "";
+    el.hidden = !text;
+  });
+}
+
+function closeSearch() {
+  document.querySelectorAll(".searchbar").forEach((bar) => setSearchOpen(bar, false));
 }
 
 function toast(msg) {
@@ -296,6 +359,22 @@ function wireCommon() {
     r.addEventListener("input", show);
     show();
   });
+  document.querySelectorAll(".searchbar").forEach((bar) => {
+    bar.querySelector("[data-search-toggle]").addEventListener("click", () => {
+      setSearchOpen(bar, !bar.classList.contains("open"));
+    });
+    bar.querySelectorAll("[data-search-close]").forEach((b) => b.addEventListener("click", () => setSearchOpen(bar, false)));
+    bar.addEventListener("keydown", (e) => { if (e.key === "Escape" && bar.classList.contains("open")) setSearchOpen(bar, false); });
+    // 예시 화면(data-auto-summary): 칩 묶음마다 첫 칩("전체")이 아닌 것을 골랐으면 버튼 옆에 적는다
+    const panel = bar.querySelector(".search-panel[data-auto-summary]");
+    if (panel) panel.addEventListener("click", (e) => {
+      if (!e.target.closest(".chip")) return;
+      searchSummary([...panel.querySelectorAll(".chips")].map((box) => {
+        const on = box.querySelector(".chip.on");
+        return on && on !== box.querySelector(".chip") ? on.firstChild.textContent.trim() : "";
+      }).filter(Boolean).join(" · "));
+    });
+  });
   // data-open="팝업id" 버튼은 팝업을 열고, 팝업 안의 [data-close] 나 바깥 영역은 닫는다
   document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => {
     const pop = document.getElementById(b.dataset.open);
@@ -309,7 +388,11 @@ function wireCommon() {
 (function init() {
   const file = currentFile();
   const found = findPage(file);
-  if (!document.body.hasAttribute("data-no-gnb")) renderShell(file, found);
+  if (!document.body.hasAttribute("data-no-gnb")) {
+    renderShell(file, found);
+    loadWeather();
+    setInterval(loadWeather, 10 * 60 * 1000);
+  }
   renderHead(file, found);
   wireCommon();
   tickClock();

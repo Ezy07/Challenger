@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .main { grid-template-rows: auto auto minmax(0, 1fr); }
     .cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     .cat { padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--c); }
     .cat span { font-size: 12px; color: var(--muted); font-weight: 700; }
@@ -18,21 +18,24 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad" data-pick>
-        <div class="label">특별관리 사유</div>
-        <button class="tc-card active"><strong>전체 <span class="muted">6</span></strong></button>
-        <button class="tc-card"><strong>고령 (만 60세 이상) <span class="muted">2</span></strong><p>생년월일로 자동 표시</p></button>
-        <button class="tc-card"><strong>고혈압 · 건강 주의 <span class="muted">2</span></strong><p>건강검진 결과로 지정</p></button>
-        <button class="tc-card"><strong>신규 투입 (7일 이내) <span class="muted">2</span></strong><p>7일 지나면 자동 해제</p></button>
-        <button class="tc-card"><strong>기타 <span class="muted">0</span></strong><p>외국인 · 경력 부족 등</p></button>
-      </div>
-    </aside>
+  <div class="page no-left">
 
     <header class="cell head"></header>
 
     <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+        </div>
+        <div class="search-panel" hidden data-auto-summary>
+          <div class="search-fields">
+            <div class="field wide">특별관리 사유
+              <div class="chips" data-single><span class="chip on">전체 <b>6</b></span><span class="chip">고령 (만 60세 이상) <b>2</b></span><span class="chip">고혈압 · 건강 주의 <b>2</b></span><span class="chip">신규 투입 (7일 이내) <b>2</b></span><span class="chip">기타 <b>0</b></span></div>
+            </div>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
+      </section>
       <div class="cats">
         <div class="cat" style="--c:#7dcea0"><span>고령</span><strong>2<i>명</i></strong></div>
         <div class="cat" style="--c:#ff9a1f"><span>고혈압</span><strong>2<i>명</i></strong></div>
