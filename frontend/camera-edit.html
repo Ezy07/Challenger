@@ -17,19 +17,9 @@
 <body>
   <div class="page">
     <aside class="cell left">
-      <div class="pad" data-pick>
+      <div class="pad">
         <div class="label">카메라 <span>고르면 수정</span></div>
-        <button class="tc-card"><div class="code">새 카메라</div><strong>＋ 새로 등록</strong></button>
-        <button class="tc-card"><div class="code">CAM_0001</div><strong>101동 갱폼 인양구역</strong></button>
-        <button class="tc-card active"><div class="code">CAM_0002</div><strong>102동 대형거푸집구역</strong></button>
-        <button class="tc-card"><div class="code">CAM_0003</div><strong>Sector A 토공</strong></button>
-        <button class="tc-card"><div class="code">CAM_0004</div><strong>외곽 야적장</strong></button>
-        <button class="tc-card"><div class="code">CAM_0005</div><strong>지하주차장 입구 <span class="status stop">오프라인</span></strong></button>
-        <div class="label" style="margin-top:6px">TC CAM</div>
-        <button class="tc-card"><div class="code">CAM_TC01 · 1호기</div><strong>101동 갱폼 인양구역</strong></button>
-        <button class="tc-card"><div class="code">CAM_TC02 · 2호기</div><strong>102동 대형거푸집구역</strong></button>
-        <button class="tc-card"><div class="code">CAM_TC03 · 3호기</div><strong>중앙 자재하역장</strong></button>
-        <button class="tc-card"><div class="code">CAM_TC04 · 4호기</div><strong>103동 외벽 인양구역</strong></button>
+        <div id="pick" style="display:grid; gap:8px"></div>
       </div>
     </aside>
 
@@ -37,51 +27,36 @@
 
     <main class="main">
       <section class="cell">
-        <div class="pad">
-          <div class="label">CAM_0002 정보 <span>* 는 꼭 입력</span></div>
+        <form class="pad" id="form">
+          <div class="label"><span id="form-title" style="all:unset">새 카메라</span> <span>* 는 꼭 입력</span></div>
           <div class="form">
-            <label class="field">카메라 ID *<input class="input" value="CAM_0002" /></label>
-            <label class="field">이름 *<input class="input" value="102동 대형거푸집구역" /></label>
-            <label class="field wide">영상 주소 (RTSP) *
-              <input class="input" value="rtsp://192.168.0.32:554/stream1" />
+            <label class="field">카메라 이름 *<input class="input" id="ce-name" placeholder="예: CAM_0005" required /></label>
+            <label class="field">설치 위치<input class="input" id="ce-loc" placeholder="예: 102동 3층 외벽 남측" /></label>
+            <label class="field wide">영상 주소 (RTSP)
+              <input class="input" id="ce-url" placeholder="rtsp://아이디:비밀번호@192.168.0.32:554/stream1" />
               <span class="help">카메라 제조사 설명서에 있는 주소. 보통 rtsp://아이피:554/... 모양입니다.</span>
             </label>
-            <label class="field">아이디<input class="input" value="admin" /></label>
-            <label class="field">비밀번호<input class="input" type="password" value="password" /></label>
-            <label class="field">설치 위치<input class="input" value="102동 3층 외벽 남측" /></label>
-            <label class="field">소속 구역
-              <select class="input"><option>102동 대형거푸집구역</option><option>101동 갱폼 인양구역</option><option>Sector A 토공</option><option>외곽 야적장</option></select>
-            </label>
-            <label class="field">분석 해상도
-              <select class="input"><option>1920×1080 (정밀)</option><option>1280×720 (보통)</option><option>640×360 (빠름)</option></select>
-            </label>
-            <label class="field">초당 분석 장수 (FPS)<input class="input" type="number" value="15" /></label>
+            <label class="field">소속 구역<select class="input" id="ce-zone"></select></label>
             <label class="field">카메라 종류
               <select class="input" id="ce-type"><option value="FIXED">현장 CAM (고정)</option><option value="TC">TC CAM (크레인 부착)</option></select>
             </label>
-            <label class="field">연결 장비 (TC CAM만)
-              <select class="input" id="ce-eq" disabled><option>없음</option><option>T-CRN-01 · 1호기</option><option>T-CRN-02 · 2호기</option><option>M-CRN-01 · 3호기</option><option>T-CRN-03 · 4호기</option></select>
-            </label>
+            <label class="field">연결 장비 (TC CAM만)<select class="input" id="ce-eq" disabled></select></label>
             <label class="field">관제화면 페이지
-              <select class="input" id="ce-page"><option value="1">1페이지 (현장)</option><option value="2">2페이지 (TC 관제)</option><option value="">표시 안 함</option></select>
+              <select class="input" id="ce-page"><option value="1">1페이지 (현장)</option><option value="2">2페이지 (TC 관제)</option></select>
             </label>
             <label class="field">페이지 안 칸 번호
-              <select class="input"><option>1 (왼쪽 위)</option><option selected>2 (오른쪽 위)</option><option>3 (왼쪽 아래)</option><option>4 (오른쪽 아래)</option></select>
-              <span class="help">같은 페이지의 같은 칸에는 카메라 1대만 둘 수 있습니다.</span>
+              <select class="input" id="ce-slot"><option value="">표시 안 함</option><option value="1">1 (왼쪽 위)</option><option value="2">2 (오른쪽 위)</option><option value="3">3 (왼쪽 아래)</option><option value="4">4 (오른쪽 아래)</option></select>
+              <span class="help" id="slot-help">같은 페이지의 같은 칸에는 카메라 1대만 둘 수 있습니다.</span>
             </label>
           </div>
-          <div class="row">
-            <button class="btn" id="test-btn">🔌 연결 테스트</button>
-            <div class="test grow" id="test-out"><span class="muted">연결 테스트를 누르면 결과가 여기에 나옵니다.</span></div>
-          </div>
           <div class="row between">
-            <button class="btn" style="color:var(--red)" data-toast="카메라 삭제는 데이터베이스 연결 후 동작합니다.">카메라 삭제</button>
+            <button class="btn" type="button" id="del" style="color:var(--red)">카메라 삭제</button>
             <div class="row">
               <a class="btn" href="cameras.html">취소</a>
-              <button class="btn primary" data-toast="카메라 정보를 저장했습니다. (예시)">저장</button>
+              <button class="btn primary">저장</button>
             </div>
           </div>
-        </div>
+        </form>
       </section>
     </main>
 
@@ -89,31 +64,117 @@
       <div class="pad">
         <div class="label">미리보기</div>
         <div class="cell cam" style="height:180px; box-shadow:none">
-          <div class="scene red"><div class="ground-line"></div><div class="bld" style="left:10%; width:22%; height:52%;"></div><div class="mast" style="left:48%; height:64%;"></div><div class="jib" style="left:48%; top:18%; width:34%;"></div></div>
-          <div class="cam-tag">CAM_0002</div><div class="cam-time js-cam-time"></div>
+          <div class="scene"><div class="ground-line"></div><div class="bld" style="left:10%; width:22%; height:52%;"></div></div>
+          <div class="cam-tag" id="pv-name">새 카메라</div><div class="cam-time js-cam-time"></div>
         </div>
-        <div class="check"><div><b>사용</b><small>끄면 탐지 · 녹화를 멈춤</small></div><span class="switch on"></span></div>
-        <div class="check"><div><b>녹화 보관</b><small>이벤트 앞뒤 영상 저장</small></div><span class="switch on"></span></div>
-        <a class="btn block" href="roi-draw.html">이 카메라에 ROI 그리기</a>
+        <div class="check"><div><b>사용</b><small>끄면 탐지를 멈춤 (관제화면에서도 빠짐)</small></div><span class="switch on" id="ce-active"></span></div>
+        <a class="btn block" id="roi-link" href="roi-draw.html">이 카메라에 ROI 그리기</a>
         <a class="btn block" href="camera-map.html">배치도에서 위치 정하기</a>
       </div>
     </aside>
   </div>
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let cams = [], cam = null;
+
+    async function load(id) {
+      const [list, zones, eq] = await Promise.all([api("/api/cameras"), api("/api/work-zones"), api("/api/equipment")]);
+      cams = list;
+      $("ce-zone").innerHTML = '<option value="">구역 없음</option>' + zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join("");
+      $("ce-eq").innerHTML = '<option value="">없음</option>' + eq.filter((e) => e.equip_type === "TC")
+        .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`).join("");
+      show(cams.find((c) => c.id === id) || null);
+    }
+
+    function show(c) {
+      cam = c;
+      history.replaceState(null, "", c ? "?id=" + c.id : location.pathname);
+      const item = (x) => `<button class="tc-card${cam && x.id === cam.id ? " active" : ""}" data-id="${x.id}">
+        <div class="code">${esc(x.name)}${x.is_active ? "" : " · 사용 안 함"}</div><strong>${esc(x.work_zone_name || x.location_desc || "-")}</strong></button>`;
+      $("pick").innerHTML = `<button class="tc-card${cam ? "" : " active"}" data-id=""><div class="code">새 카메라</div><strong>＋ 새로 등록</strong></button>`
+        + cams.filter((x) => x.camera_type === "FIXED").map(item).join("")
+        + '<div class="label" style="margin-top:6px">TC CAM</div>'
+        + cams.filter((x) => x.camera_type === "TC").map(item).join("");
+
+      $("form-title").textContent = c ? c.name + " 정보" : "새 카메라";
+      $("ce-name").value = c ? c.name : "";
+      $("ce-loc").value = c ? c.location_desc || "" : "";
+      $("ce-url").value = c ? c.stream_url || "" : "";
+      $("ce-zone").value = c ? c.work_zone_id || "" : "";
+      $("ce-type").value = c ? c.camera_type : "FIXED";
+      $("ce-eq").value = c ? c.equipment_id || "" : "";
+      $("ce-page").value = c ? c.view_page : "1";
+      $("ce-slot").value = c ? c.view_slot || "" : "";
+      $("ce-active").classList.toggle("on", c ? c.is_active : true);
+      $("ce-eq").disabled = $("ce-type").value !== "TC";
+      $("del").hidden = !c;
+      $("pv-name").textContent = c ? c.name : "새 카메라";
+      $("roi-link").hidden = !c;
+      $("roi-link").href = c ? "roi-draw.html?camera=" + c.id : "roi-draw.html";
+      showSlotOwner();
+    }
+
+    // 고른 칸에 이미 다른 카메라가 있으면 미리 알려 준다 (저장하면 서버도 막음)
+    function showSlotOwner() {
+      const page = Number($("ce-page").value), slot = Number($("ce-slot").value);
+      const owner = slot && cams.find((x) => x.view_page === page && x.view_slot === slot && (!cam || x.id !== cam.id));
+      $("slot-help").innerHTML = owner
+        ? `<span style="color:var(--red)">이 칸에는 이미 <b>${esc(owner.name)}</b> 가 있습니다.</span>`
+        : "같은 페이지의 같은 칸에는 카메라 1대만 둘 수 있습니다.";
+    }
+    $("ce-page").addEventListener("change", showSlotOwner);
+    $("ce-slot").addEventListener("change", showSlotOwner);
+    $("ce-name").addEventListener("input", () => { $("pv-name").textContent = $("ce-name").value || "새 카메라"; });
+
     // TC CAM 을 고르면 연결 장비를 고를 수 있고, 기본 페이지가 2페이지로 바뀐다
-    document.getElementById("ce-type").addEventListener("change", (e) => {
+    $("ce-type").addEventListener("change", (e) => {
       const tc = e.target.value === "TC";
-      document.getElementById("ce-eq").disabled = !tc;
-      document.getElementById("ce-page").value = tc ? "2" : "1";
+      $("ce-eq").disabled = !tc;
+      if (!tc) $("ce-eq").value = "";
+      $("ce-page").value = tc ? "2" : "1";
+      showSlotOwner();
     });
-    document.getElementById("test-btn").addEventListener("click", () => {
-      const out = document.getElementById("test-out");
-      out.innerHTML = '<span class="muted">연결하는 중…</span>';
-      setTimeout(() => {
-        out.innerHTML = '<span class="status ok">성공</span> 1920×1080 · 15fps 영상을 받았습니다. (예시)';
-      }, 800);
+
+    $("pick").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-id]");
+      if (b) show(cams.find((c) => c.id === Number(b.dataset.id)) || null);
     });
+
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = {
+        name: $("ce-name").value.trim(),
+        location_desc: $("ce-loc").value.trim() || null,
+        stream_url: $("ce-url").value.trim() || null,
+        work_zone_id: Number($("ce-zone").value) || null,
+        camera_type: $("ce-type").value,
+        equipment_id: Number($("ce-eq").value) || null,
+        view_page: Number($("ce-page").value),
+        view_slot: Number($("ce-slot").value) || null,
+        is_active: $("ce-active").classList.contains("on"),
+      };
+      try {
+        const saved = cam
+          ? await api(`/api/cameras/${cam.id}`, { method: "PATCH", body })
+          : await api("/api/cameras", { method: "POST", body });
+        toast(cam ? "카메라 정보를 저장했습니다." : "카메라를 등록했습니다.");
+        await load(saved.id);
+      } catch (err) { toast(err.message); }
+    });
+
+    $("del").addEventListener("click", async () => {
+      if (!confirm(`${cam.name} 을(를) 삭제할까요?`)) return;
+      try {
+        await api(`/api/cameras/${cam.id}`, { method: "DELETE" });
+        toast("카메라를 삭제했습니다.");
+        await load(null);
+      } catch (err) { toast(err.message); }
+    });
+
+    load(Number(new URLSearchParams(location.search).get("id"))).catch((err) => toast(err.message));
   </script>
 </body>
 </html>

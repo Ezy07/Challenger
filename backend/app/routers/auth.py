@@ -15,6 +15,7 @@ BLOCKED = {
     UserStatus.PENDING: "관리자 승인을 기다리는 중입니다.",
     UserStatus.REJECTED: "가입 신청이 반려되었습니다. 관리자에게 문의하세요.",
     UserStatus.LOCKED: "계정이 잠겼습니다. 관리자에게 잠금 해제를 요청하세요.",
+    UserStatus.DELETED: "삭제된 계정입니다.",
 }
 
 

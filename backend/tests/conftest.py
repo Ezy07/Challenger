@@ -19,6 +19,7 @@ from app.security import hash_password
 
 ADMIN = ("admin.test", "admin-pass-1234")
 MANAGER = ("manager.test", "manager-pass-1234")
+DEMO_PASSWORD = "demo-pass-1234"
 
 
 @pytest.fixture
@@ -28,10 +29,11 @@ def db_session(tmp_path):
     Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     with Session() as db:
         seed_base(db)
-        seed_demo(db)
         for (login_id, pw), role in ((ADMIN, Role.ADMIN), (MANAGER, Role.MANAGER)):
             db.add(User(login_id=login_id, password_hash=hash_password(pw), name=login_id, role=role,
                         status=UserStatus.ACTIVE, approved_at=datetime.now()))
+        db.flush()
+        seed_demo(db, DEMO_PASSWORD, tmp_path / "snapshots")
         db.commit()
 
     def override():

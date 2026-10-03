@@ -151,3 +151,21 @@ def test_csv_export(client, manager):
     assert lines[0] == "번호,시각,카메라,구역,종류,심각도,신뢰도,처리 상태"
     assert len(lines) == 1 + 3
     assert all(",높음," in line for line in lines[1:])
+
+
+def test_detail_has_zone_and_equipment_list(client, manager):
+    eid = client.get("/api/events", params={"detection_type": "NO_SIGNALMAN"}, headers=manager).json()["items"][0]["id"]
+    detail = client.get(f"/api/events/{eid}", headers=manager).json()
+    zones = {z["id"]: z["name"] for z in client.get("/api/work-zones", headers=manager).json()}
+    assert zones[detail["work_zone_id"]] == detail["work_zone_name"]
+    tcs = [e for e in client.get("/api/equipment", headers=manager).json() if e["equip_type"] == "TC"]
+    assert len(tcs) == 3
+
+
+def test_demo_history_is_consistent(client, manager):
+    """시연 데이터의 처리완료 이벤트는 해제 항목이 모두 허가돼 있어야 한다"""
+    done = client.get("/api/events", params={"status": "DONE", "size": 50}, headers=manager).json()["items"]
+    for row in done:
+        detail = client.get(f"/api/events/{row['id']}", headers=manager).json()
+        assert all(c["permitted"] for c in detail["check_items"])
+        assert detail["actions"][-1]["action_type"] == "RESOLVE"

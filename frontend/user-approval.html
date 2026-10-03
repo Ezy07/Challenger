@@ -23,11 +23,11 @@
 <body>
   <div class="page">
     <aside class="cell left">
-      <div class="pad" data-pick>
+      <div class="pad" id="tabs">
         <div class="label">신청 상태</div>
-        <button class="tc-card active"><strong>승인 대기 <span class="status warn" id="left-count">3</span></strong><p>관리자 확인이 필요한 신청</p></button>
-        <button class="tc-card"><strong>승인됨 <span class="muted">14</span></strong><p>이번 달</p></button>
-        <button class="tc-card"><strong>반려됨 <span class="muted">2</span></strong><p>이번 달</p></button>
+        <button class="tc-card active" data-status="PENDING"><strong>승인 대기 <span class="status warn" id="n-PENDING">0</span></strong><p>관리자 확인이 필요한 신청</p></button>
+        <button class="tc-card" data-status="ACTIVE"><strong>승인됨 <span class="muted" id="n-ACTIVE">0</span></strong><p>지금 쓰는 계정</p></button>
+        <button class="tc-card" data-status="REJECTED"><strong>반려됨 <span class="muted" id="n-REJECTED">0</span></strong><p>로그인할 수 없는 신청</p></button>
         <div class="hint">신청자는 <b>회원가입</b> 화면에서 신청합니다. 승인하면 <b>status</b>가 <b>PENDING → ACTIVE</b>로 바뀌고 <b>approved_by</b>에 승인한 관리자가 남습니다.</div>
       </div>
     </aside>
@@ -36,42 +36,11 @@
 
     <main class="main">
       <section class="cell bar-top">
-        <input class="input" style="width:240px" placeholder="이름 · 아이디 · 회사로 찾기" />
+        <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디 · 소속으로 찾기" />
         <span class="grow"></span>
         <a class="btn" href="signup.html">회원가입 화면 보기</a>
       </section>
-      <section class="cell" id="list">
-        <div class="req">
-          <div>
-            <h3>이수진 대리 <span class="status warn">대기</span></h3>
-            <dl><div><dt>아이디</dt><dd>lee.sj</dd></div><div><dt>소속</dt><dd>대한골조 · 안전담당</dd></div><div><dt>요청 역할</dt><dd>안전관리자</dd></div><div><dt>휴대폰</dt><dd>010-4821-0093</dd></div><div><dt>신청</dt><dd>오늘 09:14</dd></div></dl>
-          </div>
-          <div class="acts">
-            <select class="input" style="width:130px" aria-label="부여할 역할"><option>안전관리자</option><option>조회 전용</option></select>
-            <button class="btn sm" data-reject>반려</button><button class="btn sm primary" data-approve>승인</button>
-          </div>
-        </div>
-        <div class="req">
-          <div>
-            <h3>장민호 주임 <span class="status warn">대기</span></h3>
-            <dl><div><dt>아이디</dt><dd>jang.mh</dd></div><div><dt>소속</dt><dd>한빛토건 · 공무</dd></div><div><dt>요청 역할</dt><dd>조회 전용</dd></div><div><dt>휴대폰</dt><dd>010-7710-2245</dd></div><div><dt>신청</dt><dd>어제 16:40</dd></div></dl>
-          </div>
-          <div class="acts">
-            <select class="input" style="width:130px" aria-label="부여할 역할"><option>조회 전용</option><option>안전관리자</option></select>
-            <button class="btn sm" data-reject>반려</button><button class="btn sm primary" data-approve>승인</button>
-          </div>
-        </div>
-        <div class="req">
-          <div>
-            <h3>백승현 기사 <span class="status warn">대기</span></h3>
-            <dl><div><dt>아이디</dt><dd>baek.sh</dd></div><div><dt>소속</dt><dd>세진크레인 · TC 운전</dd></div><div><dt>요청 역할</dt><dd>안전관리자</dd></div><div><dt>휴대폰</dt><dd>010-3392-1187</dd></div><div><dt>신청</dt><dd>09.30 11:02</dd></div></dl>
-          </div>
-          <div class="acts">
-            <select class="input" style="width:130px" aria-label="부여할 역할"><option>조회 전용</option><option>안전관리자</option></select>
-            <button class="btn sm" data-reject>반려</button><button class="btn sm primary" data-approve>승인</button>
-          </div>
-        </div>
-      </section>
+      <section class="cell" id="list"></section>
     </main>
 
     <aside class="cell right">
@@ -88,43 +57,88 @@
   <div class="pop" id="reject-pop" hidden>
     <div class="pop-card">
       <div class="pop-head">
-        <div><span class="status stop">반려</span><h2 id="reject-title">가입 반려</h2><p>사유는 신청자에게 문자로 전달됩니다</p></div>
+        <div><span class="status stop">반려</span><h2 id="reject-title">가입 반려</h2><p>반려하면 이 아이디로 로그인할 수 없습니다 (신청자에게 따로 알려 주세요)</p></div>
         <button class="btn sm" data-close>닫기</button>
       </div>
       <div class="pop-body">
-        <label class="field">반려 사유<select class="input" id="reject-why"><option>소속 확인 불가</option><option>중복 계정</option><option>현장 투입 종료</option><option>기타</option></select></label>
         <div class="row end"><button class="btn" data-close>취소</button><button class="btn danger" id="reject-ok">반려</button></div>
       </div>
     </div>
   </div>
 
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    const leftCount = document.getElementById("left-count");
-    function finish(row, word, cls) {
-      row.classList.add("done");
-      row.querySelector("h3 .status").className = "status " + cls;
-      row.querySelector("h3 .status").textContent = word;
-      row.querySelector(".acts").innerHTML = "";
-      leftCount.textContent = document.querySelectorAll(".req:not(.done)").length;
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let users = [], orgs = {}, tab = "PENDING", rejectId = null;
+
+    async function load() {
+      const [list, orgList] = await Promise.all([api("/api/users"), api("/api/orgs")]);
+      users = list;
+      orgs = orgNames(orgList);
+      render();
     }
-    document.querySelectorAll("[data-approve]").forEach((btn) => btn.addEventListener("click", () => {
-      const row = btn.closest(".req");
-      const role = row.querySelector("select").value;
-      finish(row, "승인 · " + role, "ok");
-      toast(row.querySelector("h3").firstChild.textContent.trim() + "님을 " + role + "(으)로 승인했습니다. (예시)");
-    }));
-    const rejectPop = document.getElementById("reject-pop");
-    let rejectRow = null;
-    document.querySelectorAll("[data-reject]").forEach((btn) => btn.addEventListener("click", () => {
-      rejectRow = btn.closest(".req");
-      document.getElementById("reject-title").textContent = rejectRow.querySelector("h3").firstChild.textContent.trim() + " 가입 반려";
-      rejectPop.hidden = false;
-    }));
-    document.getElementById("reject-ok").addEventListener("click", () => {
-      finish(rejectRow, "반려 · " + document.getElementById("reject-why").value, "stop");
-      rejectPop.hidden = true;
+
+    function render() {
+      ["PENDING", "ACTIVE", "REJECTED"].forEach((st) => { $("n-" + st).textContent = users.filter((u) => u.status === st).length; });
+      document.querySelectorAll("#tabs [data-status]").forEach((b) => b.classList.toggle("active", b.dataset.status === tab));
+      const q = $("q").value.trim().toLowerCase();
+      const rows = users.filter((u) => u.status === tab)
+        .filter((u) => !q || [u.name, u.login_id, orgs[u.org_id]].join(" ").toLowerCase().includes(q));
+      $("list").innerHTML = rows.length ? rows.map((u) => `
+        <div class="req" data-id="${u.id}">
+          <div>
+            <h3>${esc(u.name)} ${esc(u.position || "")} ${badge("userStatus", u.status)}</h3>
+            <dl><div><dt>아이디</dt><dd>${esc(u.login_id)}</dd></div><div><dt>소속</dt><dd>${esc(orgs[u.org_id] || "-")}</dd></div>
+              <div><dt>${u.status === "PENDING" ? "요청 역할" : "역할"}</dt><dd>${LABEL.role[u.role][1]}</dd></div>
+              <div><dt>휴대폰</dt><dd>${esc(u.phone || "-")}</dd></div><div><dt>신청</dt><dd>${fmtTime(u.created_at).slice(0, 16)}</dd></div></dl>
+          </div>
+          ${u.status === "PENDING" ? `<div class="acts">
+            <select class="input" style="width:130px" aria-label="부여할 역할">
+              <option value="MANAGER"${u.role === "MANAGER" ? " selected" : ""}>안전관리자</option>
+              <option value="VIEWER"${u.role === "VIEWER" ? " selected" : ""}>조회 전용</option>
+            </select>
+            <button class="btn sm" data-reject>반려</button><button class="btn sm primary" data-approve>승인</button>
+          </div>` : ""}
+        </div>`).join("")
+        : `<div class="pad muted" style="text-align:center; padding:40px">${q ? "찾는 신청이 없습니다" : "해당하는 신청이 없습니다"}</div>`;
+    }
+
+    const nameOf = (id) => users.find((u) => u.id === id).name;
+
+    $("list").addEventListener("click", async (e) => {
+      const row = e.target.closest(".req");
+      if (!row) return;
+      const id = Number(row.dataset.id);
+      if (e.target.closest("[data-approve]")) {
+        const role = row.querySelector("select").value;
+        try {
+          await api(`/api/users/${id}/approve`, { method: "POST", body: { role } });
+          toast(`${nameOf(id)}님을 ${LABEL.role[role][1]}(으)로 승인했습니다.`);
+          await load();
+        } catch (err) { toast(err.message); }
+      } else if (e.target.closest("[data-reject]")) {
+        rejectId = id;
+        $("reject-title").textContent = nameOf(id) + " 가입 반려";
+        $("reject-pop").hidden = false;
+      }
     });
+    $("reject-ok").addEventListener("click", async () => {
+      $("reject-pop").hidden = true;
+      try {
+        await api(`/api/users/${rejectId}/reject`, { method: "POST" });
+        toast(nameOf(rejectId) + "님의 가입을 반려했습니다.");
+        await load();
+      } catch (err) { toast(err.message); }
+    });
+    $("tabs").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-status]");
+      if (b) { tab = b.dataset.status; render(); }
+    });
+    $("q").addEventListener("input", render);
+
+    load().catch((err) => toast(err.message));
   </script>
 </body>
 </html>

@@ -245,6 +245,7 @@ def to_detail(event: Event) -> EventDetail:
     return EventDetail(
         **row.model_dump(),
         camera_id=event.camera_id,
+        work_zone_id=zone.id if zone else None,
         roi_id=event.roi_id,
         roi_name=event.roi.name if event.roi else None,
         bbox=event.bbox,

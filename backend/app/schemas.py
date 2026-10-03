@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .models import ActionType, CameraType, EventStatus, OrgType, Role, Severity, UserStatus
+from .models import ActionType, CameraType, EquipType, EventStatus, OrgType, Role, Severity, UserStatus
 
 
 class Out(BaseModel):
@@ -53,7 +53,9 @@ class UserOut(Out):
     org_id: int | None
     role: Role
     status: UserStatus
+    approved_by: int | None
     approved_at: datetime | None
+    failed_login_count: int
     last_login_at: datetime | None
     created_at: datetime
 
@@ -64,6 +66,26 @@ class TokenOut(BaseModel):
     user: UserOut
 
 
+class UserCreate(BaseModel):
+    """관리자가 직접 등록. 승인 없이 바로 활성이고, 첫 비밀번호는 서버가 만들어 한 번만 알려 준다."""
+
+    login_id: str = Field(pattern=r"^[a-z0-9.]{4,20}$")
+    name: str = Field(min_length=1, max_length=50)
+    position: str | None = Field(default=None, max_length=30)
+    phone: str | None = Field(default=None, max_length=20)
+    org_id: int | None = None
+    role: Role = Role.VIEWER
+
+
+class ApproveIn(BaseModel):
+    role: Literal[Role.MANAGER, Role.VIEWER] | None = None  # 비우면 신청한 역할 그대로
+
+
+class TempPasswordOut(BaseModel):
+    user: UserOut
+    temp_password: str
+
+
 class UserUpdate(BaseModel):
     """회원정보 수정 (관리자). 보낸 값만 바꾼다."""
 
@@ -72,7 +94,7 @@ class UserUpdate(BaseModel):
     phone: str | None = Field(default=None, max_length=20)
     org_id: int | None = None
     role: Role | None = None
-    status: UserStatus | None = None
+    status: Literal[UserStatus.ACTIVE, UserStatus.LOCKED] | None = None  # 삭제는 DELETE 로
 
 
 # ---------------------------------------------------------------- 구역 · 카메라
@@ -80,6 +102,13 @@ class WorkZoneOut(Out):
     id: int
     name: str
     plan_polygon: list | None
+
+
+class EquipmentOut(Out):
+    id: int
+    name: str
+    equip_type: EquipType
+    work_zone_id: int | None
 
 
 class CameraIn(BaseModel):
@@ -197,6 +226,7 @@ class CheckItemState(BaseModel):
 
 class EventDetail(EventRow):
     camera_id: int | None
+    work_zone_id: int | None
     roi_id: int | None
     roi_name: str | None
     bbox: list | None

@@ -1,7 +1,7 @@
 import logging
 
 from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from .config import DEV_JWT_SECRET, settings
@@ -26,7 +26,14 @@ def root():
     return RedirectResponse("/login.html")
 
 
-# 화면(frontend/)과 날씨 데이터(tools/weather/)는 같은 서버에서 그대로 내려준다.
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(status_code=204)
+
+
+# 화면(frontend/) · 날씨 데이터(tools/weather/) · 스냅샷 이미지(storage/snapshots/)는 같은 서버에서 그대로 내려준다.
 # monitor.html 은 ../weather/weather.json 을 읽으므로 /weather 경로에 붙인다.
+settings.snapshot_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/weather", StaticFiles(directory=settings.weather_dir), name="weather")
+app.mount("/snapshots", StaticFiles(directory=settings.snapshot_dir), name="snapshots")
 app.mount("/", StaticFiles(directory=settings.frontend_dir, html=True), name="frontend")

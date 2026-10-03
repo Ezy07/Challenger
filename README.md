@@ -56,7 +56,9 @@ python -m app.seed --admin-password "관리자비밀번호" --demo   # 기본 �
 uvicorn app.main:app --reload
 ```
 
-- 화면: <http://localhost:8000> → 로그인 화면
+- 화면: <http://localhost:8000> → 로그인 화면 (`choi.dh` / 위에서 정한 비밀번호)
+- `--demo` 로 넣는 시연 데이터: 회원 9명(승인 대기 3 · 잠금 1 포함) · 작업자 14명 · 오늘 작업 5건 · 장비 6대와 3일치 일일 기록 · 카메라 7대 · ROI 4개와 ROI별 규칙 · 이벤트 9건(처리 기록 · 예시 스냅샷 포함).
+  시연 회원(`oh.sy`, `park.jw` 등)도 관리자와 같은 비밀번호로 로그인됩니다. 예시 스냅샷은 `storage/snapshots/` 에 만들어집니다.
 - API 문서(직접 눌러 보기): <http://localhost:8000/docs>
 
 > MySQL 없이 빨리 보고 싶으면 `.env` 에 `DATABASE_URL=sqlite:///./dev.db` 를 넣고
@@ -78,12 +80,12 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 구분 | API | 연결된 화면 |
 |---|---|---|
 | 로그인 · 회원가입 | `POST /api/auth/signup` · `POST /api/auth/login` · `GET /api/auth/me` | `login.html` · `signup.html` |
-| 회원 관리 (관리자) | `GET /api/users?status=PENDING` · `POST /api/users/{id}/approve` · `/reject` · `PATCH /api/users/{id}` | (예정) |
-| 기준 정보 | `GET /api/orgs` · `POST /api/orgs` · `GET /api/work-zones` · `GET /api/detection-types` | 회원가입 회사 · 부서 선택, 이벤트 필터 |
-| 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` | (예정) |
+| 회원 관리 (관리자) | `GET/POST /api/users` · `POST /api/users/{id}/approve` · `/reject` · `/reset-password` · `PATCH/DELETE /api/users/{id}` | `users.html` · `user-approval.html` · `user-edit.html` |
+| 기준 정보 | `GET /api/orgs` · `POST /api/orgs` · `GET /api/work-zones` · `GET /api/equipment` · `GET /api/detection-types` | 회사 · 부서 · 구역 · 장비 선택, 이벤트 필터 |
+| 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` | `cameras.html` · `camera-edit.html` |
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
-| 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` · `GET /api/events/export.csv` | `events.html` |
-| 이벤트 처리 | `POST /api/events/{id}/actions` | (예정) |
+| 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` · `GET /api/events/export.csv` | `events.html` · `event-detail.html` |
+| 이벤트 처리 | `POST /api/events/{id}/actions` | `event-handle.html` |
 
 나머지 화면은 아직 예시 데이터로 보입니다. 화면에 API 를 붙일 때는 `api.js` 를 `common.js` 앞에 넣고 `api("/api/...")` 로 부르면 됩니다.
 
@@ -92,11 +94,13 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 1. **AI 감지 → 이벤트**: `POST /api/events` 가 ROI별 규칙(`roi_rule`) → 기본 규칙(`alert_rule`) 순으로 판정 기준(confidence)과 심각도를 정하고, 기준 미달이거나 쿨다운 시간 안에 같은 경보가 있으면 이벤트를 만들지 않습니다.
 2. **처리**: `ACK`(확인 시작) → 해제 항목(`release_check_item`)마다 `PERMIT` → 모두 허가되면 `RESOLVE` 로 처리완료. `FALSE_ALARM` 은 오탐 처리. 끝난 이벤트에는 `NOTE` 만 남길 수 있습니다.
 3. **권한**: `ADMIN` 전체 · `MANAGER` 이벤트 처리 · `VIEWER` 조회만. 가입하면 `PENDING` 이고 관리자가 승인해야 로그인됩니다. 비밀번호 5회 실패 시 잠김.
+4. **회원 삭제**: 처리 기록에 이름이 남아야 해서 행을 지우지 않고 `DELETED` 로 바꿉니다. 관리자가 직접 등록하거나 비밀번호를 초기화하면 임시 비밀번호가 화면에 한 번만 표시됩니다.
 
 ## 다음 할 일
 
-- [ ] 이벤트 상세 · 처리 기록 화면 연결 (`event-detail.html`, `event-handle.html`)
-- [ ] 회원가입 승인 · 회원 목록 · 카메라 목록 화면 연결
+- [x] 이벤트 상세 · 처리 기록 화면 연결
+- [x] 회원가입 승인 · 회원 목록 · 회원정보 수정 · 카메라 목록 · 카메라 등록 화면 연결
+- [ ] 조직 · 부서 관리 화면 연결 (`org.html`)
 - [ ] 작업자 · 작업 · 장비 CRUD API
 - [ ] ROI 그리기 저장 · ROI별 규칙 API
 - [ ] 관제화면 실시간 알림 (WebSocket 또는 주기적 조회)

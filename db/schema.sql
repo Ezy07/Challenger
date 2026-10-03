@@ -33,7 +33,7 @@ CREATE TABLE users (
   position            VARCHAR(30)  NULL,                      -- 직급 (과장, 대리 ...)
   phone               VARCHAR(20)  NULL,
   role                ENUM('ADMIN', 'MANAGER', 'VIEWER') NOT NULL DEFAULT 'VIEWER',
-  status              ENUM('PENDING', 'ACTIVE', 'REJECTED', 'LOCKED') NOT NULL DEFAULT 'PENDING',
+  status              ENUM('PENDING', 'ACTIVE', 'REJECTED', 'LOCKED', 'DELETED') NOT NULL DEFAULT 'PENDING',  -- DELETED: 처리 기록 때문에 행은 남김
   approved_by         BIGINT UNSIGNED NULL,                   -- 승인한 관리자
   approved_at         DATETIME     NULL,
   failed_login_count  TINYINT UNSIGNED NOT NULL DEFAULT 0,    -- 5회 실패 시 LOCKED

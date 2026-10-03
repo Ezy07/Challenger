@@ -18,6 +18,7 @@ venv/
 *.mp4
 *.avi
 snapshots/
+storage/
 
 # 편집기 · OS
 .vscode/

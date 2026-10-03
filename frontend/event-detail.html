@@ -21,18 +21,9 @@
   <div class="page">
     <aside class="cell left">
       <div class="pad">
-        <div class="label">이벤트 정보 <span>EV-1042</span></div>
-        <div>
-          <div class="info-row"><span>번호</span><b>EV-1042</b></div>
-          <div class="info-row"><span>발생 시각</span><b>2026.10.01 14:32:10</b></div>
-          <div class="info-row"><span>카메라</span><b>CAM_0002</b></div>
-          <div class="info-row"><span>구역</span><b>102동 대형거푸집구역</b></div>
-          <div class="info-row"><span>종류</span><b>신호수 미배치</b></div>
-          <div class="info-row"><span>관련 법규</span><b>산안법 제38조</b></div>
-          <div class="info-row"><span>심각도</span><b><span class="status stop">높음</span></b></div>
-          <div class="info-row"><span>처리 상태</span><b><span class="status stop">미처리</span></b></div>
-        </div>
-        <a class="btn primary block" href="event-handle.html">처리 기록 쓰기</a>
+        <div class="label">이벤트 정보 <span id="no-label"></span></div>
+        <div id="info"></div>
+        <a class="btn primary block" id="handle-link" href="event-handle.html">처리 기록 쓰기</a>
         <a class="btn block" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a>
         <a class="btn block" href="events.html">← 이벤트 목록</a>
       </div>
@@ -42,55 +33,105 @@
 
     <main class="main">
       <section class="cell cam">
-        <div class="scene red">
+        <div class="scene" id="scene">
           <div class="ground-line"></div>
           <div class="bld" style="left:10%; width:22%; height:52%;"></div>
           <div class="mast" style="left:48%; height:64%;"></div>
           <div class="jib" style="left:48%; top:18%; width:34%;"></div>
-          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
-          <div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em>신호수 없음 85%</em></div>
-          <div class="box" style="left:22%; top:46%; width:8%; height:24%;"><em>작업자 92%</em></div>
-          <div class="box info" style="left:72%; top:52%; width:7%; height:12%;"><em>인양물</em></div>
+          <div class="box stop" style="left:56%; top:34%; width:16%; height:36%;"><em id="box-label"></em></div>
         </div>
-        <div class="cam-tag">CAM_0002 · 탐지 순간</div>
-        <div class="cam-time">14:32:10</div>
-        <div class="cam-zone">102동 대형거푸집구역</div>
+        <img id="snap" alt="탐지 순간 스냅샷" hidden style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000" />
+        <div class="cam-tag" id="cam-tag"></div>
+        <div class="cam-time" id="cam-time"></div>
+        <div class="cam-zone" id="cam-zone"></div>
       </section>
       <section class="cell clip">
         <div class="row between">
           <div class="label">앞뒤 영상 클립 <span>탐지 전 10초 ~ 후 10초</span></div>
           <div class="row">
             <button class="btn sm" data-toast="영상 재생은 저장 서버 연결 후 동작합니다.">▶ 재생</button>
-            <button class="btn sm" data-toast="클립을 내려받았습니다. (예시)">⬇ 클립 저장</button>
+            <button class="btn sm" data-toast="클립 저장은 저장 서버 연결 후 동작합니다.">⬇ 클립 저장</button>
           </div>
         </div>
         <div class="scrub"><i></i><b></b></div>
-        <div class="thumbs" data-pick>
-          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div></div><span>-10초</span></div>
-          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div></div><span>-5초</span></div>
-          <div class="thumb on"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"></div></div><span>탐지 14:32:10</span></div>
-          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="box stop" style="left:60%; top:34%; width:16%; height:36%;"></div></div><span>+5초</span></div>
-          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="box stop" style="left:62%; top:34%; width:16%; height:36%;"></div></div><span>+10초</span></div>
-        </div>
+        <div class="hint">영상 클립은 저장 위치(서버)를 정한 뒤 붙입니다. 스냅샷 파일이 없는 이벤트는 위에 예시 그림이 보입니다.</div>
       </section>
     </main>
 
     <aside class="cell right">
       <div class="pad">
-        <div class="label">탐지된 객체 <span>3개</span></div>
-        <div class="check stop"><div><b>신호수 없음</b><small>인양 중 신호수 미탐지</small></div><span class="status stop">85%</span></div>
-        <div class="check"><div><b>작업자</b><small>안전모 · 조끼 착용</small></div><span class="status ok">92%</span></div>
-        <div class="check info"><div><b>인양물 (거푸집)</b><small>T-CRN-02 후크</small></div><span class="status info">79%</span></div>
+        <div class="label">탐지 결과</div>
+        <div id="detected"></div>
 
-        <div class="label" style="margin-top:6px">해야 할 조치</div>
-        <div class="check stop"><div><b>인양 중지</b><small>신호수를 배치한 뒤 재개</small></div><span class="status stop">즉시</span></div>
-        <div class="check warn"><div><b>담당자 연락</b><small>박진우 차장 (양중)</small></div><span class="status warn">필요</span></div>
+        <div class="label" style="margin-top:6px">해제 전에 허가할 항목 <span id="check-count"></span></div>
+        <div id="checks"></div>
 
-        <div class="label" style="margin-top:6px">같은 구역의 비슷한 이벤트</div>
-        <a class="item ok" href="event-detail.html"><div class="item-top"><b>EV-1034 펌프카 붐 하부 출입</b></div><div class="desc">10:12:47 · 처리완료</div></a>
+        <div class="label" style="margin-top:6px">같은 구역의 최근 이벤트</div>
+        <div id="similar"></div>
       </div>
     </aside>
   </div>
+  <script src="api.js"></script>
   <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const id = Number(new URLSearchParams(location.search).get("id"));
+    const SCENE = { HIGH: "red", MEDIUM: "", LOW: "green" };
+
+    async function load() {
+      if (!id) {
+        // 목록을 거치지 않고 들어오면 가장 최근 이벤트를 보여 준다
+        const first = (await api("/api/events", { query: { size: 1 } })).items[0];
+        if (first) location.replace("event-detail.html?id=" + first.id);
+        else $("info").innerHTML = '<p class="muted">이벤트가 없습니다.</p>';
+        return;
+      }
+      const e = await api(`/api/events/${id}`);
+      const conf = e.confidence == null ? "-" : Math.round(e.confidence * 100) + "%";
+      const row = (k, v) => `<div class="info-row"><span>${k}</span><b>${v}</b></div>`;
+
+      $("no-label").textContent = "EV-" + e.id;
+      $("info").innerHTML = row("번호", "EV-" + e.id) + row("발생 시각", fmtTime(e.detected_at))
+        + row("카메라", esc(e.camera_name || "없음")) + row("구역", esc(e.work_zone_name || "-"))
+        + (e.roi_name ? row("ROI", esc(e.roi_name)) : "")
+        + row("종류", esc(e.detection_label)) + row("심각도", badge("severity", e.severity))
+        + row("신뢰도", conf) + row("처리 상태", badge("eventStatus", e.status));
+      $("handle-link").href = "event-handle.html?id=" + e.id;
+      $("handle-link").textContent = e.status === "DONE" || e.status === "FALSE" ? "처리 기록 보기" : "처리 기록 쓰기";
+
+      $("scene").className = "scene " + SCENE[e.severity];
+      $("box-label").textContent = `${e.detection_label} ${conf}`;
+      $("cam-tag").textContent = (e.camera_name || "카메라 없음") + " · 탐지 순간";
+      $("cam-time").textContent = fmtTime(e.detected_at, { date: false });
+      $("cam-zone").textContent = e.work_zone_name || "";
+      if (e.snapshots.length) {
+        // 스냅샷이 열리면 예시 그림 대신 보여 주고, 못 열면 예시 그림을 그대로 둔다
+        $("snap").onload = () => { $("snap").hidden = false; $("scene").hidden = true; };
+        $("snap").src = e.snapshots[0];
+      }
+
+      const [cls] = LABEL.severity[e.severity];
+      $("detected").innerHTML = `<div class="check ${cls}"><div><b>${esc(e.detection_label)}</b><small>${esc(e.detection_code)}${e.bbox ? " · 위치 " + e.bbox.map(Math.round).join(", ") : ""}</small></div><span class="status ${cls}">${conf}</span></div>`;
+
+      const done = e.check_items.filter((c) => c.permitted).length;
+      $("check-count").textContent = e.check_items.length ? `${done} / ${e.check_items.length}` : "";
+      $("checks").innerHTML = e.check_items.length
+        ? e.check_items.map((c) => `<div class="check ${c.permitted ? "ok" : "stop"}"><div><b>${esc(c.title)}</b><small>${c.permitted ? "허가됨" : "아직 허가 안 됨"}</small></div><span class="status ${c.permitted ? "ok" : "stop"}">${c.permitted ? "✓" : "대기"}</span></div>`).join("")
+        : '<div class="hint">이 종류는 해제 항목이 없어서 확인 후 바로 처리완료할 수 있습니다.</div>';
+
+      if (e.work_zone_id) {
+        const near = (await api("/api/events", { query: { work_zone_id: e.work_zone_id, size: 6 } })).items.filter((x) => x.id !== e.id).slice(0, 5);
+        const tone = { NEW: "stop", ACK: "warn", DONE: "ok", FALSE: "" };
+        $("similar").innerHTML = near.length
+          ? near.map((x) => `<a class="item ${tone[x.status]}" href="event-detail.html?id=${x.id}"><div class="item-top"><b>EV-${x.id} ${esc(x.detection_label)}</b></div><div class="desc">${fmtTime(x.detected_at)} · ${LABEL.eventStatus[x.status][1]}</div></a>`).join("")
+          : '<div class="hint">같은 구역의 다른 이벤트가 없습니다.</div>';
+      } else {
+        $("similar").innerHTML = '<div class="hint">구역이 없는 이벤트입니다.</div>';
+      }
+    }
+
+    load().catch((err) => toast(err.message));
+  </script>
 </body>
 </html>

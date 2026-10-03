@@ -46,6 +46,7 @@ class UserStatus(StrEnum):
     ACTIVE = "ACTIVE"
     REJECTED = "REJECTED"
     LOCKED = "LOCKED"
+    DELETED = "DELETED"  # 삭제 (처리 기록에 이름이 남아야 해서 행은 지우지 않음)
 
 
 class CameraType(StrEnum):
@@ -130,8 +131,8 @@ class User(Base):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     failed_login_count: Mapped[int] = mapped_column(SmallInteger, default=0)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now(), onupdate=datetime.now)
 
     org: Mapped[Organization | None] = relationship()
 
@@ -262,7 +263,7 @@ class EventAction(Base):
     check_item_id: Mapped[int | None] = mapped_column(Id, ForeignKey("release_check_item.id"))
     action_type: Mapped[ActionType] = mapped_column(enum_col(ActionType))
     memo: Mapped[str | None] = mapped_column(String(1000))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
 
     user: Mapped[User] = relationship()
 
@@ -273,7 +274,7 @@ class EventSnapshot(Base):
     id: Mapped[int] = mapped_column(Id, primary_key=True)
     event_id: Mapped[int] = mapped_column(Id, ForeignKey("event.id", ondelete="CASCADE"))
     image_path: Mapped[str] = mapped_column(String(500))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
 
 
 # ---------------------------------------------------------------- 작업자 · 작업 · 장비
@@ -289,7 +290,7 @@ class Worker(Base):
     is_special_care: Mapped[bool] = mapped_column(Boolean, default=False)
     special_reason: Mapped[str | None] = mapped_column(String(200))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
 
 
 class Work(Base):
@@ -332,4 +333,4 @@ class EquipmentDailyLog(Base):
     status: Mapped[EquipStatus] = mapped_column(enum_col(EquipStatus))
     note: Mapped[str | None] = mapped_column(String(500))
     recorded_by: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())

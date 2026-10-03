@@ -62,10 +62,7 @@
     requireLogin();
     const $ = (id) => document.getElementById(id);
     const SIZE = 10;
-    const SEVERITY = { HIGH: ["stop", "높음"], MEDIUM: ["warn", "중간"], LOW: ["ok", "낮음"] };
-    const STATUS = { NEW: ["stop", "미처리"], ACK: ["warn", "확인중"], DONE: ["ok", "처리완료"], FALSE: ["mute", "오탐"] };
     const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
     const picked = (box) => [...$(box).querySelectorAll(".chip.on")].map((c) => c.dataset.v);
     const toggleChip = (e) => { if (e.target.classList.contains("chip")) e.target.classList.toggle("on"); };
     let page = 1;
@@ -93,12 +90,11 @@
       const zone = $("f-zone").selectedOptions[0].textContent;
       $("summary").textContent = `${($("f-date").value || "전체 기간").replaceAll("-", ".")} · ${zone} · 줄을 누르면 상세 화면으로 이동`;
       $("rows").innerHTML = items.length ? items.map((e) => {
-        const time = e.detected_at.slice(11, 19);
-        const [sc, sl] = SEVERITY[e.severity], [tc, tl] = STATUS[e.status];
+        const time = fmtTime(e.detected_at, { date: false });
         const conf = e.confidence == null ? "-" : Math.round(e.confidence * 100) + "%";
         return `<tr data-href="event-detail.html?id=${e.id}"><td class="num">EV-${e.id}</td><td class="num">${time}</td>
           <td>${esc(e.camera_name || "-")}</td><td>${esc(e.work_zone_name || "-")}</td><td>${esc(e.detection_label)}</td>
-          <td><span class="status ${sc}">${sl}</span></td><td class="num">${conf}</td><td><span class="status ${tc}">${tl}</span></td></tr>`;
+          <td>${badge("severity", e.severity)}</td><td class="num">${conf}</td><td>${badge("eventStatus", e.status)}</td></tr>`;
       }).join("") : `<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">조건에 맞는 이벤트가 없습니다</td></tr>`;
       $("rows").querySelectorAll("[data-href]").forEach((tr) => tr.addEventListener("click", () => { location.href = tr.dataset.href; }));
 

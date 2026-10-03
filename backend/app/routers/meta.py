@@ -5,8 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from ..deps import DB, Admin, CurrentUser
-from ..models import DetectionType, Organization, OrgType, WorkZone
-from ..schemas import DetectionTypeOut, OrgIn, OrgOut, WorkZoneOut
+from ..models import DetectionType, Equipment, Organization, OrgType, WorkZone
+from ..schemas import DetectionTypeOut, EquipmentOut, OrgIn, OrgOut, WorkZoneOut
 
 router = APIRouter(prefix="/api", tags=["기준 정보"])
 
@@ -32,6 +32,12 @@ def create_org(body: OrgIn, db: DB, _: Admin):
 @router.get("/work-zones", response_model=list[WorkZoneOut])
 def list_work_zones(db: DB, _: CurrentUser):
     return db.scalars(select(WorkZone).order_by(WorkZone.id)).all()
+
+
+@router.get("/equipment", response_model=list[EquipmentOut])
+def list_equipment(db: DB, _: CurrentUser):
+    """장비 목록 (지금은 카메라 등록에서 TC 고르기용. 장비 CRUD 는 다음 단계)"""
+    return db.scalars(select(Equipment).order_by(Equipment.id)).all()
 
 
 @router.get("/detection-types", response_model=list[DetectionTypeOut])

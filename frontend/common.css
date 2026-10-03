@@ -1,3 +1,6 @@
+/* hidden 속성은 display: grid 같은 규칙보다 항상 우선 (안 그러면 숨긴 칸이 보임) */
+[hidden] { display: none !important; }
+
 /* 모든 화면이 함께 쓰는 디자인. 색과 카드 모양은 dashboard.html 에서 그대로 가져왔다 */
 :root {
   --bg: #0c1016;

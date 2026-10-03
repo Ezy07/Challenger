@@ -31,15 +31,9 @@
 <body>
   <div class="page no-right">
     <aside class="cell left">
-      <div class="pad" data-pick>
-        <div class="label">회원 고르기 <span>7명</span></div>
-        <button class="tc-card"><div class="code">관리자</div><strong>최동현 과장</strong><p>OO건설 · 안전팀</p></button>
-        <button class="tc-card"><div class="code">관리자</div><strong>한지훈 소장</strong><p>OO건설 · 현장소장실</p></button>
-        <button class="tc-card active"><div class="code">안전관리자</div><strong>오세영 주임</strong><p>OO건설 · 안전팀</p></button>
-        <button class="tc-card"><div class="code">안전관리자</div><strong>박진우 차장</strong><p>공사팀(양중)</p></button>
-        <button class="tc-card"><div class="code">안전관리자</div><strong>정민수 부장</strong><p>공사팀(토공)</p></button>
-        <button class="tc-card"><div class="code">안전관리자</div><strong>김철수 과장</strong><p>공사팀(타설)</p></button>
-        <button class="tc-card"><div class="code">조회 전용 · 잠금</div><strong>윤가람 주임</strong><p>OO건설 · 공무팀</p></button>
+      <div class="pad">
+        <div class="label">회원 고르기 <span id="n-users">0명</span></div>
+        <div id="pick" style="display:grid; gap:8px"></div>
       </div>
     </aside>
 
@@ -47,40 +41,35 @@
 
     <main class="main scroll">
       <section class="cell"><div class="pad">
-        <div class="who"><span class="av">오</span><div><b>오세영 주임</b><small>oh.sy · 가입 2026.03.04 · 승인 최동현 과장</small></div></div>
+        <div class="who"><span class="av" id="ue-av"></span><div><b id="ue-title">불러오는 중…</b><small id="ue-sub"></small></div></div>
         <div class="label" style="margin-top:6px">기본 정보</div>
         <div class="two">
-          <label class="field">이름<input class="input" id="ue-name" value="오세영" /></label>
-          <label class="field">직급<input class="input" id="ue-rank" value="주임" /></label>
+          <label class="field">이름<input class="input" id="ue-name" /></label>
+          <label class="field">직급<input class="input" id="ue-rank" /></label>
         </div>
-        <div class="two">
-          <label class="field">휴대폰<input class="input" id="ue-phone" value="010-5523-8810" /></label>
-          <label class="field">이메일<input class="input" id="ue-mail" value="oh.sy@oo-const.co.kr" /></label>
-        </div>
-        <label class="field">소속 (조직 · 부서)
-          <select class="input" id="ue-org"><option>OO건설 · 안전팀</option><option>OO건설 · 공사팀(양중)</option><option>OO건설 · 공사팀(토공)</option><option>OO건설 · 공무팀</option><option>대한골조</option><option>한빛토건</option></select>
-        </label>
-        <div class="label" style="margin-top:6px">계정 상태</div>
-        <div class="chips" data-single>
-          <span class="chip on">활성</span><span class="chip">잠금</span>
+        <label class="field">휴대폰<input class="input" id="ue-phone" placeholder="010-0000-0000" /></label>
+        <label class="field">소속 (조직 · 부서)<select class="input" id="ue-org"></select></label>
+        <div class="label" style="margin-top:6px">계정 상태 <span id="self-note"></span></div>
+        <div class="chips" id="ue-status">
+          <span class="chip" data-v="ACTIVE">활성</span><span class="chip" data-v="LOCKED">잠금</span>
         </div>
         <div class="row">
-          <button class="btn sm" data-toast="임시 비밀번호를 문자로 보냈습니다. (예시)">비밀번호 초기화</button>
-          <span class="muted">마지막 접속 오늘 14:02 · 비밀번호 실패 0회</span>
+          <button class="btn sm" id="reset-pw">비밀번호 초기화</button>
+          <span class="muted" id="ue-login"></span>
         </div>
       </div></section>
 
       <section class="cell"><div class="pad">
         <div class="label">역할 (권한) <span>role</span></div>
         <div class="roles" id="roles">
-          <label><input type="radio" name="role" value="0" /><b>관리자 (ADMIN)</b><small>모든 화면 + 관리자 메뉴(회원 · 카메라 · 알림 규칙)</small></label>
-          <label><input type="radio" name="role" value="1" checked /><b>안전관리자 (MANAGER)</b><small>관제 · 이벤트 처리 · ROI · 안전관리 업무</small></label>
-          <label><input type="radio" name="role" value="2" /><b>조회 전용 (VIEWER)</b><small>화면 보기만, 저장 · 처리 불가</small></label>
+          <label><input type="radio" name="role" value="ADMIN" /><b>관리자 (ADMIN)</b><small>모든 화면 + 관리자 메뉴(회원 · 카메라 · 알림 규칙)</small></label>
+          <label><input type="radio" name="role" value="MANAGER" /><b>안전관리자 (MANAGER)</b><small>관제 · 이벤트 처리 · ROI · 안전관리 업무</small></label>
+          <label><input type="radio" name="role" value="VIEWER" /><b>조회 전용 (VIEWER)</b><small>화면 보기만, 저장 · 처리 불가</small></label>
         </div>
         <div class="label" style="margin-top:6px">역할별 메뉴 권한 <span>● 가능 · ◐ 보기만 · – 안 보임</span></div>
         <div style="overflow-x:auto">
           <table class="tbl perm">
-            <colgroup><col /><col id="c0" /><col id="c1" /><col id="c2" /></colgroup>
+            <colgroup><col /><col id="c-ADMIN" /><col id="c-MANAGER" /><col id="c-VIEWER" /></colgroup>
             <thead><tr><th>메뉴</th><th>관리자</th><th>안전관리자</th><th>조회 전용</th></tr></thead>
             <tbody>
               <tr><td>관제화면 · 알림 확인</td><td class="yes">●</td><td class="yes">●</td><td class="part">◐</td></tr>
@@ -95,20 +84,118 @@
         </div>
         <div class="row end" style="margin-top:4px">
           <a class="btn" href="users.html">취소</a>
-          <button class="btn primary" data-toast="회원정보를 저장했습니다. (예시)">저장</button>
+          <button class="btn primary" id="save">저장</button>
         </div>
       </div></section>
     </main>
   </div>
+
+  <div class="pop" id="pw-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="status ok">초기화 완료</span><h2 id="pw-title">임시 비밀번호</h2><p>이 창을 닫으면 다시 볼 수 없습니다. 본인에게 전달하고 로그인 후 바꾸도록 안내하세요. 잠긴 계정이었다면 잠금도 풀렸습니다.</p></div>
+      </div>
+      <div class="pop-body">
+        <div class="input" id="pw-value" style="font-family:Consolas,monospace; font-size:18px; user-select:all"></div>
+        <div class="row end"><button class="btn primary" data-close>확인</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const me = getAuth() && getAuth().user;
+    let users = [], orgs = {}, user = null;
+
+    async function load(id) {
+      const [list, orgList] = await Promise.all([api("/api/users"), api("/api/orgs")]);
+      users = list.filter((u) => u.status === "ACTIVE" || u.status === "LOCKED");
+      orgs = orgNames(orgList);
+      $("ue-org").innerHTML = '<option value="">소속 없음</option>' +
+        orgList.map((o) => `<option value="${o.id}">${esc(orgs[o.id])}</option>`).join("");
+      $("n-users").textContent = users.length + "명";
+      show(users.find((u) => u.id === id) || users[0]);
+    }
+
+    function show(u) {
+      user = u;
+      if (!u) return;
+      history.replaceState(null, "", "?id=" + u.id);
+      $("pick").innerHTML = users.map((x) => `
+        <button class="tc-card${x.id === u.id ? " active" : ""}" data-id="${x.id}">
+          <div class="code">${LABEL.role[x.role][1]}${x.status === "LOCKED" ? " · 잠금" : ""}</div>
+          <strong>${esc(x.name)} ${esc(x.position || "")}</strong><p>${esc(orgs[x.org_id] || "소속 없음")}</p></button>`).join("");
+
+      const by = users.find((x) => x.id === u.approved_by);
+      $("ue-av").textContent = u.name[0];
+      $("ue-title").textContent = `${u.name} ${u.position || ""}`;
+      $("ue-sub").textContent = [u.login_id, "가입 " + fmtTime(u.created_at, { time: false }), by ? "승인 " + by.name : ""].filter(Boolean).join(" · ");
+      $("ue-name").value = u.name;
+      $("ue-rank").value = u.position || "";
+      $("ue-phone").value = u.phone || "";
+      $("ue-org").value = u.org_id || "";
+      $("ue-login").textContent = `마지막 접속 ${u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "없음"} · 비밀번호 실패 ${u.failed_login_count}회`;
+      document.querySelectorAll("#ue-status .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === u.status));
+      document.querySelector(`input[name=role][value=${u.role}]`).checked = true;
+
+      // 자기 자신의 역할 · 상태는 바꿀 수 없다 (관리자가 한 명도 안 남는 일을 막음)
+      const self = me && me.id === u.id;
+      document.querySelectorAll("input[name=role]").forEach((r) => { r.disabled = self; });
+      $("ue-status").style.pointerEvents = self ? "none" : "";
+      $("ue-status").style.opacity = self ? 0.5 : 1;
+      $("self-note").textContent = self ? "본인 계정은 역할 · 상태를 바꿀 수 없음" : "";
+      mark();
+    }
+
     // 고른 역할의 열을 표에서 강조
-    const mark = () => {
+    function mark() {
       const v = document.querySelector("input[name=role]:checked").value;
-      ["c0", "c1", "c2"].forEach((id, i) => document.getElementById(id).classList.toggle("on", String(i) === v));
-    };
+      ["ADMIN", "MANAGER", "VIEWER"].forEach((r) => $("c-" + r).classList.toggle("on", r === v));
+    }
     document.querySelectorAll("input[name=role]").forEach((r) => r.addEventListener("change", mark));
-    mark();
+
+    $("ue-status").addEventListener("click", (e) => {
+      if (!e.target.dataset.v) return;
+      document.querySelectorAll("#ue-status .chip").forEach((c) => c.classList.toggle("on", c === e.target));
+    });
+    $("pick").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-id]");
+      if (b) show(users.find((u) => u.id === Number(b.dataset.id)));
+    });
+
+    $("save").addEventListener("click", async () => {
+      const body = {
+        name: $("ue-name").value.trim(),
+        position: $("ue-rank").value.trim() || null,
+        phone: $("ue-phone").value.trim() || null,
+        org_id: Number($("ue-org").value) || null,
+      };
+      if (!(me && me.id === user.id)) {
+        body.role = document.querySelector("input[name=role]:checked").value;
+        body.status = document.querySelector("#ue-status .chip.on").dataset.v;
+      }
+      try {
+        await api(`/api/users/${user.id}`, { method: "PATCH", body });
+        toast("회원정보를 저장했습니다.");
+        await load(user.id);
+      } catch (err) { toast(err.message); }
+    });
+
+    $("reset-pw").addEventListener("click", async () => {
+      if (!confirm(`${user.name}님의 비밀번호를 초기화할까요? 지금 비밀번호는 더 이상 쓸 수 없습니다.`)) return;
+      try {
+        const res = await api(`/api/users/${user.id}/reset-password`, { method: "POST" });
+        $("pw-title").textContent = `${res.user.name}님 (${res.user.login_id}) 임시 비밀번호`;
+        $("pw-value").textContent = res.temp_password;
+        $("pw-pop").hidden = false;
+        await load(user.id);
+      } catch (err) { toast(err.message); }
+    });
+
+    load(Number(new URLSearchParams(location.search).get("id"))).catch((err) => toast(err.message));
   </script>
 </body>
 </html>

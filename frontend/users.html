@@ -18,13 +18,13 @@
 <body>
   <div class="page">
     <aside class="cell left">
-      <div class="pad" data-pick>
-        <div class="label">역할 <span>7명</span></div>
-        <button class="tc-card active"><strong>전체 <span class="muted">7</span></strong></button>
-        <button class="tc-card"><strong>관리자 <span class="muted">2</span></strong><p>모든 화면 · 관리자 메뉴</p></button>
-        <button class="tc-card"><strong>안전관리자 <span class="muted">4</span></strong><p>관제 · 이벤트 처리 · 안전관리 업무</p></button>
-        <button class="tc-card"><strong>조회 전용 <span class="muted">1</span></strong><p>화면 보기만</p></button>
-        <a class="pending-link" href="user-approval.html"><span>가입 승인 대기</span><span class="status warn">3명</span></a>
+      <div class="pad" id="roles">
+        <div class="label">역할 <span id="n-all-label">0명</span></div>
+        <button class="tc-card active" data-role=""><strong>전체 <span class="muted" id="n-all">0</span></strong></button>
+        <button class="tc-card" data-role="ADMIN"><strong>관리자 <span class="muted" id="n-ADMIN">0</span></strong><p>모든 화면 · 관리자 메뉴</p></button>
+        <button class="tc-card" data-role="MANAGER"><strong>안전관리자 <span class="muted" id="n-MANAGER">0</span></strong><p>관제 · 이벤트 처리 · 안전관리 업무</p></button>
+        <button class="tc-card" data-role="VIEWER"><strong>조회 전용 <span class="muted" id="n-VIEWER">0</span></strong><p>화면 보기만</p></button>
+        <a class="pending-link" href="user-approval.html"><span>가입 승인 대기</span><span class="status warn" id="n-pending">0명</span></a>
       </div>
     </aside>
 
@@ -32,23 +32,15 @@
 
     <main class="main">
       <section class="cell bar-top">
-        <input class="input" style="width:240px" placeholder="이름 · 아이디로 찾기" />
-        <select class="input" style="width:160px"><option>모든 상태</option><option>활성</option><option>잠금</option></select>
+        <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디로 찾기" />
+        <select class="input" id="f-status" style="width:160px"><option value="">모든 상태</option><option value="ACTIVE">활성</option><option value="LOCKED">잠금</option></select>
         <span class="grow"></span>
         <button class="btn primary" data-open="pop">＋ 회원 등록</button>
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
           <thead><tr><th>이름</th><th>아이디</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th></th></tr></thead>
-          <tbody>
-            <tr data-href="user-edit.html"><td><span class="av">최</span><b>최동현 과장</b></td><td>choi.dh</td><td><span class="role">관리자</span></td><td>OO건설 · 안전팀</td><td>지금 접속 중</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-toast="본인 계정은 삭제할 수 없습니다.">삭제</button></div></td></tr>
-            <tr data-href="user-edit.html"><td><span class="av">한</span><b>한지훈 소장</b></td><td>han.jh</td><td><span class="role">관리자</span></td><td>OO건설 · 현장소장실</td><td>오늘 08:12</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
-            <tr data-href="user-edit.html"><td><span class="av">오</span><b>오세영 주임</b></td><td>oh.sy</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 안전팀</td><td>지금 접속 중</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
-            <tr data-href="user-edit.html"><td><span class="av">박</span><b>박진우 차장</b></td><td>park.jw</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 공사팀(양중)</td><td>어제 17:40</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
-            <tr data-href="user-edit.html"><td><span class="av">정</span><b>정민수 부장</b></td><td>jung.ms</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 공사팀(토공)</td><td>오늘 09:30</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
-            <tr data-href="user-edit.html"><td><span class="av">김</span><b>김철수 과장</b></td><td>kim.cs</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 공사팀(타설)</td><td>09.27</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
-            <tr data-href="user-edit.html"><td><span class="av">윤</span><b>윤가람 주임</b></td><td>yoon.gr</td><td><span class="status mute">조회 전용</span></td><td>OO건설 · 공무팀</td><td>09.12</td><td><span class="status stop">잠금</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
-          </tbody>
+          <tbody id="rows"></tbody>
         </table>
       </section>
     </main>
@@ -67,16 +59,29 @@
   <div class="pop" id="pop" hidden>
     <div class="pop-card">
       <div class="pop-head">
-        <div><span class="role">관리자가 직접 등록</span><h2>회원 등록</h2><p>등록하면 승인 없이 바로 활성 상태가 되고, 첫 비밀번호가 문자로 갑니다</p></div>
+        <div><span class="role">관리자가 직접 등록</span><h2>회원 등록</h2><p>등록하면 승인 없이 바로 활성 상태가 되고, 첫 비밀번호가 한 번만 표시됩니다</p></div>
         <button class="btn sm" data-close>닫기</button>
       </div>
+      <form class="pop-body" id="new-form">
+        <label class="field">이름<input class="input" id="n-name" placeholder="예: 홍길동" required /></label>
+        <label class="field">직급<input class="input" id="n-position" placeholder="예: 대리" /></label>
+        <label class="field">아이디<input class="input" id="n-login" placeholder="영문 소문자 · 숫자 · 점(.) 4~20자" required /></label>
+        <label class="field">휴대폰<input class="input" id="n-phone" placeholder="010-0000-0000" /></label>
+        <label class="field">소속<select class="input" id="n-org"></select></label>
+        <label class="field">역할<select class="input" id="n-role"><option value="MANAGER">안전관리자</option><option value="VIEWER">조회 전용</option><option value="ADMIN">관리자</option></select></label>
+        <div class="row end"><button class="btn" type="button" data-close>취소</button><button class="btn primary">등록</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="pop" id="pw-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="status ok">완료</span><h2 id="pw-title">첫 비밀번호</h2><p>이 창을 닫으면 다시 볼 수 없습니다. 본인에게 전달하고 로그인 후 바꾸도록 안내하세요.</p></div>
+      </div>
       <div class="pop-body">
-        <label class="field">이름<input class="input" placeholder="예: 홍길동 대리" /></label>
-        <label class="field">아이디<input class="input" placeholder="예: hong.gd" /></label>
-        <label class="field">휴대폰<input class="input" placeholder="010-0000-0000" /></label>
-        <label class="field">소속<select class="input"><option>OO건설 · 안전팀</option><option>OO건설 · 공사팀(양중)</option><option>OO건설 · 공사팀(토공)</option><option>OO건설 · 공무팀</option><option>대한골조</option><option>한빛토건</option></select></label>
-        <label class="field">역할<select class="input"><option>안전관리자</option><option>조회 전용</option><option>관리자</option></select></label>
-        <div class="row end"><button class="btn" data-close>취소</button><button class="btn primary" data-toast="회원을 등록했습니다. (예시)">등록</button></div>
+        <div class="input" id="pw-value" style="font-family:Consolas,monospace; font-size:18px; user-select:all"></div>
+        <div class="row end"><button class="btn primary" data-close>확인</button></div>
       </div>
     </div>
   </div>
@@ -91,21 +96,92 @@
     </div>
   </div>
 
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    // 삭제는 확인 창을 한 번 거친다
-    const delPop = document.getElementById("del-pop");
-    let delRow = null;
-    document.querySelectorAll("[data-del]").forEach((btn) => btn.addEventListener("click", () => {
-      delRow = btn.closest("tr");
-      document.getElementById("del-title").textContent = delRow.querySelector("b").textContent + " 삭제";
-      delPop.hidden = false;
-    }));
-    document.getElementById("del-ok").addEventListener("click", () => {
-      if (delRow) delRow.remove();
-      delPop.hidden = true;
-      toast("회원을 삭제했습니다. (예시)");
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const me = getAuth() && getAuth().user;
+    let users = [], orgs = {}, role = "", delId = null;
+
+    async function load() {
+      const [list, orgList] = await Promise.all([api("/api/users"), api("/api/orgs")]);
+      users = list;
+      orgs = orgNames(orgList);
+      $("n-org").innerHTML = '<option value="">소속 없음</option>' +
+        orgList.map((o) => `<option value="${o.id}">${esc(orgs[o.id])}</option>`).join("");
+      render();
+    }
+
+    function render() {
+      const members = users.filter((u) => u.status === "ACTIVE" || u.status === "LOCKED");
+      $("n-all").textContent = members.length;
+      $("n-all-label").textContent = members.length + "명";
+      ["ADMIN", "MANAGER", "VIEWER"].forEach((r) => { $("n-" + r).textContent = members.filter((u) => u.role === r).length; });
+      $("n-pending").textContent = users.filter((u) => u.status === "PENDING").length + "명";
+      document.querySelectorAll("#roles [data-role]").forEach((b) => b.classList.toggle("active", b.dataset.role === role));
+
+      const q = $("q").value.trim().toLowerCase(), st = $("f-status").value;
+      const rows = members.filter((u) => (!role || u.role === role) && (!st || u.status === st)
+        && (!q || (u.name + " " + u.login_id).toLowerCase().includes(q)));
+      $("rows").innerHTML = rows.length ? rows.map((u) => {
+        const self = me && me.id === u.id;
+        const lastLogin = self ? "지금 접속 중" : u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "접속 기록 없음";
+        const del = self ? '<button class="btn sm" disabled title="본인 계정은 삭제할 수 없습니다">삭제</button>' : '<button class="btn sm" data-del>삭제</button>';
+        return `<tr data-id="${u.id}">
+          <td><span class="av">${esc(u.name[0])}</span><b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
+          <td>${badge("role", u.role)}</td><td>${esc(orgs[u.org_id] || "-")}</td><td>${lastLogin}</td>
+          <td>${badge("userStatus", u.status)}</td>
+          <td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html?id=${u.id}">수정</a>${del}</div></td></tr>`;
+      }).join("") : '<tr><td colspan="7" class="muted" style="text-align:center; padding:28px">해당하는 회원이 없습니다</td></tr>';
+    }
+
+    $("rows").addEventListener("click", (e) => {
+      const tr = e.target.closest("tr[data-id]");
+      if (!tr) return;
+      const id = Number(tr.dataset.id);
+      if (e.target.closest("[data-del]")) {
+        delId = id;
+        $("del-title").textContent = users.find((u) => u.id === id).name + " 삭제";
+        $("del-pop").hidden = false;
+      } else if (!e.target.closest("a, button")) {
+        location.href = "user-edit.html?id=" + id;
+      }
     });
+    $("del-ok").addEventListener("click", async () => {
+      $("del-pop").hidden = true;
+      try {
+        await api(`/api/users/${delId}`, { method: "DELETE" });
+        toast("회원을 삭제했습니다.");
+        await load();
+      } catch (err) { toast(err.message); }
+    });
+
+    $("new-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const res = await api("/api/users", { method: "POST", body: {
+          name: $("n-name").value.trim(), position: $("n-position").value.trim() || null,
+          login_id: $("n-login").value.trim(), phone: $("n-phone").value.trim() || null,
+          org_id: Number($("n-org").value) || null, role: $("n-role").value,
+        } });
+        $("pop").hidden = true;
+        $("new-form").reset();
+        $("pw-title").textContent = `${res.user.name}님 (${res.user.login_id}) 첫 비밀번호`;
+        $("pw-value").textContent = res.temp_password;
+        $("pw-pop").hidden = false;
+        await load();
+      } catch (err) { toast(err.message); }
+    });
+
+    $("roles").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-role]");
+      if (b) { role = b.dataset.role; render(); }
+    });
+    $("q").addEventListener("input", render);
+    $("f-status").addEventListener("change", render);
+
+    load().catch((err) => toast(err.message));
   </script>
 </body>
 </html>
