@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>카메라 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 10px; align-content: start; overflow: auto; min-height: 0; }
+    .camcard { overflow: hidden; display: grid; grid-template-rows: 150px auto; }
+    .camcard:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .camcard .cam { border-radius: 0; }
+    .camcard dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 12px 14px; font-size: 12.5px; }
+    .camcard dt { color: var(--muted); font-weight: 700; }
+    .camcard dd { text-align: right; font-weight: 700; }
+    .grid-sep { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin-top: 6px; font-size: 15px; font-weight: 800; }
+    .grid-sep span { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .offline { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(8,12,18,0.82); font-weight: 800; color: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="page no-right">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">연결 상태 <span>9대</span></div>
+        <button class="tc-card active"><strong>전체 <span class="muted">9</span></strong></button>
+        <button class="tc-card"><strong><span><span class="status ok">●</span> 온라인</span> <span class="muted">8</span></strong></button>
+        <button class="tc-card"><strong><span><span class="status stop">●</span> 오프라인</span> <span class="muted">1</span></strong></button>
+        <div class="label" style="margin-top:6px">종류</div>
+        <button class="tc-card"><strong>현장 CAM <span class="muted">5</span></strong><p>관제화면 1페이지</p></button>
+        <button class="tc-card"><strong>TC CAM <span class="muted">4</span></strong><p>관제화면 2페이지 · 크레인 연결</p></button>
+        <div class="hint"><b>오프라인</b>이 5분 넘게 이어지면 관리자에게 알림이 갑니다. (알림 규칙 › 알림에서 설정)</div>
+        <a class="btn block" href="camera-map.html">🗺 배치도로 보기</a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell bar-top">
+        <input class="input" style="width:240px" placeholder="카메라 이름 · 위치로 찾기" />
+        <span class="muted">카드를 누르면 수정 화면으로 이동</span>
+        <span class="grow"></span>
+        <button class="btn" data-toast="모든 카메라 연결을 다시 확인했습니다. (예시)">↻ 연결 다시 확인</button>
+        <a class="btn primary" href="camera-edit.html">＋ 카메라 추가</a>
+      </section>
+      <div class="grid">
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene"><div class="ground-line"></div><div class="bld" style="left:8%; width:16%; height:46%;"></div><div class="mast" style="left:62%; height:58%;"></div><div class="jib" style="left:62%; top:24%; width:28%;"></div></div><div class="cam-tag">CAM_0001</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>101동 갱폼 인양구역</dd><dt>해상도 · FPS</dt><dd>1920×1080 · 15</dd><dt>관제화면</dt><dd>1페이지 · 1번 칸</dd></dl>
+        </a>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene red"><div class="ground-line"></div><div class="bld" style="left:10%; width:22%; height:52%;"></div><div class="mast" style="left:48%; height:64%;"></div><div class="jib" style="left:48%; top:18%; width:34%;"></div></div><div class="cam-tag">CAM_0002</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>102동 대형거푸집구역</dd><dt>해상도 · FPS</dt><dd>1920×1080 · 15</dd><dt>관제화면</dt><dd>1페이지 · 2번 칸</dd></dl>
+        </a>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene green"><div class="ground-line"></div><div class="bld" style="left:62%; width:18%; height:28%;"></div><div class="mast" style="left:22%; height:20%; width:28px; border-radius:4px; background:#c9842a"></div></div><div class="cam-tag">CAM_0003</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>Sector A 토공</dd><dt>해상도 · FPS</dt><dd>1280×720 · 10</dd><dt>관제화면</dt><dd>1페이지 · 3번 칸</dd></dl>
+        </a>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene teal"><div class="ground-line"></div><div class="bld" style="left:14%; width:14%; height:16%;"></div><div class="bld" style="left:32%; width:18%; height:20%;"></div></div><div class="cam-tag">CAM_0004</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>외곽 야적장</dd><dt>해상도 · FPS</dt><dd>1280×720 · 10</dd><dt>관제화면</dt><dd>1페이지 · 4번 칸</dd></dl>
+        </a>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene"></div><div class="offline">📵 신호 없음</div><div class="cam-tag">CAM_0005</div><div class="cam-time"><span class="status stop">오프라인</span></div></div>
+          <dl><dt>위치</dt><dd>지하주차장 입구</dd><dt>관제화면</dt><dd>표시 안 함</dd><dt>마지막 수신</dt><dd style="color:var(--red)">13:05 (1시간 30분 전)</dd></dl>
+        </a>
+        <div class="grid-sep">2페이지 · TC 관제 CAM <span>크레인마다 1대, 장비(타워크레인)와 연결</span></div>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene" style="background:linear-gradient(180deg,#1a2c40 0%,#14202e 42%,#101820 42%,#0c1218 100%)"><div class="ground-line"></div><div class="mast" style="left:50%; height:62%; background:#6cb6ff"></div><div class="jib" style="left:50%; top:20%; width:32%; background:#6cb6ff"></div></div><div class="cam-tag">CAM_TC01</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>101동 갱폼 인양구역</dd><dt>연결 장비</dt><dd>T-CRN-01 · 1호기</dd><dt>관제화면</dt><dd>2페이지 · 1번 칸</dd></dl>
+        </a>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene" style="background:linear-gradient(180deg,#1a2c40 0%,#14202e 42%,#101820 42%,#0c1218 100%)"><div class="ground-line"></div><div class="mast" style="left:50%; height:62%; background:#ff9a1f"></div><div class="jib" style="left:50%; top:20%; width:32%; background:#ff9a1f"></div></div><div class="cam-tag">CAM_TC02</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>102동 대형거푸집구역</dd><dt>연결 장비</dt><dd>T-CRN-02 · 2호기</dd><dt>관제화면</dt><dd>2페이지 · 2번 칸</dd></dl>
+        </a>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene" style="background:linear-gradient(180deg,#1a2c40 0%,#14202e 42%,#101820 42%,#0c1218 100%)"><div class="ground-line"></div><div class="mast" style="left:50%; height:62%; background:#c084fc"></div><div class="jib" style="left:50%; top:20%; width:32%; background:#c084fc"></div></div><div class="cam-tag">CAM_TC03</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>중앙 자재하역장</dd><dt>연결 장비</dt><dd>M-CRN-01 · 3호기</dd><dt>관제화면</dt><dd>2페이지 · 3번 칸</dd></dl>
+        </a>
+        <a class="cell camcard" href="camera-edit.html">
+          <div class="cam"><div class="scene" style="background:linear-gradient(180deg,#1a2c40 0%,#14202e 42%,#101820 42%,#0c1218 100%)"><div class="ground-line"></div><div class="mast" style="left:50%; height:62%; background:#ffb020"></div><div class="jib" style="left:50%; top:20%; width:32%; background:#ffb020"></div></div><div class="cam-tag">CAM_TC04</div><div class="cam-time"><span class="status ok">온라인</span></div></div>
+          <dl><dt>위치</dt><dd>103동 외벽 인양구역</dd><dt>연결 장비</dt><dd>T-CRN-03 · 4호기</dd><dt>관제화면</dt><dd>2페이지 · 4번 칸</dd></dl>
+        </a>
+      </div>
+    </main>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

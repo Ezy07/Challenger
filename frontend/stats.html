@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>요약 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
+    .donut { width: 150px; height: 150px; border-radius: 50%; flex: none;
+      background: conic-gradient(var(--red) 0 29%, var(--amber) 29% 50%, var(--blue) 50% 71%, var(--green) 71% 83%, #c084fc 83% 92%, #8e9aab 92% 100%);
+      display: grid; place-items: center; }
+    .donut span { width: 96px; height: 96px; border-radius: 50%; background: var(--panel); display: grid; place-items: center; text-align: center; font-size: 26px; font-weight: 800; line-height: 1.1; }
+    .donut small { display: block; font-size: 11px; color: var(--muted); }
+    .keys { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }
+    .keys div { display: flex; align-items: center; gap: 8px; }
+    .keys i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+    .keys b { margin-left: auto; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">기간</div>
+        <button class="tc-card active"><div class="code">2026.10.01</div><strong>오늘</strong><p>24건 · 어제보다 +4</p></button>
+        <button class="tc-card"><div class="code">09.25 ~ 10.01</div><strong>이번 주</strong><p>168건 · 지난주보다 -12</p></button>
+        <button class="tc-card"><div class="code">10월</div><strong>이번 달</strong><p>24건 (1일째)</p></button>
+        <button class="tc-card"><div class="code">직접 고르기</div><strong>기간 선택</strong><p>달력에서 시작 · 끝 날짜</p></button>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <div class="kpis">
+        <div class="kpi-box"><span>오늘 이벤트</span><strong>24<i>건</i></strong><em class="up">▲ 어제보다 4건</em></div>
+        <div class="kpi-box"><span>높음 (즉시 조치)</span><strong style="color:var(--red)">5<i>건</i></strong><em class="up">▲ 1건</em></div>
+        <div class="kpi-box"><span>아직 미처리</span><strong style="color:var(--amber)">2<i>건</i></strong><em class="muted">처리율 92%</em></div>
+        <div class="kpi-box"><span>평균 처리 시간</span><strong>6<i>분</i></strong><em class="down">▼ 2분 빨라짐</em></div>
+      </div>
+      <div class="two">
+        <section class="cell">
+          <div class="pad">
+            <div class="label">종류별 비율 <span>오늘 24건</span></div>
+            <div class="row" style="gap:22px; flex-wrap:nowrap">
+              <div class="donut"><span><div>24<small>건</small></div></span></div>
+              <div class="keys grow">
+                <div><i style="background:var(--red)"></i>ROI 침범<b>7</b></div>
+                <div><i style="background:var(--amber)"></i>안전모 · 조끼 미착용<b>5</b></div>
+                <div><i style="background:var(--blue)"></i>장비 근접<b>5</b></div>
+                <div><i style="background:var(--green)"></i>신호수 미배치<b>3</b></div>
+                <div><i style="background:#c084fc"></i>TC 후크 · 지브<b>2</b></div>
+                <div><i style="background:#8e9aab"></i>기상<b>2</b></div>
+              </div>
+            </div>
+            <a class="btn" href="events.html">종류별 이벤트 목록 보기</a>
+          </div>
+        </section>
+        <section class="cell">
+          <div class="pad">
+            <div class="label">구역별 건수 <span>많은 순</span></div>
+            <div class="hbars">
+              <div class="hbar"><span>Sector A 토공</span><div class="track"><i style="width:100%"></i></div><b>8</b></div>
+              <div class="hbar"><span>102동 거푸집</span><div class="track"><i style="width:75%"></i></div><b>6</b></div>
+              <div class="hbar"><span>101동 갱폼</span><div class="track"><i style="width:62%"></i></div><b>5</b></div>
+              <div class="hbar"><span>외곽 야적장</span><div class="track"><i style="width:37%"></i></div><b>3</b></div>
+              <div class="hbar"><span>중앙 자재하역장</span><div class="track"><i style="width:25%"></i></div><b>2</b></div>
+            </div>
+            <a class="btn" href="zones.html">구역 배치도에서 보기</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">오늘 눈여겨볼 것</div>
+        <div class="check stop"><div><b>Sector A 토공</b><small>굴착기 주변 근접 경보가 계속 발생</small></div><span class="status stop">8건</span></div>
+        <div class="check warn"><div><b>13~15시</b><small>점심 이후 작업 재개 시간에 몰림</small></div><span class="status warn">7건</span></div>
+        <div class="check"><div><b>안전모 미착용</b><small>지난주보다 줄어듦</small></div><span class="status ok">-40%</span></div>
+        <a class="btn block" href="stats-trend.html">추이 차트</a>
+        <a class="btn primary block" href="stats-report.html">리포트 만들기</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

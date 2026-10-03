@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>작업 등록 및 배정 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pick { display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
+    .pick .person { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+    .pick .person b { font-size: 13px; }
+    .pick .person small { display: block; color: var(--muted); font-size: 11.5px; }
+    .sp { font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); margin-left: 4px; }
+    .empty { padding: 16px; text-align: center; color: var(--muted); font-size: 12.5px; border: 1px dashed var(--line); border-radius: 10px; }
+    @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page no-right">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="row between"><div class="label">오늘 작업 <span>7건</span></div><button class="btn sm primary" data-toast="새 작업 입력 칸을 비웠습니다. (예시)">＋ 새 작업</button></div>
+        <button class="tc-card"><div class="code">W-01 · 진행중</div><strong>101동 갱폼 인양</strong><p>101동 갱폼 인양구역 · 4명</p></button>
+        <button class="tc-card"><div class="code">W-02 · 진행중</div><strong>101동 3층 슬래브 타설</strong><p>101동 갱폼 인양구역 · 2명</p></button>
+        <button class="tc-card active"><div class="code">W-03 · 작업중지</div><strong>102동 대형거푸집 설치</strong><p>102동 대형거푸집구역 · 2명</p></button>
+        <button class="tc-card"><div class="code">W-04 · 진행중</div><strong>Sector A 터파기</strong><p>Sector A 토공 · 2명</p></button>
+        <button class="tc-card"><div class="code">W-05 · 진행중</div><strong>자재 하역</strong><p>중앙 자재하역장 · 0명</p></button>
+        <button class="tc-card"><div class="code">W-06 · 예정</div><strong>103동 외벽 배관</strong><p>103동 외벽 인양구역 · 0명</p></button>
+        <button class="tc-card"><div class="code">W-07 · 진행중</div><strong>야적장 정리</strong><p>외곽 야적장 · 1명</p></button>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main scroll">
+      <section class="cell"><div class="pad">
+        <div class="label">작업 정보 <span>W-03</span></div>
+        <label class="field">작업 이름<input class="input" value="102동 대형거푸집 설치" /></label>
+        <div class="two">
+          <label class="field">작업구역<select class="input"><option>102동 대형거푸집구역</option><option>101동 갱폼 인양구역</option><option>중앙 자재하역장</option><option>103동 외벽 인양구역</option><option>Sector A 토공</option><option>외곽 야적장</option></select></label>
+          <label class="field">담당 안전관리자<select class="input"><option>박진우 차장</option><option>정민수 부장</option><option>김철수 과장</option><option>오세영 주임</option></select></label>
+        </div>
+        <div class="two">
+          <label class="field">시작일<input class="input" type="date" value="2026-09-28" /></label>
+          <label class="field">종료 예정일<input class="input" type="date" value="2026-10-10" /></label>
+        </div>
+        <label class="field">상태<select class="input"><option>작업중지</option><option>진행중</option><option>예정</option><option>완료</option></select></label>
+        <label class="field">작업 내용 · 주의사항<textarea class="input">TC-2 양중 연계. 신호수 1명 필수 배치. 하부 출입 통제.</textarea></label>
+        <div class="row end">
+          <button class="btn" data-toast="작업을 삭제하려면 배정된 작업자를 먼저 빼야 합니다.">삭제</button>
+          <button class="btn primary" data-toast="작업을 저장했습니다. (예시)">저장</button>
+        </div>
+      </div></section>
+
+      <section class="cell"><div class="pad">
+        <div class="label">작업자 배정 <span id="cnt">2명 배정</span></div>
+        <div class="pick" id="assigned">
+          <div class="person"><div><b>김영수<span class="sp">고령</span></b><small>대한골조 · 형틀목공</small></div><button class="btn sm" data-move>빼기</button></div>
+          <div class="person"><div><b>이정호</b><small>대한골조 · 철근공</small></div><button class="btn sm" data-move>빼기</button></div>
+        </div>
+        <div class="label" style="margin-top:8px">배정할 수 있는 작업자 <span>오늘 다른 작업 없음</span></div>
+        <input class="input" id="find" placeholder="이름 · 직종으로 찾기" />
+        <div class="pick" id="pool">
+          <div class="person"><div><b>한상우<span class="sp">신규</span></b><small>우리설비 · 배관공</small></div><button class="btn sm primary" data-move>배정</button></div>
+          <div class="person"><div><b>최민재</b><small>세진크레인 · 신호수 · W-01과 겸직 가능</small></div><button class="btn sm primary" data-move>배정</button></div>
+        </div>
+        <div class="hint">W-03은 <b>신호수 미배치</b>로 작업중지 상태입니다. 신호수를 배정하면 관제화면 경보를 해제할 수 있습니다.</div>
+        <a class="btn block" href="work-workers.html">작업별 작업자 목록에서 보기 →</a>
+      </div></section>
+    </main>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    const assigned = document.getElementById("assigned");
+    const pool = document.getElementById("pool");
+    function count() { document.getElementById("cnt").textContent = assigned.children.length + "명 배정"; }
+    function move(btn) {
+      const card = btn.closest(".person");
+      const toAssigned = card.parentElement === pool;
+      (toAssigned ? assigned : pool).appendChild(card);
+      btn.textContent = toAssigned ? "빼기" : "배정";
+      btn.classList.toggle("primary", !toAssigned);
+      count();
+    }
+    document.querySelectorAll("[data-move]").forEach((b) => b.addEventListener("click", () => move(b)));
+    document.getElementById("find").addEventListener("input", (e) => {
+      const q = e.target.value.trim();
+      pool.querySelectorAll(".person").forEach((p) => { p.hidden = q && !p.textContent.includes(q); });
+    });
+  </script>
+</body>
+</html>

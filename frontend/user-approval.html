@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>회원가입 승인 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .req { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 16px; }
+    .req + .req { border-top: 1px solid var(--line); }
+    .req h3 { font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .req dl { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--muted); }
+    .req dt { display: inline; font-weight: 700; color: #6b7889; margin-right: 4px; }
+    .req dd { display: inline; color: #c5d0dc; font-weight: 600; }
+    .req .acts { display: flex; gap: 6px; align-items: center; }
+    .req.done { opacity: 0.5; }
+    .bar-top { padding: 12px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; overflow: hidden; }
+    @media (max-width: 700px) { .req { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">신청 상태</div>
+        <button class="tc-card active"><strong>승인 대기 <span class="status warn" id="left-count">3</span></strong><p>관리자 확인이 필요한 신청</p></button>
+        <button class="tc-card"><strong>승인됨 <span class="muted">14</span></strong><p>이번 달</p></button>
+        <button class="tc-card"><strong>반려됨 <span class="muted">2</span></strong><p>이번 달</p></button>
+        <div class="hint">신청자는 <b>회원가입</b> 화면에서 신청합니다. 승인하면 <b>status</b>가 <b>PENDING → ACTIVE</b>로 바뀌고 <b>approved_by</b>에 승인한 관리자가 남습니다.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell bar-top">
+        <input class="input" style="width:240px" placeholder="이름 · 아이디 · 회사로 찾기" />
+        <span class="grow"></span>
+        <a class="btn" href="signup.html">회원가입 화면 보기</a>
+      </section>
+      <section class="cell" id="list">
+        <div class="req">
+          <div>
+            <h3>이수진 대리 <span class="status warn">대기</span></h3>
+            <dl><div><dt>아이디</dt><dd>lee.sj</dd></div><div><dt>소속</dt><dd>대한골조 · 안전담당</dd></div><div><dt>요청 역할</dt><dd>안전관리자</dd></div><div><dt>휴대폰</dt><dd>010-4821-0093</dd></div><div><dt>신청</dt><dd>오늘 09:14</dd></div></dl>
+          </div>
+          <div class="acts">
+            <select class="input" style="width:130px" aria-label="부여할 역할"><option>안전관리자</option><option>조회 전용</option></select>
+            <button class="btn sm" data-reject>반려</button><button class="btn sm primary" data-approve>승인</button>
+          </div>
+        </div>
+        <div class="req">
+          <div>
+            <h3>장민호 주임 <span class="status warn">대기</span></h3>
+            <dl><div><dt>아이디</dt><dd>jang.mh</dd></div><div><dt>소속</dt><dd>한빛토건 · 공무</dd></div><div><dt>요청 역할</dt><dd>조회 전용</dd></div><div><dt>휴대폰</dt><dd>010-7710-2245</dd></div><div><dt>신청</dt><dd>어제 16:40</dd></div></dl>
+          </div>
+          <div class="acts">
+            <select class="input" style="width:130px" aria-label="부여할 역할"><option>조회 전용</option><option>안전관리자</option></select>
+            <button class="btn sm" data-reject>반려</button><button class="btn sm primary" data-approve>승인</button>
+          </div>
+        </div>
+        <div class="req">
+          <div>
+            <h3>백승현 기사 <span class="status warn">대기</span></h3>
+            <dl><div><dt>아이디</dt><dd>baek.sh</dd></div><div><dt>소속</dt><dd>세진크레인 · TC 운전</dd></div><div><dt>요청 역할</dt><dd>안전관리자</dd></div><div><dt>휴대폰</dt><dd>010-3392-1187</dd></div><div><dt>신청</dt><dd>09.30 11:02</dd></div></dl>
+          </div>
+          <div class="acts">
+            <select class="input" style="width:130px" aria-label="부여할 역할"><option>조회 전용</option><option>안전관리자</option></select>
+            <button class="btn sm" data-reject>반려</button><button class="btn sm primary" data-approve>승인</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">승인 전에 확인할 것</div>
+        <div class="check info"><div><b>소속 확인</b><small>협력사 신청자는 해당 회사 담당자에게 확인</small></div><span class="status info">1</span></div>
+        <div class="check info"><div><b>역할 낮춰서 부여</b><small>요청 역할보다 낮게 승인할 수 있음</small></div><span class="status info">2</span></div>
+        <div class="check warn"><div><b>관리자 역할은 승인으로 못 줌</b><small>필요하면 회원정보 수정에서 따로 지정</small></div><span class="status warn">!</span></div>
+        <a class="btn block" href="users.html">← 회원 목록</a>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pop" id="reject-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="status stop">반려</span><h2 id="reject-title">가입 반려</h2><p>사유는 신청자에게 문자로 전달됩니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="pop-body">
+        <label class="field">반려 사유<select class="input" id="reject-why"><option>소속 확인 불가</option><option>중복 계정</option><option>현장 투입 종료</option><option>기타</option></select></label>
+        <div class="row end"><button class="btn" data-close>취소</button><button class="btn danger" id="reject-ok">반려</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const leftCount = document.getElementById("left-count");
+    function finish(row, word, cls) {
+      row.classList.add("done");
+      row.querySelector("h3 .status").className = "status " + cls;
+      row.querySelector("h3 .status").textContent = word;
+      row.querySelector(".acts").innerHTML = "";
+      leftCount.textContent = document.querySelectorAll(".req:not(.done)").length;
+    }
+    document.querySelectorAll("[data-approve]").forEach((btn) => btn.addEventListener("click", () => {
+      const row = btn.closest(".req");
+      const role = row.querySelector("select").value;
+      finish(row, "승인 · " + role, "ok");
+      toast(row.querySelector("h3").firstChild.textContent.trim() + "님을 " + role + "(으)로 승인했습니다. (예시)");
+    }));
+    const rejectPop = document.getElementById("reject-pop");
+    let rejectRow = null;
+    document.querySelectorAll("[data-reject]").forEach((btn) => btn.addEventListener("click", () => {
+      rejectRow = btn.closest(".req");
+      document.getElementById("reject-title").textContent = rejectRow.querySelector("h3").firstChild.textContent.trim() + " 가입 반려";
+      rejectPop.hidden = false;
+    }));
+    document.getElementById("reject-ok").addEventListener("click", () => {
+      finish(rejectRow, "반려 · " + document.getElementById("reject-why").value, "stop");
+      rejectPop.hidden = true;
+    });
+  </script>
+</body>
+</html>

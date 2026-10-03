@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>심각도 기준 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
+    .lv { border-top: 5px solid var(--c); }
+    .lv-head { display: flex; align-items: center; gap: 10px; }
+    .lv-head b { font-size: 22px; letter-spacing: -0.03em; }
+    .lv-head small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .sub { font-size: 12px; font-weight: 800; color: var(--muted); margin-top: 4px; }
+    .cond { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+    .cond .x { margin-left: auto; color: var(--muted); cursor: pointer; }
+    .act { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; padding: 6px 2px; }
+  </style>
+</head>
+<body>
+  <div class="page full">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell lv" style="--c:var(--red)"><div class="pad">
+        <div class="lv-head"><span class="status stop" style="font-size:13px; padding:4px 12px">높음</span><div><b>즉시 조치</b><small>사람이 다칠 수 있는 상황</small></div></div>
+        <div class="sub">이럴 때 높음</div>
+        <div class="cond">🚷 인양 중 ROI 침범 <span class="x">✕</span></div>
+        <div class="cond">🦺 인양 중 신호수 없음 <span class="x">✕</span></div>
+        <div class="cond">🚜 사람 ↔ 장비 3m 이내 <span class="x">✕</span></div>
+        <div class="cond">🏗 TC 후크 · 지브 정지 기준 진입 <span class="x">✕</span></div>
+        <button class="btn sm" data-toast="조건 추가 창은 데이터베이스 연결 후 동작합니다.">＋ 조건 추가</button>
+        <div class="sub">알림 방법</div>
+        <div class="act">관제 화면 빨간 점멸<span class="switch on"></span></div>
+        <div class="act">사이렌 (확인할 때까지)<span class="switch on"></span></div>
+        <div class="act">담당자 문자<span class="switch on"></span></div>
+        <div class="act">현장 방송<span class="switch"></span></div>
+      </div></section>
+
+      <section class="cell lv" style="--c:var(--amber)"><div class="pad">
+        <div class="lv-head"><span class="status warn" style="font-size:13px; padding:4px 12px">중간</span><div><b>현장 점검</b><small>위험해질 수 있는 상황</small></div></div>
+        <div class="sub">이럴 때 중간</div>
+        <div class="cond">🚷 ROI 침범 (인양 아님) <span class="x">✕</span></div>
+        <div class="cond">⏱ ROI 3분 넘게 체류 <span class="x">✕</span></div>
+        <div class="cond">🚜 사람 ↔ 장비 3~5m <span class="x">✕</span></div>
+        <div class="cond">💨 순간풍속 10m/s 이상 <span class="x">✕</span></div>
+        <button class="btn sm" data-toast="조건 추가 창은 데이터베이스 연결 후 동작합니다.">＋ 조건 추가</button>
+        <div class="sub">알림 방법</div>
+        <div class="act">관제 화면 노란 표시<span class="switch on"></span></div>
+        <div class="act">짧은 알림음 2번<span class="switch on"></span></div>
+        <div class="act">담당자 메신저<span class="switch on"></span></div>
+        <div class="act">담당자 문자<span class="switch"></span></div>
+      </div></section>
+
+      <section class="cell lv" style="--c:var(--green)"><div class="pad">
+        <div class="lv-head"><span class="status ok" style="font-size:13px; padding:4px 12px">낮음</span><div><b>기록</b><small>지켜볼 상황</small></div></div>
+        <div class="sub">이럴 때 낮음</div>
+        <div class="cond">⛑ 안전모 미착용 <span class="x">✕</span></div>
+        <div class="cond">🦺 안전조끼 미착용 <span class="x">✕</span></div>
+        <div class="cond">📵 카메라 오프라인 5분 <span class="x">✕</span></div>
+        <button class="btn sm" data-toast="조건 추가 창은 데이터베이스 연결 후 동작합니다.">＋ 조건 추가</button>
+        <div class="sub">알림 방법</div>
+        <div class="act">관제 화면 목록에만<span class="switch on"></span></div>
+        <div class="act">알림음<span class="switch"></span></div>
+        <div class="act">하루 요약 메신저 (18시)<span class="switch on"></span></div>
+        <div class="hint">낮음이 같은 사람에게 하루 3번 넘게 나오면 <b>중간</b>으로 올립니다.</div>
+        <button class="btn primary" data-toast="심각도 기준을 저장했습니다. (예시)">저장</button>
+      </div></section>
+    </main>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

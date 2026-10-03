@@ -1,0 +1,317 @@
+/* 모든 화면이 함께 쓰는 스크립트
+   - 화면 목록(MENU)을 한 곳에 모아 두고, 상단 바 · 왼쪽 메뉴(☰) · 제목 칸 · 하위 화면 탭을 여기서 그린다
+   - 메뉴 구성은 「비전AI 안전관제 페이지 구성 1차.txt」를 그대로 따른다
+   - 화면을 추가하려면 MENU 에 [파일 이름, 화면 이름, 설명, 깊이] 한 줄만 넣으면 된다
+     깊이 0 = 메모장의 "-" 화면, 1 = "ㄴ" 화면, 2 = "ㄴㄴ" 화면
+     파일 이름이 빈 줄("")은 메뉴 안의 소제목으로만 쓴다 (예: 관리자 > 카메라 관리)
+   - 아직 API 를 연결하지 않은 화면의 저장 · 삭제 버튼은 안내 문구(toast)만 띄운다
+   - API 를 쓰는 화면은 api.js 를 이 파일보다 먼저 넣는다 */
+
+const MENU = [
+  { icon: "▣", name: "관제화면", pages: [
+    ["monitor.html", "관제화면", "CCTV 4분할 · TC/작업구역 · 섹터 감지경보 · 특별관리근로자", 0],
+    ["monitor-camera.html", "단일 카메라 확대", "카메라 한 대를 크게 보면서 ROI · 탐지 박스 · 최근 이벤트 확인", 1],
+  ] },
+  { icon: "◫", name: "구역 및 작업", pages: [
+    ["zones.html", "전체 구역 표시", "현장 배치도 위에 작업구역과 구역별 작업 · 인원 · 장비 · 경보를 표시", 0],
+    ["zone-works.html", "구역별 작업 목록", "구역을 고르면 그 구역에서 오늘 진행하는 작업을 보여 줌", 1],
+    ["work-workers.html", "작업별 작업자 목록", "작업 하나에 배정된 작업자와 특별관리 대상 확인", 2],
+    ["zone-equipment.html", "구역별 투입장비 목록", "구역마다 투입된 중장비와 운전원 · 상태", 1],
+  ] },
+  { icon: "≡", name: "이벤트 로그", pages: [
+    ["events.html", "이벤트 목록", "날짜 · 구역 · 종류 · 심각도로 지난 이벤트를 찾고 CSV로 내보내기", 0],
+    ["event-detail.html", "이벤트 상세", "이벤트 하나의 스냅샷 · 탐지 정보 · 처리 상태", 1],
+    ["event-snapshot.html", "스냅샷 조회 및 저장", "탐지 순간 이미지를 크게 보고 내려받기", 2],
+    ["event-handle.html", "처리 기록", "확인 · 조치 · 오탐 처리와 메모를 시간순으로 기록", 2],
+    ["event-export.html", "내보내기", "목록 화면의 [CSV 내보내기] 버튼을 누르면 열리는 조건 선택 화면", 1],
+  ] },
+  { icon: "▤", name: "통계", pages: [
+    ["stats.html", "요약", "오늘 · 이번 주 발생 건수와 종류별 비율", 0],
+    ["stats-trend.html", "추이 차트", "일별 · 시간대별로 이벤트가 늘거나 줄었는지 확인", 0],
+    ["stats-report.html", "리포트", "기간을 골라 요약 보고서 만들기", 0],
+  ] },
+  { icon: "⬠", name: "ROI", pages: [
+    ["roi-draw.html", "ROI 그리기", "카메라 화면 위를 클릭해 감지 영역(ROI) 다각형 그리기", 0],
+    ["roi-list.html", "ROI 목록", "만든 ROI 전체를 보고 켜고 끄기", 0],
+    ["roi-rules.html", "ROI별 규칙", "ROI마다 알림 규칙 기본값을 덮어쓰기 (침범 · 체류 · 대상 클래스)", 0],
+  ] },
+  { icon: "⚙", name: "장비 현황", pages: [
+    ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
+    ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 관련 이벤트", 0],
+  ] },
+  { icon: "✚", name: "안전관리 업무", pages: [
+    ["workers.html", "현장작업자 관리", "현장작업자 등록 · 수정 · 삭제", 0],
+    ["worker-special.html", "특별관리 지정", "고령 · 고혈압 · 신규 투입 등 특별관리 대상 지정과 해제", 0],
+    ["works.html", "작업 등록 및 배정", "작업을 만들고 구역 · 담당자 · 작업자를 배정", 0],
+    ["equipment-assign.html", "장비 등록 및 배정", "중장비를 등록하고 투입 구역 · 운전원을 지정", 0],
+  ] },
+  { icon: "◆", name: "관리자", admin: true, pages: [
+    ["", "회원 관리"],
+    ["users.html", "회원 목록", "회원 조회 · 등록 · 삭제", 0],
+    ["user-approval.html", "회원가입 승인", "가입 신청한 사람을 확인하고 승인 · 반려", 1],
+    ["user-edit.html", "회원정보 수정", "기본 정보와 역할(권한) · 계정 상태 바꾸기", 1],
+    ["org.html", "조직 · 부서 관리", "원청 · 협력사 · 부서 구조를 트리로 관리", 1],
+    ["", "카메라 관리"],
+    ["cameras.html", "카메라 목록", "등록된 카메라와 연결 상태(온라인 / 오프라인)", 1],
+    ["camera-edit.html", "카메라 등록 및 수정", "스트림 주소 · 이름 · 설치 구역을 입력해 카메라 등록", 1],
+    ["camera-map.html", "카메라 배치도", "현장 도면 위에 카메라 위치와 보는 방향 표시", 1],
+    ["", "알림 규칙"],
+    ["alert-threshold.html", "판정 기준", "감지 유형별 confidence 기준과 다시 알리기까지의 쿨다운", 1],
+    ["alert-severity.html", "심각도 기준", "감지 유형별 심각도 기본값 (ROI별 규칙이 없을 때 적용)", 1],
+    ["alert-targets.html", "알림", "누가 어떤 수단으로 알림을 받을지 (후순위)", 1],
+  ] },
+];
+MENU.forEach((g, i) => { g.no = String(i + 1); });
+
+const EXTRA = {
+  "index.html": ["0", "페이지 지도", "전체 화면 목록. 이름을 누르면 그 화면으로 이동", "이 폴더 안내"],
+};
+
+const ROLE_KO = { ADMIN: "관리자", MANAGER: "안전관리자", VIEWER: "조회 전용" };
+// 로그인했으면(api.js 가 저장한 정보) 그 사람을, 아니면 예시 사람을 보여 준다
+const USER = (() => {
+  try {
+    const u = JSON.parse(localStorage.getItem("safety.auth")).user;
+    return { name: [u.name, u.position].filter(Boolean).join(" "), role: ROLE_KO[u.role], code: u.role };
+  } catch (e) {
+    return { name: "최동현 과장", role: "관리자", code: "ADMIN" };
+  }
+})();
+const ALERT_COUNT = 3; // 미처리 이벤트 수 (예시 · 관제화면 알림 팝업과 같은 수)
+const NAV_KEY = "safety.nav-open";
+
+function currentFile() {
+  return decodeURIComponent(location.pathname.split("/").pop()) || "index.html";
+}
+
+function realPages(group) {
+  return group.pages.filter((p) => p[0]);
+}
+
+function findPage(file) {
+  for (const group of MENU) {
+    const pages = realPages(group);
+    const i = pages.findIndex((p) => p[0] === file);
+    if (i >= 0) return { group, index: i, page: pages[i] };
+  }
+  return null;
+}
+
+function pageNo(group, page) {
+  return `${group.no}-${realPages(group).indexOf(page) + 1}`;
+}
+
+function readNav() {
+  try { return localStorage.getItem(NAV_KEY) === "1"; } catch (e) { return false; }
+}
+function saveNav(open) {
+  try { localStorage.setItem(NAV_KEY, open ? "1" : "0"); } catch (e) { /* 저장 못 해도 동작에는 문제 없음 */ }
+}
+
+function drawerHtml(file, found) {
+  const groupHtml = (g) => {
+    const open = found && found.group === g ? " open" : "";
+    const items = g.pages.map((p) => {
+      if (!p[0]) return `<div class="dlabel">${p[1]}</div>`;
+      const on = p[0] === file ? " on" : "";
+      return `<a class="ditem d${p[3] || 0}${on}" href="${p[0]}"><b>${pageNo(g, p)}</b>${p[1]}</a>`;
+    }).join("");
+    return `
+      <section class="dgroup${open}">
+        <button type="button" class="dgroup-btn" aria-expanded="${open ? "true" : "false"}">
+          <i>${g.icon}</i><span>${g.name}</span><em class="chev" aria-hidden="true">▾</em>
+        </button>
+        <div class="dgroup-list">${items}</div>
+      </section>`;
+  };
+  const work = MENU.filter((g) => !g.admin).map(groupHtml).join("");
+  const admin = USER.code === "ADMIN" ? MENU.filter((g) => g.admin).map(groupHtml).join("") : "";
+  return `
+    <aside class="drawer" id="drawer" aria-label="전체 메뉴">
+      <div class="drawer-head">
+        <a class="brand" href="monitor.html"><i>▲</i>안전관제</a>
+        <button type="button" class="drawer-x" id="drawer-x" aria-label="메뉴 닫기">✕</button>
+      </div>
+      <nav class="drawer-body">
+        ${work}
+        ${admin && `<div class="drawer-sep"><span>관리자 전용</span></div>${admin}`}
+      </nav>
+      <div class="drawer-foot">
+        <a href="index.html">🗺 페이지 지도</a>
+        <a href="login.html" data-logout>로그아웃</a>
+      </div>
+    </aside>
+    <div class="scrim" id="scrim"></div>`;
+}
+
+function renderShell(file, found) {
+  const where = !found ? ""
+    : found.group.name === found.page[1] ? `<span class="gnb-where"><b>${found.group.name}</b></span>`
+    : `<span class="gnb-where"><b>${found.group.name}</b> › ${found.page[1]}</span>`;
+  document.body.insertAdjacentHTML("afterbegin", `
+    ${drawerHtml(file, found)}
+    <nav class="gnb">
+      <button type="button" class="menu-btn" id="menu-btn" aria-label="메뉴 열기" aria-controls="drawer" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <a class="brand" href="monitor.html"><i>▲</i>안전관제</a>
+      ${where}
+      <span class="grow"></span>
+      <div class="gnb-side">
+        <a class="gnb-btn" href="monitor.html#alerts" id="gnb-alert" title="실시간 알림">🔔 알림 <span class="badge">${ALERT_COUNT}</span></a>
+        <span class="gnb-user"><b>${USER.name}</b><br>${USER.role}</span>
+        <a class="gnb-btn" href="login.html" data-logout>로그아웃</a>
+      </div>
+    </nav>`);
+
+  const body = document.body;
+  const btn = document.getElementById("menu-btn");
+  const narrow = window.matchMedia("(max-width: 1100px)");
+  const setOpen = (open, remember) => {
+    body.classList.toggle("nav-open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (remember) saveNav(open);
+    // 넓은 화면에서는 본문이 옆으로 밀리므로 캔버스 같은 요소가 크기를 다시 잡게 한다
+    setTimeout(() => window.dispatchEvent(new Event("resize")), 260);
+  };
+  // 처음 열 때는 움직이지 않고 바로 그 상태로 보이게 한다
+  body.classList.add("nav-still");
+  setOpen(!narrow.matches && readNav(), false);
+  requestAnimationFrame(() => requestAnimationFrame(() => body.classList.remove("nav-still")));
+
+  btn.addEventListener("click", () => setOpen(!body.classList.contains("nav-open"), !narrow.matches));
+  document.getElementById("drawer-x").addEventListener("click", () => setOpen(false, !narrow.matches));
+  document.getElementById("scrim").addEventListener("click", () => setOpen(false, false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && narrow.matches && body.classList.contains("nav-open")) setOpen(false, false);
+  });
+  document.querySelectorAll(".dgroup-btn").forEach((b) => b.addEventListener("click", () => {
+    const g = b.closest(".dgroup");
+    g.classList.toggle("open");
+    b.setAttribute("aria-expanded", g.classList.contains("open") ? "true" : "false");
+  }));
+  document.querySelectorAll("[data-logout]").forEach((a) => a.addEventListener("click", () => {
+    try { localStorage.removeItem("safety.auth"); } catch (e) { /* 무시 */ }
+  }));
+  // 관제화면에 있을 때는 🔔 버튼이 페이지 이동 없이 알림 팝업을 연다
+  document.getElementById("gnb-alert").addEventListener("click", (e) => {
+    if (typeof window.openAlerts === "function") { e.preventDefault(); window.openAlerts(); }
+  });
+}
+
+// 같은 소제목(또는 같은 대분류) 안의 화면만 탭으로 보여 준다
+function sectionPages(found) {
+  const list = found.group.pages;
+  const at = list.indexOf(found.page);
+  let start = at;
+  while (start > 0 && list[start - 1][0]) start--;
+  let end = at;
+  while (end < list.length - 1 && list[end + 1][0]) end++;
+  return list.slice(start, end + 1);
+}
+
+function tabsHtml(found) {
+  if (!found) return "";
+  return sectionPages(found).map((p) =>
+    `<a class="tab${p === found.page ? " on" : ""}${p[3] ? " sub" : ""}" href="${p[0]}"><b>${pageNo(found.group, p)}</b>${p[1]}</a>`
+  ).join("");
+}
+
+function renderHead(file, found) {
+  // 브라우저 탭 제목도 메뉴 번호와 맞춘다
+  if (found) document.title = `${pageNo(found.group, found.page)} ${found.page[1]} · 안전관제`;
+  const head = document.querySelector("header.head");
+  if (head && !head.children.length) {
+    let no, groupName, title, text;
+    if (found) {
+      no = pageNo(found.group, found.page);
+      groupName = found.group.name;
+      [, title, text] = found.page;
+    } else {
+      const extra = EXTRA[file] || ["", document.title, "", ""];
+      [no, title, text, groupName] = extra;
+    }
+    head.innerHTML = `
+      <div class="where"><i class="dot"></i><b>${no}</b>${groupName}</div>
+      <div class="title"><h1>${title}</h1><p>${text}</p></div>
+      <div class="tabs">${tabsHtml(found)}</div>`;
+  }
+  // monitor.html 처럼 제목 칸을 직접 만든 화면은 탭 자리만 채운다
+  document.querySelectorAll("[data-tabs]").forEach((el) => { el.innerHTML = tabsHtml(found); el.classList.add("tabs"); });
+}
+
+function toast(msg) {
+  let el = document.querySelector(".toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+function pad2(n) { return String(n).padStart(2, "0"); }
+function tickClock() {
+  const now = new Date();
+  const time = pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds());
+  document.querySelectorAll(".js-cam-time").forEach((el) => { el.textContent = time; });
+}
+
+function wireCommon() {
+  // 표의 줄을 누르면 data-href 화면으로 이동
+  document.querySelectorAll("[data-href]").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("a, button, .switch, input, select")) return;
+      location.href = el.dataset.href;
+    });
+  });
+  // 칩: data-single 이 있으면 하나만, 없으면 여러 개 선택
+  document.querySelectorAll(".chips").forEach((box) => {
+    box.querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
+      if (box.hasAttribute("data-single")) box.querySelectorAll(".chip").forEach((c) => c.classList.remove("on"));
+      chip.classList.toggle("on", box.hasAttribute("data-single") ? true : !chip.classList.contains("on"));
+    }));
+  });
+  // 켜기 / 끄기 스위치
+  document.querySelectorAll(".switch").forEach((sw) => sw.addEventListener("click", () => sw.classList.toggle("on")));
+  // 같은 목록 안에서 하나만 선택 (data-pick)
+  document.querySelectorAll("[data-pick]").forEach((box) => {
+    box.querySelectorAll(".tc-card, .thumb, .pager").forEach((card) => card.addEventListener("click", () => {
+      box.querySelectorAll(".tc-card, .thumb, .pager").forEach((c) => c.classList.remove("active", "on"));
+      card.classList.add(card.classList.contains("tc-card") ? "active" : "on");
+    }));
+  });
+  // 저장 · 삭제처럼 데이터베이스가 필요한 버튼
+  document.querySelectorAll("[data-toast]").forEach((el) => el.addEventListener("click", (e) => {
+    e.preventDefault();
+    toast(el.dataset.toast || "예시 화면입니다. 데이터베이스를 연결하면 실제로 동작합니다.");
+  }));
+  // 범위 슬라이더 옆 숫자
+  document.querySelectorAll("input[type=range][data-out]").forEach((r) => {
+    const out = document.getElementById(r.dataset.out);
+    const show = () => { out.textContent = r.value + (r.dataset.unit || ""); };
+    r.addEventListener("input", show);
+    show();
+  });
+  // data-open="팝업id" 버튼은 팝업을 열고, 팝업 안의 [data-close] 나 바깥 영역은 닫는다
+  document.querySelectorAll("[data-open]").forEach((b) => b.addEventListener("click", () => {
+    const pop = document.getElementById(b.dataset.open);
+    if (pop) pop.hidden = false;
+  }));
+  document.querySelectorAll(".pop").forEach((pop) => {
+    pop.addEventListener("click", (e) => { if (e.target === pop || e.target.closest("[data-close]")) pop.hidden = true; });
+  });
+}
+
+(function init() {
+  const file = currentFile();
+  const found = findPage(file);
+  if (!document.body.hasAttribute("data-no-gnb")) renderShell(file, found);
+  renderHead(file, found);
+  wireCommon();
+  tickClock();
+  setInterval(tickClock, 1000);
+})();

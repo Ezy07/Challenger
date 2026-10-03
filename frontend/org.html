@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>조직 · 부서 관리 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .tree { display: grid; gap: 2px; }
+    .node { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #c5d0dc; font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
+    .node:hover { background: var(--panel-2); }
+    .node.on { background: rgba(255, 154, 31, 0.12); border-color: rgba(255, 154, 31, 0.6); color: var(--ink); }
+    .node .n { margin-left: auto; color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+    .node.l0 { font-weight: 800; color: var(--ink); }
+    .node.l1 { padding-left: 26px; }
+    .node.l2 { padding-left: 44px; }
+    .node .k { font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 5px; background: #243044; color: var(--muted); }
+    .node .k.main { background: rgba(255, 154, 31, 0.18); color: var(--orange); }
+    .info { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px 16px; }
+    .info div span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700; }
+    .info div b { font-size: 15px; }
+    @media (max-width: 1100px) { .info { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">조직도 <span>organization</span></div>
+        <div class="tree" id="tree">
+          <button class="node l0"><span class="k main">원청</span>OO건설<span class="n">7</span></button>
+          <button class="node l1">현장소장실<span class="n">1</span></button>
+          <button class="node l1 on">안전팀<span class="n">2</span></button>
+          <button class="node l1">공무팀<span class="n">1</span></button>
+          <button class="node l1">공사팀<span class="n">3</span></button>
+          <button class="node l2">양중<span class="n">1</span></button>
+          <button class="node l2">토공<span class="n">1</span></button>
+          <button class="node l2">타설<span class="n">1</span></button>
+          <button class="node l0"><span class="k">협력사</span>대한골조<span class="n">0</span></button>
+          <button class="node l0"><span class="k">협력사</span>한빛토건<span class="n">0</span></button>
+          <button class="node l0"><span class="k">협력사</span>세진크레인<span class="n">0</span></button>
+          <button class="node l0"><span class="k">협력사</span>우리설비<span class="n">0</span></button>
+        </div>
+        <div class="row">
+          <button class="btn sm" data-open="add-pop">＋ 하위 부서</button>
+          <button class="btn sm" data-open="add-pop">＋ 협력사</button>
+        </div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell">
+        <div class="info">
+          <div><span>선택한 부서</span><b id="org-name">안전팀</b></div>
+          <div><span>상위 조직</span><b>OO건설</b></div>
+          <div><span>구분</span><b>DEPT (부서)</b></div>
+          <div><span>소속 회원</span><b>2명</b></div>
+        </div>
+      </section>
+      <section class="cell"><div class="pad">
+        <div class="row between">
+          <div class="label">이 부서 정보 바꾸기</div>
+          <div class="row"><button class="btn sm" data-toast="소속 회원이 있으면 삭제할 수 없습니다. 먼저 회원을 다른 부서로 옮기세요.">삭제</button><button class="btn sm primary" data-toast="부서 정보를 저장했습니다. (예시)">저장</button></div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+          <label class="field">부서 이름<input class="input" value="안전팀" /></label>
+          <label class="field">상위 조직<select class="input"><option>OO건설</option><option>공사팀</option><option>(없음 · 최상위)</option></select></label>
+        </div>
+        <div class="label" style="margin-top:6px">소속 회원 <span>회원정보 수정에서 소속을 바꿀 수 있습니다</span></div>
+        <table class="tbl">
+          <thead><tr><th>이름</th><th>아이디</th><th>역할</th><th>상태</th></tr></thead>
+          <tbody>
+            <tr data-href="user-edit.html"><td><b>최동현 과장</b></td><td>choi.dh</td><td><span class="role">관리자</span></td><td><span class="status ok">활성</span></td></tr>
+            <tr data-href="user-edit.html"><td><b>오세영 주임</b></td><td>oh.sy</td><td><span class="status info">안전관리자</span></td><td><span class="status ok">활성</span></td></tr>
+          </tbody>
+        </table>
+      </div></section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">구조 규칙</div>
+        <div class="check info"><div><b>원청 · 협력사</b><small>회사 단위 (type = COMPANY)</small></div><span class="status info">최상위</span></div>
+        <div class="check info"><div><b>부서</b><small>회사 아래 최대 2단계 (type = DEPT)</small></div><span class="status info">parent_id</span></div>
+        <div class="hint">협력사 작업자는 회원이 아니라 <b>현장작업자</b>로 따로 관리합니다. 여기의 협력사는 협력사 소속 <b>회원</b>(안전담당 등)을 위한 조직입니다.</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pop" id="add-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="role">새 조직</span><h2>조직 · 부서 추가</h2><p>상위 조직을 고르지 않으면 최상위 회사로 만들어집니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="pop-body">
+        <label class="field">이름<input class="input" placeholder="예: 품질팀" /></label>
+        <label class="field">구분<select class="input"><option>부서 (DEPT)</option><option>회사 (COMPANY)</option></select></label>
+        <label class="field">상위 조직<select class="input"><option>OO건설</option><option>공사팀</option><option>(없음 · 최상위)</option></select></label>
+        <div class="row end"><button class="btn" data-close>취소</button><button class="btn primary" data-toast="조직을 추가했습니다. (예시)">추가</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    document.querySelectorAll(".node").forEach((n) => n.addEventListener("click", () => {
+      document.querySelectorAll(".node").forEach((x) => x.classList.remove("on"));
+      n.classList.add("on");
+      document.getElementById("org-name").textContent = n.childNodes[n.childNodes.length - 2].textContent.trim() || n.textContent;
+    }));
+  </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>로그인 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .err { font-size: 12px; color: #ff9b9b; font-weight: 700; min-height: 16px; }
+    body { align-items: center; justify-content: center; padding: 16px; }
+    .login { width: min(400px, 100%); display: grid; gap: 14px; padding: 28px; }
+    .login .brand { justify-content: center; font-size: 22px; margin: 0; }
+    .login .brand i { width: 30px; height: 30px; font-size: 16px; }
+    .login .site { text-align: center; color: var(--muted); font-size: 13px; margin-top: -6px; }
+    .login .input { padding: 11px 12px; font-size: 14px; }
+    .login .btn { padding: 12px; font-size: 15px; }
+    .tag { text-align: center; font-size: 11.5px; color: var(--muted); }
+    .tag b { color: var(--orange); }
+  </style>
+</head>
+<body data-no-gnb>
+  <form class="cell login" id="form">
+    <div class="brand"><i>▲</i>안전관제</div>
+    <div class="site">공동주택 건설현장 · OO단지 101~103동</div>
+    <label class="field">아이디<input class="input" id="login-id" autocomplete="username" required /></label>
+    <label class="field">비밀번호<input class="input" id="login-pw" type="password" autocomplete="current-password" required /></label>
+    <div class="row between">
+      <label class="row muted" style="gap:6px; font-size:12.5px"><input type="checkbox" id="remember" /> 아이디 기억</label>
+      <a class="muted" style="font-size:12.5px" href="#" data-toast="관리자(최동현 과장)에게 비밀번호 초기화를 요청하세요.">비밀번호를 잊었어요</a>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+    <button class="btn primary" id="submit">로그인</button>
+    <a class="btn" href="signup.html">회원가입</a>
+    <div class="tag"><a href="index.html">페이지 지도</a> · 아직 API 를 연결하지 않은 화면은 예시 데이터로 보입니다</div>
+  </form>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const REMEMBER_KEY = "safety.login-id";
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      if (saved) { $("login-id").value = saved; $("remember").checked = true; $("login-pw").focus(); }
+    } catch (e) { /* 무시 */ }
+
+    // 다른 화면에서 로그인이 필요해 넘어왔으면 로그인 후 그 화면으로 돌려보낸다
+    const next = new URLSearchParams(location.search).get("next");
+    const target = next && /^[\w.-]+\.html(\?.*)?$/.test(next) ? next : "monitor.html";
+
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const loginId = $("login-id").value.trim();
+      $("err").textContent = "";
+      $("submit").disabled = true;
+      try {
+        const auth = await api("/api/auth/login", { method: "POST", body: { login_id: loginId, password: $("login-pw").value } });
+        setAuth(auth);
+        try {
+          if ($("remember").checked) localStorage.setItem(REMEMBER_KEY, loginId);
+          else localStorage.removeItem(REMEMBER_KEY);
+        } catch (err) { /* 무시 */ }
+        location.href = target;
+      } catch (err) {
+        $("err").textContent = err.message;
+        $("submit").disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

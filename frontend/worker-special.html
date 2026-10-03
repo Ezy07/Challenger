@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>특별관리 지정 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .cats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .cat { padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--c); }
+    .cat span { font-size: 12px; color: var(--muted); font-weight: 700; }
+    .cat strong { display: block; margin-top: 4px; font-size: 26px; font-weight: 780; font-variant-numeric: tabular-nums; }
+    .cat strong i { font-style: normal; font-size: 13px; color: var(--muted); margin-left: 2px; }
+    .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
+    @media (max-width: 1100px) { .cats { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">특별관리 사유</div>
+        <button class="tc-card active"><strong>전체 <span class="muted">6</span></strong></button>
+        <button class="tc-card"><strong>고령 (만 60세 이상) <span class="muted">2</span></strong><p>생년월일로 자동 표시</p></button>
+        <button class="tc-card"><strong>고혈압 · 건강 주의 <span class="muted">2</span></strong><p>건강검진 결과로 지정</p></button>
+        <button class="tc-card"><strong>신규 투입 (7일 이내) <span class="muted">2</span></strong><p>7일 지나면 자동 해제</p></button>
+        <button class="tc-card"><strong>기타 <span class="muted">0</span></strong><p>외국인 · 경력 부족 등</p></button>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <div class="cats">
+        <div class="cat" style="--c:#7dcea0"><span>고령</span><strong>2<i>명</i></strong></div>
+        <div class="cat" style="--c:#ff9a1f"><span>고혈압</span><strong>2<i>명</i></strong></div>
+        <div class="cat" style="--c:#6cb6ff"><span>신규 투입</span><strong>2<i>명</i></strong></div>
+        <div class="cat" style="--c:#f5c400"><span>오늘 출력 중</span><strong>5<i>명</i></strong></div>
+      </div>
+      <section class="cell" style="padding:0 6px 6px">
+        <table class="tbl" id="tbl">
+          <thead><tr><th>이름</th><th>협력사 · 직종</th><th>사유</th><th>지정일</th><th>지정한 사람</th><th>오늘 위치</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b>김영수</b></td><td>대한골조 · 형틀목공</td><td><span class="sp">고령 64세</span></td><td class="num">2026.08.11</td><td>오세영 주임</td><td>102동 대형거푸집구역</td><td><button class="btn sm" data-off>해제</button></td></tr>
+            <tr><td><b>오병철</b></td><td>한빛토건 · 보통인부</td><td><span class="sp">고령 67세</span></td><td class="num">2026.09.02</td><td>오세영 주임</td><td>외곽 야적장</td><td><button class="btn sm" data-off>해제</button></td></tr>
+            <tr><td><b>박상철</b></td><td>대한골조 · 형틀목공</td><td><span class="sp">고혈압</span></td><td class="num">2026.07.20</td><td>최동현 과장</td><td>101동 갱폼 인양구역</td><td><button class="btn sm" data-off>해제</button></td></tr>
+            <tr><td><b>서준기</b></td><td>대한골조 · 타설공</td><td><span class="sp">고혈압</span></td><td class="num">2026.09.15</td><td>최동현 과장</td><td>101동 갱폼 인양구역</td><td><button class="btn sm" data-off>해제</button></td></tr>
+            <tr><td><b>응우옌 반 남</b></td><td>한빛토건 · 보통인부</td><td><span class="sp">신규 투입 · D+3</span></td><td class="num">2026.09.29</td><td>오세영 주임</td><td>Sector A 토공</td><td><button class="btn sm" data-off>해제</button></td></tr>
+            <tr><td><b>한상우</b></td><td>우리설비 · 배관공</td><td><span class="sp">신규 투입 · D+1</span></td><td class="num">2026.10.01</td><td>오세영 주임</td><td><span class="muted">미출력</span></td><td><button class="btn sm" data-off>해제</button></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">특별관리 지정하기</div>
+        <label class="field">작업자<select class="input" id="sp-who"><option>이정호 · 대한골조 철근공</option><option>최민재 · 세진크레인 신호수</option><option>김창식 · 세진크레인 TC 운전원</option><option>정대호 · 한빛토건 굴착기 운전원</option></select></label>
+        <label class="field">사유<select class="input" id="sp-why"><option>고혈압</option><option>신규 투입</option><option>고령</option><option>기타</option></select></label>
+        <label class="field">메모<textarea class="input" id="sp-memo" placeholder="예: 9월 건강검진 혈압 160/100"></textarea></label>
+        <button class="btn primary block" id="sp-add">지정</button>
+        <div class="hint">지정된 작업자는 <b>관제화면 오른쪽 아래 특별관리근로자 패널</b>에 숫자로 잡히고, 작업별 작업자 목록에 표시가 붙습니다.</div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    function wireOff(btn) {
+      btn.addEventListener("click", () => {
+        const tr = btn.closest("tr");
+        toast(tr.cells[0].textContent + " 특별관리를 해제했습니다. (예시)");
+        tr.remove();
+      });
+    }
+    document.querySelectorAll("[data-off]").forEach(wireOff);
+    document.getElementById("sp-add").addEventListener("click", () => {
+      const who = document.getElementById("sp-who");
+      const opt = who.selectedOptions[0];
+      if (!opt) { toast("지정할 작업자가 없습니다."); return; }
+      const [name, rest] = opt.textContent.split(" · ");
+      const today = new Date();
+      const d = today.getFullYear() + "." + String(today.getMonth() + 1).padStart(2, "0") + "." + String(today.getDate()).padStart(2, "0");
+      const tr = document.createElement("tr");
+      tr.innerHTML = '<td><b></b></td><td></td><td><span class="sp"></span></td><td class="num"></td><td>최동현 과장</td><td><span class="muted">-</span></td><td><button class="btn sm" data-off>해제</button></td>';
+      tr.cells[0].firstChild.textContent = name;
+      tr.cells[1].textContent = rest.replace(" ", " · ");
+      tr.cells[2].firstChild.textContent = document.getElementById("sp-why").value;
+      tr.cells[3].textContent = d;
+      document.getElementById("tbl").tBodies[0].prepend(tr);
+      wireOff(tr.querySelector("[data-off]"));
+      opt.remove();
+      toast(name + "님을 특별관리로 지정했습니다. (예시)");
+    });
+  </script>
+</body>
+</html>

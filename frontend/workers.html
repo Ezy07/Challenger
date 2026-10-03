@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>현장작업자 관리 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
+    .tbl td { vertical-align: middle; }
+    .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">협력사 <span>10명</span></div>
+        <button class="tc-card active"><strong>전체 <span class="muted">10</span></strong></button>
+        <button class="tc-card"><strong>대한골조 <span class="muted">4</span></strong><p>형틀 · 철근 · 타설</p></button>
+        <button class="tc-card"><strong>한빛토건 <span class="muted">3</span></strong><p>토공 · 굴착</p></button>
+        <button class="tc-card"><strong>세진크레인 <span class="muted">2</span></strong><p>TC 운전 · 신호</p></button>
+        <button class="tc-card"><strong>우리설비 <span class="muted">1</span></strong><p>배관</p></button>
+        <div class="hint">현장작업자는 로그인하지 않습니다. 작업 배정과 <b>특별관리근로자</b> 패널에 쓰입니다.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell bar-top">
+        <input class="input" style="width:220px" placeholder="이름 · 직종으로 찾기" />
+        <label class="row muted" style="gap:6px; font-size:12.5px"><input type="checkbox" /> 특별관리 대상만</label>
+        <span class="grow"></span>
+        <button class="btn primary" id="add">＋ 작업자 등록</button>
+      </section>
+      <section class="cell" style="padding:0 6px 6px">
+        <table class="tbl" id="tbl">
+          <thead><tr><th>이름</th><th>협력사</th><th>직종</th><th>연락처</th><th>특별관리</th><th>오늘 배정 작업</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b>김영수</b></td><td>대한골조</td><td>형틀목공</td><td class="num">010-2231-0457</td><td><span class="sp">고령 64세</span></td><td>102동 대형거푸집 설치</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>이정호</b></td><td>대한골조</td><td>철근공</td><td class="num">010-8812-3390</td><td><span class="muted">-</span></td><td>102동 대형거푸집 설치</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>박상철</b></td><td>대한골조</td><td>형틀목공</td><td class="num">010-4410-7721</td><td><span class="sp">고혈압</span></td><td>101동 갱폼 인양</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>서준기</b></td><td>대한골조</td><td>타설공</td><td class="num">010-6603-1184</td><td><span class="sp">고혈압</span></td><td>101동 3층 슬래브 타설</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>최민재</b></td><td>세진크레인</td><td>신호수</td><td class="num">010-3345-9012</td><td><span class="muted">-</span></td><td>101동 갱폼 인양</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>김창식</b></td><td>세진크레인</td><td>TC 운전원</td><td class="num">010-9020-4471</td><td><span class="muted">-</span></td><td>101동 갱폼 인양 (T-CRN-01)</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>응우옌 반 남</b></td><td>한빛토건</td><td>보통인부</td><td class="num">010-7781-2035</td><td><span class="sp">신규 투입</span></td><td>Sector A 터파기</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>정대호</b></td><td>한빛토건</td><td>굴착기 운전원</td><td class="num">010-5512-6630</td><td><span class="muted">-</span></td><td>Sector A 터파기 (EXC_01)</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>오병철</b></td><td>한빛토건</td><td>보통인부</td><td class="num">010-2298-5543</td><td><span class="sp">고령 67세</span></td><td>야적장 정리</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr><td><b>한상우</b></td><td>우리설비</td><td>배관공</td><td class="num">010-4067-8821</td><td><span class="sp">신규 투입</span></td><td><span class="muted">배정 없음</span></td><td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">오늘 현황</div>
+        <div class="kpis" style="grid-template-columns:1fr 1fr">
+          <div class="kpi-box"><span>등록 작업자</span><strong>10<i>명</i></strong></div>
+          <div class="kpi-box"><span>특별관리</span><strong style="color:var(--orange)">6<i>명</i></strong></div>
+        </div>
+        <div class="check warn"><div><b>배정 없는 작업자</b><small>한상우 (우리설비)</small></div><a class="btn sm" href="works.html">배정</a></div>
+        <a class="btn block" href="worker-special.html">특별관리 지정으로 →</a>
+        <a class="btn block" href="works.html">작업 등록 및 배정으로 →</a>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pop" id="pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="role" id="pop-tag">새 작업자</span><h2 id="pop-title">작업자 등록</h2><p>특별관리 지정은 등록 후 특별관리 지정 화면에서 합니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="pop-body">
+        <label class="field">이름<input class="input" id="w-name" placeholder="예: 홍길동" /></label>
+        <label class="field">협력사<select class="input" id="w-co"><option>대한골조</option><option>한빛토건</option><option>세진크레인</option><option>우리설비</option></select></label>
+        <label class="field">직종<input class="input" id="w-job" placeholder="예: 형틀목공" /></label>
+        <label class="field">연락처<input class="input" id="w-phone" placeholder="010-0000-0000" /></label>
+        <label class="field">생년월일<input class="input" id="w-birth" type="date" value="1980-01-01" /></label>
+        <div class="row end"><button class="btn" data-close>취소</button><button class="btn primary" id="save">저장</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pop" id="del-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="status stop">삭제</span><h2 id="del-title">작업자 삭제</h2><p>배정된 작업에서도 함께 빠집니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="row end" style="margin-top:14px"><button class="btn" data-close>취소</button><button class="btn danger" id="del-ok">삭제</button></div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const pop = document.getElementById("pop");
+    const $ = (id) => document.getElementById(id);
+    let editRow = null;
+    function openForm(row) {
+      editRow = row;
+      const c = row ? row.cells : null;
+      $("pop-tag").textContent = row ? "수정" : "새 작업자";
+      $("pop-title").textContent = row ? c[0].textContent + " 수정" : "작업자 등록";
+      $("w-name").value = row ? c[0].textContent : "";
+      $("w-co").value = row ? c[1].textContent : "대한골조";
+      $("w-job").value = row ? c[2].textContent : "";
+      $("w-phone").value = row ? c[3].textContent : "";
+      pop.hidden = false;
+      $("w-name").focus();
+    }
+    function wireRow(tr) {
+      tr.querySelector("[data-edit]").addEventListener("click", () => openForm(tr));
+      tr.querySelector("[data-del]").addEventListener("click", () => {
+        delRow = tr;
+        $("del-title").textContent = tr.cells[0].textContent + " 삭제";
+        $("del-pop").hidden = false;
+      });
+    }
+    $("add").addEventListener("click", () => openForm(null));
+    $("save").addEventListener("click", () => {
+      const name = $("w-name").value.trim();
+      if (!name) { toast("이름을 입력하세요."); return; }
+      const vals = [name, $("w-co").value, $("w-job").value || "-", $("w-phone").value || "-"];
+      if (editRow) {
+        vals.forEach((v, i) => { editRow.cells[i].innerHTML = i === 0 ? "<b></b>" : ""; (i === 0 ? editRow.cells[0].firstChild : editRow.cells[i]).textContent = v; });
+        toast(name + " 정보를 저장했습니다. (예시)");
+      } else {
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td><b></b></td><td></td><td></td><td class="num"></td><td><span class="muted">-</span></td><td><span class="muted">배정 없음</span></td>' +
+          '<td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td>';
+        tr.cells[0].firstChild.textContent = vals[0];
+        vals.slice(1).forEach((v, i) => { tr.cells[i + 1].textContent = v; });
+        $("tbl").tBodies[0].prepend(tr);
+        wireRow(tr);
+        toast(name + " 작업자를 등록했습니다. (예시)");
+      }
+      pop.hidden = true;
+    });
+    let delRow = null;
+    $("del-ok").addEventListener("click", () => { if (delRow) delRow.remove(); $("del-pop").hidden = true; toast("작업자를 삭제했습니다. (예시)"); });
+    document.querySelectorAll("#tbl tbody tr").forEach(wireRow);
+  </script>
+</body>
+</html>

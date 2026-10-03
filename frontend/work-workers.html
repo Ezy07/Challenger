@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>작업별 작업자 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .work-sum { display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, auto); gap: 18px; align-items: center; padding: 14px 18px; }
+    .work-sum h2 { font-size: 19px; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
+    .work-sum div > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .work-sum div > b { font-size: 15px; }
+    .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
+    .tbl tr.sp-row td:first-child { box-shadow: inset 3px 0 0 var(--orange); }
+    @media (max-width: 1100px) { .work-sum { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">102동 대형거푸집구역 작업</div>
+        <button class="tc-card active"><div class="code">W-03 · 작업중지</div><strong>102동 대형거푸집 설치</strong><p>박진우 차장 · 2명</p></button>
+        <div class="label" style="margin-top:8px">다른 구역 작업</div>
+        <button class="tc-card"><div class="code">W-01 · 101동 갱폼 인양구역</div><strong>101동 갱폼 인양</strong><p>박진우 차장 · 4명</p></button>
+        <button class="tc-card"><div class="code">W-04 · Sector A 토공</div><strong>Sector A 터파기</strong><p>정민수 부장 · 2명</p></button>
+        <a class="btn block" href="zone-works.html?zone=1">← 구역별 작업 목록</a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell work-sum">
+        <div><h2>W-03 · 102동 대형거푸집 설치 <span class="status stop">작업중지</span></h2><p class="muted">102동 대형거푸집구역 · TC-2 연계 · 09.28 ~ 10.10</p></div>
+        <div><span>담당</span><b>박진우 차장</b></div>
+        <div><span>배정</span><b>2명</b></div>
+        <div><span>특별관리</span><b style="color:var(--orange)">1명</b></div>
+        <div><span>필수 인력</span><b style="color:var(--red)">신호수 0/1</b></div>
+      </section>
+      <section class="cell" style="padding:0 6px 6px">
+        <table class="tbl">
+          <thead><tr><th>이름</th><th>협력사</th><th>직종</th><th>특별관리</th><th>배정일</th><th>안전교육</th><th>연락처</th></tr></thead>
+          <tbody>
+            <tr class="sp-row"><td><b>김영수</b></td><td>대한골조</td><td>형틀목공</td><td><span class="sp">고령 64세</span></td><td class="num">10.02</td><td><span class="status ok">수료</span></td><td class="num">010-2231-0457</td></tr>
+            <tr><td><b>이정호</b></td><td>대한골조</td><td>철근공</td><td><span class="muted">-</span></td><td class="num">10.02</td><td><span class="status ok">수료</span></td><td class="num">010-8812-3390</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">이 작업의 확인 사항</div>
+        <div class="check stop"><div><b>신호수 미배치</b><small>TC-2 양중 연계 작업은 신호수 1명 필수</small></div><span class="status stop">불충족</span></div>
+        <div class="check warn"><div><b>고령 작업자 포함</b><small>김영수 · 고소작업 배치 금지</small></div><span class="status warn">주의</span></div>
+        <div class="check"><div><b>당일 안전교육</b><small>배정 인원 2명 모두 수료</small></div><span class="status ok">충족</span></div>
+        <a class="btn primary block" href="works.html">작업자 배정 바꾸기 →</a>
+        <a class="btn block" href="event-detail.html">관련 경보 보기 (EV-1042)</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

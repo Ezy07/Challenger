@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>내보내기 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .formats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .formats .tc-card { padding: 14px; }
+    .formats .tc-card strong { font-size: 17px; }
+    .cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  </style>
+</head>
+<body>
+  <div class="page no-right">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">내보낼 범위</div>
+        <label class="field">시작 날짜<input class="input" type="date" value="2026-09-24" /></label>
+        <label class="field">끝 날짜<input class="input" type="date" value="2026-10-01" /></label>
+        <label class="field">구역
+          <select class="input"><option>전체 구역</option><option>101동 갱폼 인양구역</option><option>102동 대형거푸집구역</option><option>Sector A 토공</option><option>외곽 야적장</option></select>
+        </label>
+        <div class="field">심각도
+          <div class="chips"><span class="chip on">높음</span><span class="chip on">중간</span><span class="chip on">낮음</span></div>
+        </div>
+        <div class="field">처리 상태
+          <div class="chips"><span class="chip on">미처리</span><span class="chip on">확인중</span><span class="chip on">처리완료</span><span class="chip">오탐</span></div>
+        </div>
+        <div class="hint">조건에 맞는 이벤트 <b>168건</b>이 파일로 만들어집니다.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell">
+        <div class="pad">
+          <div class="label">파일 형식</div>
+          <div class="formats" data-pick>
+            <button class="tc-card active"><div class="code">.csv</div><strong>CSV</strong><p>엑셀 · 파이썬 어디서나 열림. 분석용</p></button>
+            <button class="tc-card"><div class="code">.xlsx</div><strong>엑셀</strong><p>표 서식이 들어간 보고용 파일</p></button>
+            <button class="tc-card"><div class="code">.zip</div><strong>스냅샷 묶음</strong><p>CSV + 이벤트별 탐지 이미지</p></button>
+          </div>
+          <div class="label" style="margin-top:6px">넣을 항목</div>
+          <div class="cols">
+            <label class="opt"><input type="checkbox" checked /> 번호</label>
+            <label class="opt"><input type="checkbox" checked /> 시각</label>
+            <label class="opt"><input type="checkbox" checked /> 카메라</label>
+            <label class="opt"><input type="checkbox" checked /> 구역</label>
+            <label class="opt"><input type="checkbox" checked /> 종류</label>
+            <label class="opt"><input type="checkbox" checked /> 심각도</label>
+            <label class="opt"><input type="checkbox" checked /> 신뢰도</label>
+            <label class="opt"><input type="checkbox" checked /> 처리 상태</label>
+            <label class="opt"><input type="checkbox" /> 처리 담당자</label>
+            <label class="opt"><input type="checkbox" /> 조치 메모</label>
+            <label class="opt"><input type="checkbox" /> 스냅샷 경로</label>
+          </div>
+        </div>
+      </section>
+      <section class="cell">
+        <div class="pad">
+          <div class="row between">
+            <div class="label">미리보기 <span>앞 5줄</span></div>
+            <button class="btn primary" data-toast="파일 만들기는 데이터베이스 연결 후 동작합니다.">⬇ 파일 내려받기 (168건)</button>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>번호</th><th>시각</th><th>카메라</th><th>구역</th><th>종류</th><th>심각도</th><th>신뢰도</th><th>처리 상태</th></tr></thead>
+            <tbody>
+              <tr><td>EV-1042</td><td>2026-10-01 14:32:10</td><td>CAM_0002</td><td>102동 대형거푸집구역</td><td>신호수 미배치</td><td>높음</td><td>0.85</td><td>미처리</td></tr>
+              <tr><td>EV-1041</td><td>2026-10-01 14:28:44</td><td>CAM_0003</td><td>Sector A 토공</td><td>지반침하 의심</td><td>중간</td><td>0.96</td><td>확인중</td></tr>
+              <tr><td>EV-1040</td><td>2026-10-01 14:15:02</td><td>TC 1·3호기</td><td>중앙 자재하역장</td><td>TC 후크 근접</td><td>높음</td><td>-</td><td>처리완료</td></tr>
+              <tr><td>EV-1039</td><td>2026-10-01 13:58:31</td><td>CAM_0001</td><td>101동 갱폼 인양구역</td><td>ROI 침범</td><td>중간</td><td>0.78</td><td>처리완료</td></tr>
+              <tr><td>EV-1037</td><td>2026-10-01 13:22:50</td><td>CAM_0001</td><td>101동 갱폼 인양구역</td><td>안전조끼 미착용</td><td>낮음</td><td>0.88</td><td>처리완료</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

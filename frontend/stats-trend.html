@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>추이 차트 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr); }
+    .main .cell { display: flex; flex-direction: column; }
+    .main .pad { flex: 1; min-height: 0; }
+    svg.line { flex: 1; width: 100%; min-height: 160px; }
+    .cols { flex: 1; min-height: 120px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; align-items: end; }
+    .col { display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .col i { width: 100%; max-width: 38px; border-radius: 6px 6px 2px 2px; background: var(--orange); }
+    .col b { color: var(--ink); font-size: 12px; }
+    .col.peak i { background: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="page no-right">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">차트 설정</div>
+        <div class="field">기간
+          <div class="chips" data-single><span class="chip">7일</span><span class="chip on">14일</span><span class="chip">30일</span></div>
+        </div>
+        <label class="field">이벤트 종류
+          <select class="input"><option>전체 종류</option><option>ROI 침범</option><option>안전모 · 조끼 미착용</option><option>장비 근접</option><option>신호수 미배치</option></select>
+        </label>
+        <label class="field">구역
+          <select class="input"><option>전체 구역</option><option>Sector A 토공</option><option>102동 대형거푸집구역</option><option>101동 갱폼 인양구역</option><option>외곽 야적장</option></select>
+        </label>
+        <div class="field">심각도
+          <div class="chips"><span class="chip on">높음</span><span class="chip on">중간</span><span class="chip on">낮음</span></div>
+        </div>
+        <div class="hint"><b>선이 내려가면</b> 안전 조치가 효과가 있다는 뜻입니다. 갑자기 오르는 날은 그날 작업 내용과 함께 확인하세요.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell">
+        <div class="pad">
+          <div class="row between">
+            <div class="label">일별 이벤트 수 <span>09.18 ~ 10.01</span></div>
+            <span class="muted">하루 평균 <b style="color:var(--ink)">24.5건</b> · 최근 7일 평균 <b style="color:var(--green)">22.6건</b></span>
+          </div>
+          <svg class="line" id="line" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
+        </div>
+      </section>
+      <section class="cell">
+        <div class="pad">
+          <div class="label">시간대별 이벤트 수 <span>오늘 06~18시</span></div>
+          <div class="cols" id="cols"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    // 예시 숫자로 그린다. 데이터베이스가 생기면 이 배열만 바꾸면 된다
+    const DAYS = ["09.18", "09.19", "09.20", "09.21", "09.22", "09.23", "09.24", "09.25", "09.26", "09.27", "09.28", "09.29", "09.30", "10.01"];
+    const DAILY = [31, 28, 26, 17, 29, 24, 30, 27, 25, 21, 23, 18, 20, 24];
+    const HOURLY = [0, 1, 2, 3, 2, 1, 1, 4, 3, 4, 2, 1];
+
+    const svg = document.getElementById("line");
+    const x = (i) => 40 + i * (640 / (DAILY.length - 1));
+    const y = (v) => 190 - v * 5;
+    let html = "";
+    [0, 10, 20, 30].forEach((v) => {
+      html += `<line x1="40" x2="680" y1="${y(v)}" y2="${y(v)}" stroke="rgba(255,255,255,0.07)" />` +
+              `<text x="30" y="${y(v) + 4}" fill="#8e9aab" font-size="11" text-anchor="end">${v}</text>`;
+    });
+    const pts = DAILY.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+    html += `<polygon points="${x(0)},${y(0)} ${pts} ${x(DAILY.length - 1)},${y(0)}" fill="rgba(255,154,31,0.12)" />`;
+    html += `<polyline points="${pts}" fill="none" stroke="#ff9a1f" stroke-width="2.5" vector-effect="non-scaling-stroke" />`;
+    DAILY.forEach((v, i) => {
+      const last = i === DAILY.length - 1;
+      html += `<circle cx="${x(i)}" cy="${y(v)}" r="${last ? 5 : 3.5}" fill="${last ? "#ff5d5d" : "#ff9a1f"}"><title>${DAYS[i]} · ${v}건</title></circle>`;
+      if (i % 2 === 1 || last) html += `<text x="${x(i)}" y="212" fill="#8e9aab" font-size="11" text-anchor="middle">${DAYS[i]}</text>`;
+    });
+    svg.innerHTML = html;
+
+    const max = Math.max(...HOURLY);
+    document.getElementById("cols").innerHTML = HOURLY.map((v, i) =>
+      `<div class="col${v === max ? " peak" : ""}"><b>${v}</b><i style="height:${Math.max(4, (v / max) * 100)}%"></i>${String(6 + i).padStart(2, "0")}시</div>`
+    ).join("");
+  </script>
+</body>
+</html>

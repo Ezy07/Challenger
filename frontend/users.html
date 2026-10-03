@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>회원 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
+    .tbl td { vertical-align: middle; }
+    .av { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #243044; font-weight: 800; font-size: 13px; margin-right: 8px; vertical-align: middle; }
+    .pending-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 12px; background: rgba(255, 176, 32, 0.1); border: 1px solid rgba(255, 176, 32, 0.5); font-size: 13px; font-weight: 700; }
+    .pending-link:hover { background: rgba(255, 176, 32, 0.18); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">역할 <span>7명</span></div>
+        <button class="tc-card active"><strong>전체 <span class="muted">7</span></strong></button>
+        <button class="tc-card"><strong>관리자 <span class="muted">2</span></strong><p>모든 화면 · 관리자 메뉴</p></button>
+        <button class="tc-card"><strong>안전관리자 <span class="muted">4</span></strong><p>관제 · 이벤트 처리 · 안전관리 업무</p></button>
+        <button class="tc-card"><strong>조회 전용 <span class="muted">1</span></strong><p>화면 보기만</p></button>
+        <a class="pending-link" href="user-approval.html"><span>가입 승인 대기</span><span class="status warn">3명</span></a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell bar-top">
+        <input class="input" style="width:240px" placeholder="이름 · 아이디로 찾기" />
+        <select class="input" style="width:160px"><option>모든 상태</option><option>활성</option><option>잠금</option></select>
+        <span class="grow"></span>
+        <button class="btn primary" data-open="pop">＋ 회원 등록</button>
+      </section>
+      <section class="cell" style="padding:0 6px 6px">
+        <table class="tbl">
+          <thead><tr><th>이름</th><th>아이디</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th></th></tr></thead>
+          <tbody>
+            <tr data-href="user-edit.html"><td><span class="av">최</span><b>최동현 과장</b></td><td>choi.dh</td><td><span class="role">관리자</span></td><td>OO건설 · 안전팀</td><td>지금 접속 중</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-toast="본인 계정은 삭제할 수 없습니다.">삭제</button></div></td></tr>
+            <tr data-href="user-edit.html"><td><span class="av">한</span><b>한지훈 소장</b></td><td>han.jh</td><td><span class="role">관리자</span></td><td>OO건설 · 현장소장실</td><td>오늘 08:12</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr data-href="user-edit.html"><td><span class="av">오</span><b>오세영 주임</b></td><td>oh.sy</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 안전팀</td><td>지금 접속 중</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr data-href="user-edit.html"><td><span class="av">박</span><b>박진우 차장</b></td><td>park.jw</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 공사팀(양중)</td><td>어제 17:40</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr data-href="user-edit.html"><td><span class="av">정</span><b>정민수 부장</b></td><td>jung.ms</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 공사팀(토공)</td><td>오늘 09:30</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr data-href="user-edit.html"><td><span class="av">김</span><b>김철수 과장</b></td><td>kim.cs</td><td><span class="status info">안전관리자</span></td><td>OO건설 · 공사팀(타설)</td><td>09.27</td><td><span class="status ok">활성</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
+            <tr data-href="user-edit.html"><td><span class="av">윤</span><b>윤가람 주임</b></td><td>yoon.gr</td><td><span class="status mute">조회 전용</span></td><td>OO건설 · 공무팀</td><td>09.12</td><td><span class="status stop">잠금</span></td><td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html">수정</a><button class="btn sm" data-del>삭제</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">역할별로 할 수 있는 일</div>
+        <div class="check"><div><b>관리자</b><small>모든 화면 · 회원 · 카메라 · 알림 규칙 관리</small></div><span class="role">ADMIN</span></div>
+        <div class="check info"><div><b>안전관리자</b><small>관제화면 · 이벤트 처리 · 작업자 · 작업 · 장비 관리</small></div><span class="status info">MANAGER</span></div>
+        <div class="check warn"><div><b>조회 전용</b><small>화면 보기만, 저장 · 처리 불가</small></div><span class="status mute">VIEWER</span></div>
+        <div class="hint">줄을 누르면 <b>회원정보 수정</b> 화면에서 역할과 계정 상태를 바꿀 수 있습니다. 비밀번호 5번 틀리면 <b>잠금</b> 상태가 됩니다.</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pop" id="pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="role">관리자가 직접 등록</span><h2>회원 등록</h2><p>등록하면 승인 없이 바로 활성 상태가 되고, 첫 비밀번호가 문자로 갑니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="pop-body">
+        <label class="field">이름<input class="input" placeholder="예: 홍길동 대리" /></label>
+        <label class="field">아이디<input class="input" placeholder="예: hong.gd" /></label>
+        <label class="field">휴대폰<input class="input" placeholder="010-0000-0000" /></label>
+        <label class="field">소속<select class="input"><option>OO건설 · 안전팀</option><option>OO건설 · 공사팀(양중)</option><option>OO건설 · 공사팀(토공)</option><option>OO건설 · 공무팀</option><option>대한골조</option><option>한빛토건</option></select></label>
+        <label class="field">역할<select class="input"><option>안전관리자</option><option>조회 전용</option><option>관리자</option></select></label>
+        <div class="row end"><button class="btn" data-close>취소</button><button class="btn primary" data-toast="회원을 등록했습니다. (예시)">등록</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pop" id="del-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="status stop">삭제</span><h2 id="del-title">회원 삭제</h2><p>삭제한 회원은 로그인할 수 없고, 처리 기록에는 이름만 남습니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="row end" style="margin-top:14px"><button class="btn" data-close>취소</button><button class="btn danger" id="del-ok">삭제</button></div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    // 삭제는 확인 창을 한 번 거친다
+    const delPop = document.getElementById("del-pop");
+    let delRow = null;
+    document.querySelectorAll("[data-del]").forEach((btn) => btn.addEventListener("click", () => {
+      delRow = btn.closest("tr");
+      document.getElementById("del-title").textContent = delRow.querySelector("b").textContent + " 삭제";
+      delPop.hidden = false;
+    }));
+    document.getElementById("del-ok").addEventListener("click", () => {
+      if (delRow) delRow.remove();
+      delPop.hidden = true;
+      toast("회원을 삭제했습니다. (예시)");
+    });
+  </script>
+</body>
+</html>

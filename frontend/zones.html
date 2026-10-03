@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>전체 구역 표시 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr); }
+    .plan-wrap { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .plan {
+      position: relative; flex: 1; min-height: 360px; border-radius: 12px; overflow: hidden;
+      background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 5% 6.25%,
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 5% 6.25%,
+        #10151c;
+      border: 1px solid var(--line);
+    }
+    .road { position: absolute; background: #1a212b; }
+    .road.h { left: 0; right: 0; top: 52%; height: 7%; }
+    .road.v { top: 0; bottom: 0; left: 46%; width: 5%; }
+    .zone-box {
+      position: absolute; display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+      padding: 8px 10px; border-radius: 10px; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
+      color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+    }
+    .zone-box:hover, .zone-box.on { background: color-mix(in srgb, var(--c) 28%, transparent); }
+    .zone-box.on { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
+    .zone-box:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+    .zone-box b { font-size: 13px; letter-spacing: -0.02em; }
+    .zone-box small { font-size: 11px; color: #c5d0dc; font-weight: 600; }
+    .zone-box .status { align-self: flex-start; }
+    .zone-box.alarm { animation: zone-flash 1.2s ease-in-out infinite; }
+    @keyframes zone-flash { 50% { background: rgba(255, 93, 93, 0.35); } }
+    .tc { position: absolute; border-radius: 50%; border: 2px dashed var(--c); opacity: 0.55; pointer-events: none; transform: translate(-50%, -50%); }
+    .tc-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); pointer-events: none; }
+    .cam-pin { position: absolute; transform: translate(-50%, -50%); font-size: 10.5px; font-weight: 800; padding: 1px 5px; border-radius: 5px; background: rgba(8,12,18,0.85); border: 1px solid rgba(255,255,255,0.15); pointer-events: none; white-space: nowrap; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+    .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -2px; }
+    .stat4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    .stat4 div { padding: 8px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); text-align: center; }
+    .stat4 span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .stat4 b { font-size: 20px; font-variant-numeric: tabular-nums; }
+    @media (prefers-reduced-motion: reduce) { .zone-box.alarm { animation: none; } }
+  </style>
+</head>
+<body>
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell plan-wrap">
+        <div class="row between">
+          <div class="label">현장 배치도 <span>구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
+          <div class="legend"><span><i style="background:#3ddc84"></i>정상</span><span><i style="background:#ffb020"></i>점검 필요</span><span><i style="background:#ff5d5d"></i>작업중지</span><span>◯ 점선 = TC 선회반경</span></div>
+        </div>
+        <div class="plan" id="plan">
+          <div class="road h"></div><div class="road v"></div>
+          <div class="tc" style="--c:#6cb6ff; left:24%; top:28%; width:30%; aspect-ratio:1"></div><div class="tc-dot" style="left:24%; top:28%"></div>
+          <div class="tc" style="--c:#ff9a1f; left:72%; top:26%; width:27%; aspect-ratio:1"></div><div class="tc-dot" style="left:72%; top:26%"></div>
+          <div class="tc" style="--c:#c084fc; left:48.5%; top:55%; width:24%; aspect-ratio:1"></div><div class="tc-dot" style="left:48.5%; top:55%"></div>
+          <div class="tc" style="--c:#ffb020; left:24%; top:82%; width:24%; aspect-ratio:1"></div><div class="tc-dot" style="left:24%; top:82%"></div>
+          <button class="zone-box" data-z="0" style="--c:#3ddc84; left:6%; top:8%; width:36%; height:38%"><b>101동 갱폼 인양구역</b><small>TC-1 · 작업 2 · 인원 6</small><span class="status ok">정상</span></button>
+          <button class="zone-box alarm" data-z="1" style="--c:#ff5d5d; left:55%; top:8%; width:38%; height:38%"><b>102동 대형거푸집구역</b><small>TC-2 · 작업 1 · 인원 2</small><span class="status stop">작업중지</span></button>
+          <button class="zone-box" data-z="2" style="--c:#3ddc84; left:38%; top:62%; width:21%; height:30%"><b>중앙 자재하역장</b><small>TC-3 · 작업 1</small><span class="status ok">정상</span></button>
+          <button class="zone-box" data-z="3" style="--c:#3ddc84; left:6%; top:66%; width:28%; height:28%"><b>103동 외벽 인양구역</b><small>TC-4 · 작업 1 예정</small><span class="status mute">대기</span></button>
+          <button class="zone-box" data-z="4" style="--c:#ffb020; left:63%; top:62%; width:18%; height:30%"><b>Sector A 토공</b><small>EXC_01 · 인원 2</small><span class="status warn">점검</span></button>
+          <button class="zone-box" data-z="5" style="--c:#3ddc84; left:84%; top:62%; width:13%; height:30%"><b>외곽 야적장</b><small>DUMP-03</small><span class="status ok">정상</span></button>
+          <span class="cam-pin" style="left:40%; top:10%">📹 CAM_0001</span>
+          <span class="cam-pin" style="left:91%; top:10%">📹 CAM_0002</span>
+          <span class="cam-pin" style="left:79%; top:65%">📹 CAM_0003</span>
+          <span class="cam-pin" style="left:94%; top:95%">📹 CAM_0004</span>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label" id="z-code">ZONE-02</div>
+        <h2 id="z-name" style="font-size:20px; letter-spacing:-0.03em">102동 대형거푸집구역</h2>
+        <div id="z-state"></div>
+        <div class="stat4">
+          <div><span>작업</span><b id="z-work">1</b></div>
+          <div><span>인원</span><b id="z-people">2</b></div>
+          <div><span>장비</span><b id="z-eq">1</b></div>
+          <div><span>경보</span><b id="z-alarm">2</b></div>
+        </div>
+        <div class="label" style="margin-top:4px">오늘 작업</div>
+        <div id="z-works" style="display:grid; gap:6px"></div>
+        <a class="btn primary block" id="z-go-works" href="zone-works.html">구역별 작업 목록 →</a>
+        <a class="btn block" id="z-go-eq" href="zone-equipment.html">구역별 투입장비 목록 →</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    const ZONES = [
+      { code: "ZONE-01", name: "101동 갱폼 인양구역", state: ["ok", "정상"], work: 2, people: 6, eq: 4, alarm: 1, works: [["W-01", "101동 갱폼 인양", "진행중", "ok"], ["W-02", "101동 3층 슬래브 타설", "진행중", "ok"]] },
+      { code: "ZONE-02", name: "102동 대형거푸집구역", state: ["stop", "작업중지 · 신호수 미배치"], work: 1, people: 2, eq: 1, alarm: 2, works: [["W-03", "102동 대형거푸집 설치", "작업중지", "stop"]] },
+      { code: "ZONE-03", name: "중앙 자재하역장", state: ["ok", "정상"], work: 1, people: 0, eq: 1, alarm: 0, works: [["W-05", "자재 하역", "진행중", "ok"]] },
+      { code: "ZONE-04", name: "103동 외벽 인양구역", state: ["mute", "대기 · 작업 예정"], work: 1, people: 0, eq: 1, alarm: 0, works: [["W-06", "103동 외벽 배관", "예정", "mute"]] },
+      { code: "ZONE-05", name: "Sector A 토공", state: ["warn", "현장점검 · 지반침하 의심"], work: 1, people: 2, eq: 1, alarm: 3, works: [["W-04", "Sector A 터파기", "진행중", "ok"]] },
+      { code: "ZONE-06", name: "외곽 야적장", state: ["ok", "정상"], work: 1, people: 1, eq: 1, alarm: 0, works: [["W-07", "야적장 정리", "진행중", "ok"]] },
+    ];
+    function show(i) {
+      const z = ZONES[i];
+      document.querySelectorAll(".zone-box").forEach((b) => b.classList.toggle("on", Number(b.dataset.z) === i));
+      document.getElementById("z-code").textContent = z.code;
+      document.getElementById("z-name").textContent = z.name;
+      document.getElementById("z-state").innerHTML = '<span class="status ' + z.state[0] + '">' + z.state[1] + "</span>";
+      document.getElementById("z-work").textContent = z.work;
+      document.getElementById("z-people").textContent = z.people;
+      document.getElementById("z-eq").textContent = z.eq;
+      document.getElementById("z-alarm").textContent = z.alarm;
+      document.getElementById("z-alarm").style.color = z.alarm ? "var(--red)" : "";
+      document.getElementById("z-works").innerHTML = z.works.map((w) =>
+        '<a class="item" href="work-workers.html"><div class="item-top"><b>' + w[0] + " · " + w[1] + '</b><span class="status ' + w[3] + '">' + w[2] + "</span></div></a>").join("");
+      document.getElementById("z-go-works").href = "zone-works.html?zone=" + i;
+      document.getElementById("z-go-eq").href = "zone-equipment.html?zone=" + i;
+    }
+    document.querySelectorAll(".zone-box").forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.z))));
+    show(1);
+  </script>
+</body>
+</html>

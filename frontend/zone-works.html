@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>구역별 작업 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .zone-sum { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, auto); gap: 18px; align-items: center; padding: 14px 18px; }
+    .zone-sum h2 { font-size: 19px; letter-spacing: -0.03em; }
+    .zone-sum .muted { margin-top: 2px; }
+    .zone-sum div > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .zone-sum div > b { font-size: 20px; font-variant-numeric: tabular-nums; }
+    @media (max-width: 1100px) { .zone-sum { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" id="zones">
+        <div class="label">작업구역 <span>6곳</span></div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell zone-sum">
+        <div><h2 id="zname">-</h2><p class="muted" id="zsub">-</p></div>
+        <div><span>작업</span><b id="zwork">0</b></div>
+        <div><span>배정 인원</span><b id="zpeople">0</b></div>
+        <div><span>특별관리</span><b id="zsp" style="color:var(--orange)">0</b></div>
+      </section>
+      <section class="cell" style="padding:0 6px 6px">
+        <table class="tbl">
+          <thead><tr><th>번호</th><th>작업</th><th>담당 안전관리자</th><th>기간</th><th>인원</th><th>상태</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">이 화면은</div>
+        <div class="hint">작업구역 하나를 고르면 그 구역에서 진행 중이거나 예정된 <b>작업</b>을 보여 줍니다. 줄을 누르면 <b>작업별 작업자 목록</b>으로 이동합니다.</div>
+        <a class="btn block" href="zones.html">← 전체 구역 표시</a>
+        <a class="btn block" id="to-eq" href="zone-equipment.html">이 구역 투입장비 →</a>
+        <a class="btn primary block" href="works.html">작업 등록 및 배정 →</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    const DATA = [
+      { name: "101동 갱폼 인양구역", sub: "TC-1 · CAM_0001", works: [
+        ["W-01", "101동 갱폼 인양", "박진우 차장", "09.22 ~ 10.15", 4, 1, ["ok", "진행중"]],
+        ["W-02", "101동 3층 슬래브 타설", "김철수 과장", "10.02", 2, 1, ["ok", "진행중"]] ] },
+      { name: "102동 대형거푸집구역", sub: "TC-2 · CAM_0002", works: [
+        ["W-03", "102동 대형거푸집 설치", "박진우 차장", "09.28 ~ 10.10", 2, 1, ["stop", "작업중지"]] ] },
+      { name: "중앙 자재하역장", sub: "TC-3", works: [
+        ["W-05", "자재 하역", "박진우 차장", "10.02", 0, 0, ["ok", "진행중"]] ] },
+      { name: "103동 외벽 인양구역", sub: "TC-4", works: [
+        ["W-06", "103동 외벽 배관", "김철수 과장", "10.06 ~ 10.20", 0, 0, ["mute", "예정"]] ] },
+      { name: "Sector A 토공", sub: "CAM_0003 · EXC_01", works: [
+        ["W-04", "Sector A 터파기", "정민수 부장", "09.15 ~ 10.31", 2, 1, ["ok", "진행중"]] ] },
+      { name: "외곽 야적장", sub: "CAM_0004 · DUMP-03", works: [
+        ["W-07", "야적장 정리", "정민수 부장", "10.02", 1, 1, ["ok", "진행중"]] ] },
+    ];
+    const box = document.getElementById("zones");
+    DATA.forEach((z, i) => box.insertAdjacentHTML("beforeend",
+      '<button class="tc-card" data-z="' + i + '"><strong>' + z.name + ' <span class="muted">' + z.works.length + '</span></strong><p>' + z.sub + "</p></button>"));
+    function show(i) {
+      const z = DATA[i];
+      box.querySelectorAll(".tc-card").forEach((c) => c.classList.toggle("active", Number(c.dataset.z) === i));
+      document.getElementById("zname").textContent = z.name;
+      document.getElementById("zsub").textContent = z.sub;
+      document.getElementById("zwork").textContent = z.works.length;
+      document.getElementById("zpeople").textContent = z.works.reduce((a, w) => a + w[4], 0);
+      document.getElementById("zsp").textContent = z.works.reduce((a, w) => a + w[5], 0);
+      document.getElementById("rows").innerHTML = z.works.map((w) =>
+        '<tr data-go="work-workers.html"><td class="num">' + w[0] + "</td><td><b>" + w[1] + "</b></td><td>" + w[2] + '</td><td class="num">' + w[3] +
+        '</td><td class="num">' + w[4] + '명</td><td><span class="status ' + w[6][0] + '">' + w[6][1] + '</span></td><td><a class="btn sm" href="work-workers.html">작업자 보기</a></td></tr>').join("");
+      document.querySelectorAll("#rows tr").forEach((tr) => {
+        tr.style.cursor = "pointer";
+        tr.addEventListener("click", (e) => { if (!e.target.closest("a")) location.href = tr.dataset.go; });
+      });
+      document.getElementById("to-eq").href = "zone-equipment.html?zone=" + i;
+    }
+    box.addEventListener("click", (e) => { const c = e.target.closest(".tc-card"); if (c) show(Number(c.dataset.z)); });
+    const q = Number(new URLSearchParams(location.search).get("zone"));
+    show(q >= 0 && q < DATA.length ? q : 0);
+  </script>
+</body>
+</html>
