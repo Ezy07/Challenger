@@ -25,3 +25,12 @@ def test_create_update_delete(client, admin):
 def test_camera_with_events_cannot_be_deleted(client, admin):
     cam1 = client.get("/api/cameras", headers=admin).json()[0]
     assert client.delete(f"/api/cameras/{cam1['id']}", headers=admin).status_code == 409
+
+
+def test_screen_files_are_revalidated(client):
+    """common.js 를 고치면 브라우저가 바로 새 파일을 받아야 한다 (예전 파일 캐시 금지)"""
+    res = client.get("/common.js")
+    assert res.status_code == 200
+    assert res.headers["cache-control"] == "no-cache"
+    again = client.get("/common.js", headers={"If-None-Match": res.headers["etag"]})
+    assert again.status_code == 304

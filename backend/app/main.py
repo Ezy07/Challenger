@@ -16,6 +16,16 @@ for r in (auth, users, meta, cameras, events):
     app.include_router(r.router)
 
 
+@app.middleware("http")
+async def revalidate_static(request, call_next):
+    """화면 파일(html · js · css)은 브라우저가 매번 바뀌었는지 확인하게 한다.
+    안 그러면 common.js 를 고쳐도 브라우저가 예전 파일을 계속 쓴다. 안 바뀌었으면 304 로 짧게 끝난다."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-cache")
+    return response
+
+
 @app.get("/api/health", tags=["상태"])
 def health():
     return {"ok": True}
