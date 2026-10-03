@@ -1,3 +1,9 @@
+import os
+
+# 테스트는 backend/.env 값과 상관없이 항상 같은 설정으로 돈다 (환경 변수가 .env 보다 우선)
+os.environ["JWT_SECRET"] = "test-jwt-secret-0123456789abcdef0123456789"
+os.environ["INGEST_API_KEY"] = "test-ingest-key"
+
 from datetime import datetime
 
 import pytest

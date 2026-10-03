@@ -50,7 +50,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.example .env          # 그리고 .env 안의 DB 비밀번호 · 키를 바꾸기
+copy .env.example .env          # 그리고 .env 안의 CHANGE_ME 값을 바꾸기 (영문 · 숫자만)
 
 python -m app.seed --admin-password "관리자비밀번호" --demo   # 기본 데이터 + 관리자(choi.dh) + 시연 데이터
 uvicorn app.main:app --reload
@@ -64,10 +64,14 @@ uvicorn app.main:app --reload
 
 ### 3. 테스트
 
-```bash
-cd backend
-pytest
+코드가 제대로 동작하는지 자동으로 확인합니다. MySQL · `.env` 없이 임시 SQLite DB 로 돌아갑니다.
+
+```powershell
+cd backend                      # 저장소 최상위 폴더에서 시작
+.venv\Scripts\python -m pytest
 ```
+
+마지막 줄에 `21 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 ## 지금 되는 것
 
