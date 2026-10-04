@@ -74,7 +74,7 @@ body.nav-open .gnb > .brand { display: none; }
   display: flex; align-items: center; gap: 6px;
   height: 34px; padding: 0 11px;
   border-radius: 9px; border: 1px solid var(--line); background: #121820;
-  font-size: 12.5px; font-weight: 700; color: var(--ink); white-space: nowrap;
+  font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--ink); white-space: nowrap; cursor: pointer;
 }
 .gnb-btn:hover { border-color: rgba(255, 154, 31, 0.7); }
 .gnb-btn .badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--red); color: #fff; font-size: 11px; display: grid; place-items: center; animation: pulse 1.6s infinite; }
@@ -94,6 +94,40 @@ body.nav-open .gnb > .brand { display: none; }
 @media (max-width: 1500px) { #wx-sky { display: none; } }
 @media (max-width: 1300px) { .gnb-wx .wx-chip:nth-child(n+3) { display: none; } }
 body.nav-open #wx-sky { display: none; }
+.gnb-btn .badge.zero { background: #3a4554; animation: none; }
+.gnb-btn .badge.ping { animation: badge-ping .6s ease 3, pulse 1.6s infinite; }
+@keyframes badge-ping { 50% { transform: scale(1.35); } }
+
+/* 실시간 알림 팝업 (헤더 🔔 · common.js 의 wireAlerts): 헤더 바로 아래 오른쪽에 뜬다 */
+#alert-pop { place-items: start end; padding: 64px 18px 18px; }
+#alert-pop .pop-card { width: min(480px, 100%); max-height: calc(100vh - 84px); display: flex; flex-direction: column; }
+.feed { display: grid; gap: 8px; margin-top: 14px; overflow-y: auto; min-height: 0; align-content: start; }
+.alert {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px 10px; align-items: start;
+  padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--blue);
+}
+/* .stop · .warn · .ok 는 다른 곳에서 배경색을 칠하므로 알림 카드에서는 테두리 색만 쓴다 */
+.alert.stop, .alert.warn, .alert.ok { background: var(--panel-2); color: inherit; }
+.alert.stop { border-left-color: var(--red); }
+.alert.warn { border-left-color: var(--amber); }
+.alert.ok { border-left-color: var(--green); }
+.alert.seen { opacity: 0.75; }
+.alert time { grid-row: span 2; font-size: 12px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.alert b { display: block; font-size: 13.5px; }
+.alert small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.alert .acts { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.mini-btn {
+  display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 7px;
+  border: 1px solid var(--line); background: #121820; color: var(--ink);
+  font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.mini-btn:hover { border-color: rgba(255, 154, 31, 0.7); }
+.mini-btn.primary { background: var(--orange); color: #1a1206; border-color: transparent; }
+.feed-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
+.feed-foot a { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.feed-foot a:hover { color: var(--ink); }
+@media (max-width: 1100px) { #alert-pop { place-items: center; padding: 16px; } }
+
 .gnb-user { text-align: right; font-size: 12px; color: var(--muted); line-height: 1.3; }
 .gnb-user b { color: var(--ink); }
 

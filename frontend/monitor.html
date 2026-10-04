@@ -143,6 +143,23 @@
       flex-direction: column;
       gap: 10px;
     }
+    /* ▷ 를 누르면 오른쪽 패널 전체가 오른쪽으로 밀려 들어가고 CCTV 가 그 폭을 채운다 (◁ 로 다시 꺼냄) */
+    .board { transition: grid-template-columns .25s ease; }
+    .board.rail-hidden { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 0px; }
+    .rail { position: relative; }
+    .board.rail-hidden .rail > :not(.rail-toggle) { display: none; }
+    .rail-toggle {
+      position: absolute; z-index: 5; top: 50%; left: -17px; transform: translateY(-50%);
+      width: 22px; height: 64px; padding: 0; border-radius: 10px 0 0 10px;
+      border: 1px solid var(--line); border-right: 0; background: var(--panel-2); color: var(--muted);
+      font: inherit; font-size: 12px; cursor: pointer; box-shadow: -6px 0 16px rgba(0, 0, 0, 0.25);
+    }
+    .rail-toggle:hover { color: var(--ink); background: #243044; }
+    .rail-toggle:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+    .board.rail-hidden .rail-toggle { left: -10px; color: var(--orange); }
+    /* 칸 안 내용은 마우스 휠로 넘기고 스크롤바는 숨긴다 */
+    .zone, .alerts { scrollbar-width: none; }
+    .zone::-webkit-scrollbar, .alerts::-webkit-scrollbar { display: none; }
     .rail > .zone { flex: 1.1 1 0; }
     .rail > .alerts { flex: 1 1 0; }
     .rail > .safe { flex: none; }
@@ -677,33 +694,6 @@
     .permit-btn.back { border-color: rgba(255, 93, 93, 0.7); background: rgba(255, 93, 93, 0.14); color: #ffd0d0; }
     .pop-act.go { background: var(--green); border-color: transparent; color: #07351c; }
 
-    /* 실시간 알림 팝업: 새 알림이 위에서부터 쌓인다 */
-    #alert-pop { place-items: start end; padding: 64px 18px 18px; }
-    #alert-pop .pop-card { width: min(460px, 100%); max-height: calc(100vh - 84px); display: flex; flex-direction: column; }
-    .feed { display: grid; gap: 8px; margin-top: 14px; overflow-y: auto; min-height: 0; align-content: start; }
-    .alert {
-      display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px 10px; align-items: start;
-      padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--blue);
-    }
-    .alert.stop { border-left-color: var(--red); color: inherit; background: var(--panel-2); }
-    .alert.warn { border-left-color: var(--amber); color: inherit; background: var(--panel-2); }
-    .alert time { grid-row: span 2; font-size: 12px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
-    .alert b { display: block; font-size: 13.5px; }
-    .alert small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
-    .alert .acts { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
-    .alert.done { opacity: 0.55; }
-    .alert.new { animation: slide-in .35s ease; }
-    @keyframes slide-in { from { transform: translateY(-8px); opacity: 0; } }
-    .mini-btn {
-      display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 7px;
-      border: 1px solid var(--line); background: #121820; color: var(--ink);
-      font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
-    }
-    .mini-btn:hover { border-color: rgba(255, 154, 31, 0.7); }
-    .mini-btn.primary { background: var(--orange); color: #1a1206; border-color: transparent; }
-    .feed-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
-    .feed-foot a { font-size: 12.5px; font-weight: 700; color: var(--muted); }
-    .feed-foot a:hover { color: var(--ink); }
 
     .safe {
       display: grid;
@@ -775,10 +765,10 @@
       .cam { min-height: 220px; }
       .rail { grid-column: 1 / -1; grid-row: auto; order: 2; }
       .rail > * { flex: none !important; }
+      .rail-toggle { display: none; }
       .zone, .alerts { overflow: visible; }
       #tc-pop .tc-body { grid-template-columns: 1fr; }
       #tc-map { height: 52vh; }
-      #alert-pop { place-items: center; padding: 16px; }
     }
 
     /* .pop-card 의 480px 너비보다 뒤에 두어 TC 팝업만 화면을 채운다 */
@@ -809,7 +799,8 @@
       </div>
     </header>
 
-    <div class="rail">
+    <div class="rail" id="rail">
+      <button type="button" class="rail-toggle" id="rail-toggle" aria-controls="rail" aria-expanded="true" title="오른쪽 패널 숨기기">▷</button>
       <aside class="cell zone" data-fold="zone">
         <div class="pad">
           <div class="label"><button type="button" class="fold-btn" aria-expanded="true"><i class="chev">▾</i>TC / 작업구역</button><a href="zones.html">자세히 보기 →</a></div>
@@ -1064,50 +1055,6 @@
         <div class="tc-side" id="tc-side"></div>
       </div>
       <div class="tc-msg" id="tc-msg"></div>
-    </div>
-  </div>
-
-  <div class="pop" id="alert-pop" hidden>
-    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="alert-title">
-      <div class="pop-head">
-        <div>
-          <span class="role">미처리 <b id="alert-left">3</b>건</span>
-          <h2 id="alert-title">실시간 알림</h2>
-          <p>새 알림이 위에서부터 쌓입니다</p>
-        </div>
-        <button type="button" class="pop-x" id="alert-close">닫기</button>
-      </div>
-      <div class="feed" id="feed">
-        <div class="alert stop">
-          <time>14:32</time>
-          <div><b>신호수 미배치 · CAM_0002</b><small>102동 대형거푸집구역 · 신뢰도 85%</small></div>
-          <div class="acts"><button type="button" class="mini-btn js-ok">확인</button><a class="mini-btn primary" href="event-detail.html">상세 보기</a></div>
-        </div>
-        <div class="alert stop" id="tc3-alert">
-          <time>14:35</time>
-          <div><b>인양물 직하부 작업자 · CAM_TC03</b><small>3호기 · 중앙 자재하역장 · 2페이지 TC 카메라</small></div>
-          <div class="acts"><button type="button" class="mini-btn" id="tc3-open">2페이지에서 보기</button><a class="mini-btn primary" href="event-detail.html">상세 보기</a></div>
-        </div>
-        <div class="alert warn">
-          <time>14:28</time>
-          <div><b>지반침하 의심 · CAM_0003</b><small>Sector A 토공 · EXC_01 주변 · 신뢰도 96%</small></div>
-          <div class="acts"><button type="button" class="mini-btn js-ok">확인</button><a class="mini-btn primary" href="event-detail.html">상세 보기</a></div>
-        </div>
-        <div class="alert stop done">
-          <time>14:15</time>
-          <div><b>TC 후크 근접 · 1호기 ↔ 3호기</b><small>후크 간격 12.4m · 처리 완료</small></div>
-          <div class="acts"><a class="mini-btn" href="event-handle.html">처리 기록</a></div>
-        </div>
-        <div class="alert warn done">
-          <time>13:58</time>
-          <div><b>ROI 침범 · CAM_0001</b><small>101동 갱폼 인양구역 · 처리 완료</small></div>
-          <div class="acts"><a class="mini-btn" href="event-handle.html">처리 기록</a></div>
-        </div>
-      </div>
-      <div class="feed-foot">
-        <button type="button" class="mini-btn" id="alert-test">테스트 알림 만들기</button>
-        <a href="events.html">지난 알림은 이벤트 목록에서 →</a>
-      </div>
     </div>
   </div>
 
@@ -1443,7 +1390,7 @@
     function openTc(index) {
       tcSelected = index;
       document.querySelectorAll(".tc-card").forEach((el, i) => el.classList.toggle("active", i === index));
-      alertPop.hidden = true;
+      closeAlerts();
       camPop.hidden = true;
       tcPop.hidden = false;
       document.getElementById("tc-close").focus();
@@ -1471,43 +1418,6 @@
     }
     document.querySelectorAll(".pager").forEach((btn) => btn.addEventListener("click", () => showCamPage(btn.dataset.page)));
 
-    // 실시간 알림 팝업 (헤더의 🔔 알림 버튼이 연다 → common.js 가 window.openAlerts 를 부름)
-    const alertPop = document.getElementById("alert-pop");
-    const feed = document.getElementById("feed");
-    function refreshAlertCount() {
-      const left = feed.querySelectorAll(".alert:not(.done)").length;
-      document.getElementById("alert-left").textContent = left;
-      const top = document.querySelector(".gnb .badge");
-      if (top) top.textContent = left;
-    }
-    function wireOk(btn) {
-      btn.addEventListener("click", () => {
-        btn.closest(".alert").classList.add("done");
-        btn.outerHTML = '<span class="status ok">확인</span>';
-        refreshAlertCount();
-      });
-    }
-    function openAlerts() {
-      tcPop.hidden = true;
-      camPop.hidden = true;
-      alertPop.hidden = false;
-      document.getElementById("alert-close").focus();
-    }
-    window.openAlerts = openAlerts;
-    feed.querySelectorAll(".js-ok").forEach(wireOk);
-    document.getElementById("alert-close").addEventListener("click", () => { alertPop.hidden = true; });
-    document.getElementById("alert-test").addEventListener("click", () => {
-      const now = new Date();
-      const t = pad(now.getHours()) + ":" + pad(now.getMinutes());
-      feed.insertAdjacentHTML("afterbegin",
-        '<div class="alert stop new"><time>' + t + '</time>' +
-        '<div><b>ROI 침범 · CAM_0001</b><small>101동 갱폼 인양구역 · 테스트 알림</small></div>' +
-        '<div class="acts"><button type="button" class="mini-btn js-ok">확인</button>' +
-        '<a class="mini-btn primary" href="event-detail.html">상세 보기</a></div></div>');
-      wireOk(feed.querySelector(".js-ok"));
-      refreshAlertCount();
-    });
-    if (location.hash === "#alerts") openAlerts();
 
     // TC 3호기: 인양물 직하부 작업자 경보. 세 항목을 모두 작업 허가해야 해제된다
     const tc3Pop = document.getElementById("tc3-pop");
@@ -1545,7 +1455,7 @@
     }
     function openTc3() {
       showCamPage("2");
-      alertPop.hidden = true;
+      closeAlerts();
       tcPop.hidden = true;
       camPop.hidden = true;
       paintTc3();
@@ -1561,14 +1471,9 @@
     });
     tc3Clear.addEventListener("click", () => {
       setTc3Alarm(false);
-      const alert = document.getElementById("tc3-alert");
-      alert.classList.add("done");
-      alert.querySelector(".acts").innerHTML = '<span class="status ok">해제</span><a class="mini-btn" href="event-handle.html">처리 기록</a>';
-      refreshAlertCount();
       closeTc3();
       toast("CAM_TC03 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
     });
-    document.getElementById("tc3-open").addEventListener("click", openTc3);
     document.getElementById("tc3-item").addEventListener("click", (e) => {
       e.preventDefault();
       if (camTc3.classList.contains("alarm-on")) openTc3(); else location.href = "monitor-camera.html?cam=tc3";
@@ -1582,13 +1487,12 @@
     document.getElementById("tc3-cancel").addEventListener("click", closeTc3);
     document.getElementById("tc3-close").addEventListener("click", closeTc3);
     setTc3Alarm(true);
-    refreshAlertCount();
 
     const camPop = document.getElementById("cam-pop");
     const cam2 = document.getElementById("cam-2");
     const camClear = document.getElementById("cam-clear");
     function openCamAlarm() {
-      alertPop.hidden = true;
+      closeAlerts();
       tcPop.hidden = true;
       camPop.hidden = false;
       camClear.focus();
@@ -1614,11 +1518,26 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         tc3Pop.hidden = true;
-        alertPop.hidden = true;
+        closeAlerts();
         tcPop.hidden = true;
         camPop.hidden = true;
       }
     });
+
+    // 오른쪽 패널 전체 숨기기 · 꺼내기 (상태는 이 브라우저에 기억)
+    const RAIL_KEY = "safety.monitor-rail";
+    const board = document.querySelector(".board");
+    const railBtn = document.getElementById("rail-toggle");
+    function setRail(hidden, remember) {
+      board.classList.toggle("rail-hidden", hidden);
+      railBtn.textContent = hidden ? "◁" : "▷";
+      railBtn.title = hidden ? "오른쪽 패널 보이기" : "오른쪽 패널 숨기기";
+      railBtn.setAttribute("aria-expanded", hidden ? "false" : "true");
+      if (remember) { try { localStorage.setItem(RAIL_KEY, hidden ? "1" : "0"); } catch (e) { /* 무시 */ } }
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 280); // 캔버스가 넓어진 폭을 다시 잡게
+    }
+    try { setRail(localStorage.getItem(RAIL_KEY) === "1", false); } catch (e) { setRail(false, false); }
+    railBtn.addEventListener("click", () => setRail(!board.classList.contains("rail-hidden"), true));
 
     // 오른쪽 패널 접기 · 펴기 (접은 상태는 이 브라우저에 기억)
     const FOLD_KEY = "safety.monitor-fold";

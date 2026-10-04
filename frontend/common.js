@@ -77,7 +77,6 @@ const USER = (() => {
     return { name: "최동현 과장", role: "관리자", code: "ADMIN" };
   }
 })();
-const ALERT_COUNT = 3; // 미처리 이벤트 수 (예시 · 관제화면 알림 팝업과 같은 수)
 const NAV_KEY = "safety.nav-open";
 
 function currentFile() {
@@ -164,7 +163,7 @@ function renderShell(file, found) {
           <span class="wx-chip">체감 <b id="wx-feel">--°</b></span>
           <span class="wx-chip">풍속 <b id="wx-wind">--</b></span>
         </div>
-        <a class="gnb-btn" href="monitor.html#alerts" id="gnb-alert" title="실시간 알림">🔔 알림 <span class="badge">${ALERT_COUNT}</span></a>
+        <button type="button" class="gnb-btn" id="gnb-alert" title="실시간 알림" aria-haspopup="dialog" aria-controls="alert-pop">🔔 알림 <span class="badge zero" id="alert-badge" hidden>0</span></button>
         <span class="gnb-user"><b>${USER.name}</b><br>${USER.role}</span>
         <a class="gnb-btn" href="login.html" data-logout>로그아웃</a>
       </div>
@@ -199,9 +198,8 @@ function renderShell(file, found) {
   document.querySelectorAll("[data-logout]").forEach((a) => a.addEventListener("click", () => {
     try { localStorage.removeItem("safety.auth"); } catch (e) { /* 무시 */ }
   }));
-  // 관제화면에 있을 때는 🔔 버튼이 페이지 이동 없이 알림 팝업을 연다
-  document.getElementById("gnb-alert").addEventListener("click", (e) => {
-    if (typeof window.openAlerts === "function") { e.preventDefault(); window.openAlerts(); }
+  document.getElementById("gnb-alert").addEventListener("click", () => {
+    if (document.getElementById("alert-pop").hidden) openAlerts(); else closeAlerts();
   });
 }
 
@@ -224,6 +222,135 @@ function renderHead(file, found) {
       <div class="title"><h1>${title}</h1><p>${text}</p></div>
       <div></div>`;
   }
+}
+
+/* ---------------------------------------------------------------- 실시간 알림 (헤더 🔔)
+   어느 화면에서든 미처리 · 확인중 이벤트를 보여 준다. 30초마다 새로 불러오고, 새 미처리 이벤트가 오면 안내한다.
+   api.js 가 없는 예시 화면에서도 쓰므로 로그인 토큰(safety.auth)을 직접 읽어 부른다. */
+const ALERT_POLL_MS = 30 * 1000;
+const ALERT_TONE = { HIGH: "stop", MEDIUM: "warn", LOW: "ok" };
+let alertSeen = null; // 지금까지 본 미처리 이벤트 번호 (처음 불러올 때는 안내하지 않음)
+let alertTimer = 0;
+
+function authToken() {
+  try { return JSON.parse(localStorage.getItem("safety.auth")).access_token; } catch (e) { return null; }
+}
+const escHtml = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+async function alertFetch(path, options = {}) {
+  const token = authToken();
+  if (!token) throw new Error("login");
+  const res = await fetch(path, { ...options, headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" } });
+  if (res.status === 401) throw new Error("login");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "알림을 불러오지 못했습니다.");
+  return res.json();
+}
+
+function alertPopHtml() {
+  return `
+    <div class="pop" id="alert-pop" hidden>
+      <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="alert-title">
+        <div class="pop-head">
+          <div>
+            <span class="role">미처리 <b id="alert-left">0</b>건 · 확인중 <b id="alert-ack">0</b>건</span>
+            <h2 id="alert-title">실시간 알림</h2>
+            <p>처리가 끝나지 않은 이벤트 · 30초마다 새로 고침</p>
+          </div>
+          <button type="button" class="btn sm" id="alert-close">닫기</button>
+        </div>
+        <div class="feed" id="feed"></div>
+        <div class="feed-foot">
+          <span class="muted" id="alert-time"></span>
+          <a href="events.html">지난 알림은 이벤트 목록에서 →</a>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderAlerts(items) {
+  const canHandle = (() => { try { return JSON.parse(localStorage.getItem("safety.auth")).user.role !== "VIEWER"; } catch (e) { return false; } })();
+  const fresh = items.filter((e) => e.status === "NEW");
+  const badge = document.getElementById("alert-badge");
+  badge.textContent = fresh.length;
+  badge.hidden = false;
+  badge.classList.toggle("zero", fresh.length === 0);
+  document.getElementById("alert-left").textContent = fresh.length;
+  document.getElementById("alert-ack").textContent = items.length - fresh.length;
+  document.getElementById("alert-time").textContent = "마지막 확인 " + new Date().toTimeString().slice(0, 8);
+  document.getElementById("feed").innerHTML = items.length ? items.map((e) => {
+    const conf = e.confidence == null ? "" : ` · 신뢰도 ${Math.round(e.confidence * 100)}%`;
+    const ack = e.status === "NEW" && canHandle ? `<button type="button" class="mini-btn" data-ack="${e.id}">확인</button>` : "";
+    const state = e.status === "NEW" ? '<span class="status stop">미처리</span>' : '<span class="status warn">확인중</span>';
+    return `<div class="alert ${ALERT_TONE[e.severity]}${e.status === "ACK" ? " seen" : ""}">
+      <time>${e.detected_at.slice(11, 16)}</time>
+      <div><b>${escHtml(e.detection_label)} · ${escHtml(e.camera_name || "카메라 없음")}</b><small>EV-${e.id} · ${escHtml(e.work_zone_name || "구역 없음")}${conf}</small></div>
+      <div class="acts">${state}${ack}<a class="mini-btn primary" href="${canHandle ? "event-handle" : "event-detail"}.html?id=${e.id}">${canHandle ? "처리" : "상세"}</a></div>
+    </div>`;
+  }).join("") : '<p class="muted" style="padding:18px 4px">처리할 알림이 없습니다 👍</p>';
+
+  // 새로 들어온 미처리 이벤트가 있으면 안내
+  const ids = new Set(fresh.map((e) => e.id));
+  if (alertSeen) {
+    const added = fresh.filter((e) => !alertSeen.has(e.id));
+    if (added.length) {
+      toast(`🔔 새 알림: ${added[0].detection_label}${added.length > 1 ? ` 외 ${added.length - 1}건` : ""}`);
+      badge.classList.remove("ping");
+      void badge.offsetWidth; // 애니메이션 다시 시작
+      badge.classList.add("ping");
+    }
+  }
+  alertSeen = ids;
+}
+
+function loadAlerts() {
+  return alertFetch("/api/events?status=NEW&status=ACK&size=30")
+    .then((page) => renderAlerts(page.items))
+    .catch((err) => {
+      if (err.message === "login") {
+        // 로그인 전(예시로 여는 화면)에는 숫자 없이 두고, 팝업에서 로그인을 안내
+        clearInterval(alertTimer);
+        document.getElementById("feed").innerHTML = '<p class="muted" style="padding:18px 4px">로그인하면 실시간 알림을 볼 수 있습니다. <a href="login.html" style="color:var(--orange)">로그인 →</a></p>';
+      } else {
+        document.getElementById("alert-time").textContent = err.message;
+      }
+    });
+}
+
+function openAlerts() {
+  const pop = document.getElementById("alert-pop");
+  pop.hidden = false;
+  document.getElementById("gnb-alert").setAttribute("aria-expanded", "true");
+  document.getElementById("alert-close").focus();
+  loadAlerts();
+}
+
+function closeAlerts() {
+  const pop = document.getElementById("alert-pop");
+  if (!pop) return;
+  pop.hidden = true;
+  document.getElementById("gnb-alert").setAttribute("aria-expanded", "false");
+}
+
+function wireAlerts() {
+  document.body.insertAdjacentHTML("beforeend", alertPopHtml());
+  const pop = document.getElementById("alert-pop");
+  pop.addEventListener("click", async (e) => {
+    if (e.target === pop || e.target.closest("#alert-close")) return closeAlerts();
+    const ack = e.target.closest("[data-ack]");
+    if (!ack) return;
+    ack.disabled = true;
+    try {
+      await alertFetch(`/api/events/${ack.dataset.ack}/actions`, { method: "POST", body: JSON.stringify({ action_type: "ACK" }) });
+      await loadAlerts();
+    } catch (err) {
+      toast(err.message === "login" ? "로그인이 필요합니다." : err.message);
+      ack.disabled = false;
+    }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAlerts(); });
+  loadAlerts();
+  alertTimer = setInterval(loadAlerts, ALERT_POLL_MS);
+  if (location.hash === "#alerts") openAlerts();
 }
 
 /* ---------------------------------------------------------------- 헤더 날씨 */
@@ -390,6 +517,7 @@ function wireCommon() {
   const found = findPage(file);
   if (!document.body.hasAttribute("data-no-gnb")) {
     renderShell(file, found);
+    wireAlerts();
     loadWeather();
     setInterval(loadWeather, 10 * 60 * 1000);
   }
