@@ -32,9 +32,16 @@
           <div class="form">
             <label class="field">카메라 이름 *<input class="input" id="ce-name" placeholder="예: CAM_0005" required /></label>
             <label class="field">설치 위치<input class="input" id="ce-loc" placeholder="예: 102동 3층 외벽 남측" /></label>
-            <label class="field wide">영상 주소 (RTSP)
+            <div class="field wide">영상 소스
+              <div class="chips" id="ce-src" data-single><span class="chip on" data-v="rtsp">카메라 (RTSP)</span><span class="chip" data-v="file">영상 파일</span></div>
+            </div>
+            <label class="field wide" id="src-rtsp">영상 주소 (RTSP)
               <input class="input" id="ce-url" placeholder="rtsp://아이디:비밀번호@192.168.0.32:554/stream1" />
               <span class="help">카메라 제조사 설명서에 있는 주소. 보통 rtsp://아이피:554/... 모양입니다.</span>
+            </label>
+            <label class="field wide" id="src-file" hidden>영상 파일 <small class="muted">(storage/videos 폴더)</small>
+              <select class="input" id="ce-video"></select>
+              <span class="help" id="video-help">실제 카메라 대신 폴더에 넣은 영상을 반복 재생합니다. 파일을 새로 넣었으면 이 화면을 새로고침하세요.</span>
             </label>
             <label class="field">소속 구역<select class="input" id="ce-zone"></select></label>
             <label class="field">카메라 종류
@@ -64,7 +71,8 @@
       <div class="pad">
         <div class="label">미리보기</div>
         <div class="cell cam" style="height:180px; box-shadow:none">
-          <div class="scene"><div class="ground-line"></div><div class="bld" style="left:10%; width:22%; height:52%;"></div></div>
+          <div class="scene" id="pv-scene"><div class="ground-line"></div><div class="bld" style="left:10%; width:22%; height:52%;"></div></div>
+          <video class="cam-video" id="pv-video" muted loop playsinline hidden></video>
           <div class="cam-tag" id="pv-name">새 카메라</div><div class="cam-time js-cam-time"></div>
         </div>
         <div class="check"><div><b>사용</b><small>끄면 탐지를 멈춤 (관제화면에서도 빠짐)</small></div><span class="switch on" id="ce-active"></span></div>
@@ -78,11 +86,12 @@
   <script>
     requireLogin();
     const $ = (id) => document.getElementById(id);
-    let cams = [], cam = null;
+    let cams = [], cam = null, videos = [];
 
     async function load(id) {
-      const [list, zones, eq] = await Promise.all([api("/api/cameras"), api("/api/work-zones"), api("/api/equipment")]);
+      const [list, zones, eq, vids] = await Promise.all([api("/api/cameras"), api("/api/work-zones"), api("/api/equipment"), api("/api/videos")]);
       cams = list;
+      videos = vids;
       $("ce-zone").innerHTML = '<option value="">구역 없음</option>' + zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join("");
       $("ce-eq").innerHTML = '<option value="">없음</option>' + eq.filter((e) => e.equip_type === "TC")
         .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`).join("");
@@ -102,7 +111,10 @@
       $("form-title").textContent = c ? c.name + " 정보" : "새 카메라";
       $("ce-name").value = c ? c.name : "";
       $("ce-loc").value = c ? c.location_desc || "" : "";
-      $("ce-url").value = c ? c.stream_url || "" : "";
+      const isFile = Boolean(c && videoSrc(c.stream_url));
+      setSource(isFile ? "file" : "rtsp");
+      $("ce-url").value = c && !isFile ? c.stream_url || "" : "";
+      fillVideos(isFile ? c.stream_url : null);
       $("ce-zone").value = c ? c.work_zone_id || "" : "";
       $("ce-type").value = c ? c.camera_type : "FIXED";
       $("ce-eq").value = c ? c.equipment_id || "" : "";
@@ -125,6 +137,39 @@
         ? `<span style="color:var(--red)">이 칸에는 이미 <b>${esc(owner.name)}</b> 가 있습니다.</span>`
         : "같은 페이지의 같은 칸에는 카메라 1대만 둘 수 있습니다.";
     }
+    // 영상 소스: 카메라(RTSP) 주소 또는 storage/videos 폴더의 영상 파일
+    const source = () => document.querySelector("#ce-src .chip.on").dataset.v;
+    function setSource(v) {
+      document.querySelectorAll("#ce-src .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === v));
+      $("src-rtsp").hidden = v !== "rtsp";
+      $("src-file").hidden = v !== "file";
+      preview();
+    }
+    function fillVideos(selected) {
+      const listed = videos.some((v) => v.stream_url === selected);
+      $("ce-video").innerHTML = (videos.length ? "" : '<option value="">폴더에 영상이 없습니다</option>')
+        + (selected && !listed ? `<option value="${esc(selected)}">${esc(selected.slice(7))} (폴더에 없음)</option>` : "")
+        + videos.map((v) => `<option value="${esc(v.stream_url)}">${esc(v.name)} · ${v.size_mb}MB · ${esc(v.codec || "형식 모름")}${v.browser_ok ? "" : " ⚠"}</option>`).join("");
+      if (selected) $("ce-video").value = selected;
+      preview();
+    }
+    // 오른쪽 미리보기: 영상 파일이면 실제 영상, 아니면 예시 그림
+    function preview() {
+      const v = videos.find((x) => x.stream_url === $("ce-video").value);
+      const src = source() === "file" && v ? v.url : null;
+      $("video-help").innerHTML = v && !v.browser_ok
+        ? `<span style="color:var(--amber)">⚠ ${esc(v.codec || "알 수 없는")} 형식이라 이 PC 브라우저에서는 안 보일 수 있습니다. H.264 로 바꿔 넣으세요 (storage/videos/README.md).</span>`
+        : "실제 카메라 대신 폴더에 넣은 영상을 반복 재생합니다. 파일을 새로 넣었으면 이 화면을 새로고침하세요.";
+      const video = $("pv-video");
+      if (!src) { video.pause(); video.removeAttribute("src"); video.hidden = true; $("pv-scene").hidden = false; return; }
+      if (video.getAttribute("src") !== src) video.src = src;
+      video.onplaying = () => { video.hidden = false; $("pv-scene").hidden = true; };
+      video.onerror = () => { video.hidden = true; $("pv-scene").hidden = false; };
+      video.play().catch(() => {});
+    }
+    $("ce-src").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) setSource(c.dataset.v); });
+    $("ce-video").addEventListener("change", preview);
+
     $("ce-page").addEventListener("change", showSlotOwner);
     $("ce-slot").addEventListener("change", showSlotOwner);
     $("ce-name").addEventListener("input", () => { $("pv-name").textContent = $("ce-name").value || "새 카메라"; });
@@ -148,7 +193,7 @@
       const body = {
         name: $("ce-name").value.trim(),
         location_desc: $("ce-loc").value.trim() || null,
-        stream_url: $("ce-url").value.trim() || null,
+        stream_url: source() === "file" ? $("ce-video").value || null : $("ce-url").value.trim() || null,
         work_zone_id: Number($("ce-zone").value) || null,
         camera_type: $("ce-type").value,
         equipment_id: Number($("ce-eq").value) || null,

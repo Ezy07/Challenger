@@ -27,7 +27,8 @@ class Settings(BaseSettings):
 
     frontend_dir: Path = ROOT_DIR / "frontend"
     weather_dir: Path = ROOT_DIR / "tools" / "weather"
-    snapshot_dir: Path = ROOT_DIR / "storage" / "snapshots"  # event_snapshot.image_path 는 이 폴더 기준 "snapshots/..." 경로
+    snapshot_dir: Path = ROOT_DIR / "storage" / "snapshots"
+    video_dir: Path = ROOT_DIR / "storage" / "videos"  # 시연 · 개발용 영상 (카메라 대신)  # event_snapshot.image_path 는 이 폴더 기준 "snapshots/..." 경로
 
 
 settings = Settings()

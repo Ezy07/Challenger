@@ -367,9 +367,12 @@ function skyIcon(name) {
 const firstNumber = (text) => { const m = (text || "").match(/-?\d+(?:\.\d+)?/); return m ? m[0] : "--"; };
 const gapUnit = (text) => (text || "--").replace(/([가-힣])(\d)/, "$1 $2");
 
-// 지금 시각의 관측값, 없으면 가장 최근 시각 것
+// 지금 시각의 관측값. 없으면 그 앞 시각, 그래도 없으면(자정 직후 등) 파일에 있는 가장 늦은 시각 것
 function currentSlot(data) {
-  for (let h = new Date().getHours(); h >= 0; h--) {
+  const now = new Date().getHours();
+  const hours = [...Array(24).keys()];
+  const order = [...hours.slice(0, now + 1).reverse(), ...hours.slice(now + 1).reverse()];
+  for (const h of order) {
     const slot = data[pad2(h) + "시"];
     if (slot && slot.온도) return slot;
   }

@@ -1524,6 +1524,33 @@
       }
     });
 
+    // 영상 파일이 연결된 카메라는 그 칸에서 영상을 반복 재생한다 (카메라 등록에서 영상 소스 = 영상 파일)
+    // 영상을 못 여는 경우(로그인 전, H.265 를 못 트는 PC 등)에는 예시 그림을 그대로 둔다
+    alertFetch("/api/cameras").then((cams) => {
+      cams.filter((c) => c.view_slot && c.is_active && c.stream_url && c.stream_url.startsWith("videos/")).forEach((c) => {
+        const cell = document.querySelector(`.cam.cam-${c.view_slot}[data-page="${c.view_page}"]`);
+        if (!cell) return;
+        const video = document.createElement("video");
+        Object.assign(video, { muted: true, loop: true, autoplay: true, playsInline: true, className: "cam-video" });
+        video.hidden = true;
+        video.src = "/" + encodeURI(c.stream_url);
+        video.addEventListener("playing", () => {
+          video.hidden = false;
+          cell.querySelector(".scene").style.visibility = "hidden";
+        });
+        video.addEventListener("error", () => {
+          video.remove();
+          const zone = cell.querySelector(".cam-zone");
+          if (zone) zone.textContent += " · 영상을 재생할 수 없음 (형식 확인)";
+        });
+        cell.querySelector(".scene").after(video);
+        const tag = cell.querySelector(".cam-tag");
+        if (tag) tag.textContent = c.name;
+        const zone = cell.querySelector(".cam-zone");
+        if (zone && c.work_zone_name) zone.textContent = c.work_zone_name;
+      });
+    }).catch(() => { /* 로그인 전이면 예시 화면 그대로 */ });
+
     // 오른쪽 패널 전체 숨기기 · 꺼내기 (상태는 이 브라우저에 기억)
     const RAIL_KEY = "safety.monitor-rail";
     const board = document.querySelector(".board");

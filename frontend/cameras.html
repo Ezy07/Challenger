@@ -85,7 +85,8 @@
           <dl><dt>구역</dt><dd>${esc(c.work_zone_name || "-")}</dd>
             ${c.location_desc ? `<dt>설치 위치</dt><dd>${esc(c.location_desc)}</dd>` : ""}
             ${c.camera_type === "TC" ? `<dt>연결 장비</dt><dd>${esc(equipment[c.equipment_id] || "-")}</dd>` : ""}
-            <dt>관제화면</dt><dd>${slot}</dd></dl>
+            <dt>관제화면</dt><dd>${slot}</dd>
+            <dt>영상</dt><dd>${videoSrc(c.stream_url) ? "📁 " + esc(c.stream_url.slice(7)) : c.stream_url ? "RTSP" : "-"}</dd></dl>
         </a>`;
     }
 

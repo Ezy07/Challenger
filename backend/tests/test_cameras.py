@@ -34,3 +34,29 @@ def test_screen_files_are_revalidated(client):
     assert res.headers["cache-control"] == "no-cache"
     again = client.get("/common.js", headers={"If-None-Match": res.headers["etag"]})
     assert again.status_code == 304
+
+
+def test_video_files_list_and_camera_link(client, admin, tmp_path, monkeypatch):
+    """storage/videos 의 영상을 카메라 영상 소스로 고를 수 있다"""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "video_dir", tmp_path)
+    (tmp_path / "factory.mp4").write_bytes(b"\x00" * 64 + b"ftypisom....moov....avc1" + b"\x00" * 64)
+    (tmp_path / "cctv.mp4").write_bytes(b"\x00" * 64 + b"ftypisom....moov....hvc1" + b"\x00" * 64)
+    (tmp_path / "notes.txt").write_text("not a video")
+
+    videos = {v["name"]: v for v in client.get("/api/videos", headers=admin).json()}
+    assert set(videos) == {"cctv.mp4", "factory.mp4"}
+    assert (videos["factory.mp4"]["codec"], videos["factory.mp4"]["browser_ok"]) == ("H.264", True)
+    assert (videos["cctv.mp4"]["codec"], videos["cctv.mp4"]["browser_ok"]) == ("H.265", False)
+    assert videos["factory.mp4"]["stream_url"] == "videos/factory.mp4"
+
+    cam = client.get("/api/cameras", headers=admin).json()[0]
+    res = client.patch(f"/api/cameras/{cam['id']}", json={"stream_url": "videos/factory.mp4"}, headers=admin)
+    assert res.status_code == 200 and res.json()["stream_url"] == "videos/factory.mp4"
+    # 없는 파일 · 폴더 밖으로 나가는 경로는 막음
+    for bad in ("videos/none.mp4", "videos/../.env", "videos/sub/x.mp4"):
+        assert client.patch(f"/api/cameras/{cam['id']}", json={"stream_url": bad}, headers=admin).status_code == 422
+    # RTSP 주소는 그대로 저장
+    rtsp = client.patch(f"/api/cameras/{cam['id']}", json={"stream_url": "rtsp://10.0.0.5:554/s1"}, headers=admin)
+    assert rtsp.status_code == 200

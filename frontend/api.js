@@ -102,6 +102,9 @@ function fmtTime(iso, { date = true, time = true } = {}) {
   return [date ? d.replaceAll("-", ".") : "", time ? t.slice(0, 8) : ""].filter(Boolean).join(" ");
 }
 
+// 카메라 stream_url 이 영상 파일(videos/...)이면 브라우저 주소 (/videos/...), 아니면 null
+const videoSrc = (streamUrl) => (streamUrl && streamUrl.startsWith("videos/") ? "/" + encodeURI(streamUrl) : null);
+
 // 조직 목록 → { id: "OO건설 · 공사팀 · 양중" } (회사부터 전체 경로)
 function orgNames(orgs) {
   const byId = Object.fromEntries(orgs.map((o) => [o.id, o]));

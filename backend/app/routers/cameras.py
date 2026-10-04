@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 from ..deps import DB, Admin, CurrentUser
 from ..models import Camera, CameraType, Equipment, EquipType, WorkZone
 from ..schemas import CameraIn, CameraOut, CameraUpdate
+from .videos import URL_PREFIX, video_path
 
 router = APIRouter(prefix="/api/cameras", tags=["카메라"])
 
@@ -25,6 +26,10 @@ def get_camera(db: DB, camera_id: int) -> Camera:
 
 def check_refs(db: DB, cam: Camera) -> None:
     """저장 전에 구역 · 장비 연결이 맞는지 확인"""
+    if cam.stream_url and cam.stream_url.startswith(URL_PREFIX):
+        path = video_path(cam.stream_url)
+        if not path or not path.is_file():
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "영상 폴더(storage/videos)에 없는 파일입니다.")
     if cam.work_zone_id is not None and not db.get(WorkZone, cam.work_zone_id):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "없는 작업구역입니다.")
     if cam.camera_type == CameraType.TC:
