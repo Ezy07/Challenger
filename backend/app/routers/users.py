@@ -5,9 +5,9 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import select
 
-from ..deps import DB, Admin
-from ..models import Organization, User, UserStatus
-from ..schemas import ApproveIn, TempPasswordOut, UserCreate, UserOut, UserUpdate
+from ..deps import DB, Admin, CurrentUser
+from ..models import Organization, Role, User, UserStatus
+from ..schemas import ApproveIn, StaffOut, TempPasswordOut, UserCreate, UserOut, UserUpdate
 from ..security import hash_password
 
 router = APIRouter(prefix="/api/users", tags=["회원 관리 (관리자)"])
@@ -40,6 +40,14 @@ def list_users(db: DB, _: Admin, status_: Annotated[UserStatus | None, Query(ali
     q = select(User).order_by(User.created_at.desc(), User.id.desc())
     q = q.where(User.status == status_) if status_ else q.where(User.status != UserStatus.DELETED)
     return db.scalars(q).all()
+
+
+@router.get("/staff", response_model=list[StaffOut])
+def list_staff(db: DB, _: CurrentUser):
+    """작업 담당자 고르기: 활성 상태의 관리자 · 안전관리자 (관리자 화면이 아니어도 필요해서 따로 둠)"""
+    return db.scalars(
+        select(User).where(User.status == UserStatus.ACTIVE, User.role.in_([Role.ADMIN, Role.MANAGER])).order_by(User.name)
+    ).all()
 
 
 @router.post("", response_model=TempPasswordOut, status_code=status.HTTP_201_CREATED)

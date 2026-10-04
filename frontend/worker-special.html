@@ -25,78 +25,160 @@
     <main class="main">
       <section class="cell searchbar">
         <div class="searchbar-row">
-          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <b id="n-shown"></b>
         </div>
-        <div class="search-panel" hidden data-auto-summary>
+        <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
             <div class="field wide">특별관리 사유
-              <div class="chips" data-single><span class="chip on">전체 <b>6</b></span><span class="chip">고령 (만 60세 이상) <b>2</b></span><span class="chip">고혈압 · 건강 주의 <b>2</b></span><span class="chip">신규 투입 (7일 이내) <b>2</b></span><span class="chip">기타 <b>0</b></span></div>
+              <div class="chips" id="f-reason" data-single>
+                <span class="chip on" data-v="">전체 <b id="n-all">0</b></span>
+                <span class="chip" data-v="ELDERLY">고령 (만 60세 이상) <b id="n-ELDERLY">0</b></span>
+                <span class="chip" data-v="HYPERTENSION">고혈압 · 건강 주의 <b id="n-HYPERTENSION">0</b></span>
+                <span class="chip" data-v="NEW">신규 투입 (7일 이내) <b id="n-NEW">0</b></span>
+                <span class="chip" data-v="ETC">기타 <b id="n-ETC">0</b></span>
+              </div>
             </div>
           </div>
           <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
         </div>
       </section>
       <div class="cats">
-        <div class="cat" style="--c:#7dcea0"><span>고령</span><strong>2<i>명</i></strong></div>
-        <div class="cat" style="--c:#ff9a1f"><span>고혈압</span><strong>2<i>명</i></strong></div>
-        <div class="cat" style="--c:#6cb6ff"><span>신규 투입</span><strong>2<i>명</i></strong></div>
-        <div class="cat" style="--c:#f5c400"><span>오늘 출력 중</span><strong>5<i>명</i></strong></div>
+        <div class="cat" style="--c:#7dcea0"><span>고령</span><strong id="c-ELDERLY">0<i>명</i></strong></div>
+        <div class="cat" style="--c:#ff9a1f"><span>고혈압</span><strong id="c-HYPERTENSION">0<i>명</i></strong></div>
+        <div class="cat" style="--c:#6cb6ff"><span>신규 투입</span><strong id="c-NEW">0<i>명</i></strong></div>
+        <div class="cat" style="--c:#f5c400"><span>오늘 배정됨</span><strong id="c-today">0<i>명</i></strong></div>
       </div>
       <section class="cell" style="padding:0 6px 6px">
-        <table class="tbl" id="tbl">
-          <thead><tr><th>이름</th><th>협력사 · 직종</th><th>사유</th><th>지정일</th><th>지정한 사람</th><th>오늘 위치</th><th></th></tr></thead>
-          <tbody>
-            <tr><td><b>김영수</b></td><td>대한골조 · 형틀목공</td><td><span class="sp">고령 64세</span></td><td class="num">2026.08.11</td><td>오세영 주임</td><td>102동 대형거푸집구역</td><td><button class="btn sm" data-off>해제</button></td></tr>
-            <tr><td><b>오병철</b></td><td>한빛토건 · 보통인부</td><td><span class="sp">고령 67세</span></td><td class="num">2026.09.02</td><td>오세영 주임</td><td>외곽 야적장</td><td><button class="btn sm" data-off>해제</button></td></tr>
-            <tr><td><b>박상철</b></td><td>대한골조 · 형틀목공</td><td><span class="sp">고혈압</span></td><td class="num">2026.07.20</td><td>최동현 과장</td><td>101동 갱폼 인양구역</td><td><button class="btn sm" data-off>해제</button></td></tr>
-            <tr><td><b>서준기</b></td><td>대한골조 · 타설공</td><td><span class="sp">고혈압</span></td><td class="num">2026.09.15</td><td>최동현 과장</td><td>101동 갱폼 인양구역</td><td><button class="btn sm" data-off>해제</button></td></tr>
-            <tr><td><b>응우옌 반 남</b></td><td>한빛토건 · 보통인부</td><td><span class="sp">신규 투입 · D+3</span></td><td class="num">2026.09.29</td><td>오세영 주임</td><td>Sector A 토공</td><td><button class="btn sm" data-off>해제</button></td></tr>
-            <tr><td><b>한상우</b></td><td>우리설비 · 배관공</td><td><span class="sp">신규 투입 · D+1</span></td><td class="num">2026.10.01</td><td>오세영 주임</td><td><span class="muted">미출력</span></td><td><button class="btn sm" data-off>해제</button></td></tr>
-          </tbody>
+        <table class="tbl">
+          <thead><tr><th>이름</th><th>협력사 · 직종</th><th>사유</th><th>메모</th><th>지정일</th><th>지정한 사람</th><th>오늘 위치</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
         </table>
       </section>
     </main>
 
     <aside class="cell right">
-      <div class="pad">
-        <div class="label">특별관리 지정하기</div>
-        <label class="field">작업자<select class="input" id="sp-who"><option>이정호 · 대한골조 철근공</option><option>최민재 · 세진크레인 신호수</option><option>김창식 · 세진크레인 TC 운전원</option><option>정대호 · 한빛토건 굴착기 운전원</option></select></label>
-        <label class="field">사유<select class="input" id="sp-why"><option>고혈압</option><option>신규 투입</option><option>고령</option><option>기타</option></select></label>
-        <label class="field">메모<textarea class="input" id="sp-memo" placeholder="예: 9월 건강검진 혈압 160/100"></textarea></label>
+      <form class="pad" id="form">
+        <div class="label" id="form-title">특별관리 지정하기</div>
+        <label class="field">작업자<select class="input" id="sp-who"></select></label>
+        <div class="field">사유 <span class="muted" style="font-weight:600">(여러 개 고를 수 있음)</span>
+          <div class="chips" id="sp-why">
+            <span class="chip" data-v="ELDERLY">고령</span><span class="chip" data-v="HYPERTENSION">고혈압</span>
+            <span class="chip" data-v="NEW">신규 투입</span><span class="chip" data-v="ETC">기타</span>
+          </div>
+          <small class="muted" id="sp-auto"></small>
+        </div>
+        <label class="field">메모<textarea class="input" id="sp-memo" maxlength="200" placeholder="예: 9월 건강검진 혈압 160/100"></textarea></label>
         <button class="btn primary block" id="sp-add">지정</button>
-        <div class="hint">지정된 작업자는 <b>관제화면 오른쪽 아래 특별관리근로자 패널</b>에 숫자로 잡히고, 작업별 작업자 목록에 표시가 붙습니다.</div>
-      </div>
+        <button class="btn block" type="button" id="sp-cancel" hidden>새로 지정하기로</button>
+        <div class="hint">지정된 작업자는 <b>관제화면 오른쪽 아래 특별관리근로자 패널</b>에 숫자로 잡히고, 작업별 작업자 목록에 표시가 붙습니다. <b>신규 투입</b>은 투입일부터 7일이 지나면 자동으로 빠집니다.</div>
+      </form>
     </aside>
   </div>
 
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    function wireOff(btn) {
-      btn.addEventListener("click", () => {
-        const tr = btn.closest("tr");
-        toast(tr.cells[0].textContent + " 특별관리를 해제했습니다. (예시)");
-        tr.remove();
-      });
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const REASONS = ["ELDERLY", "HYPERTENSION", "NEW", "ETC"];
+    let workers = [], editId = null;
+
+    // 지금 유효한 사유 (신규 투입은 7일이 지나면 서버가 special_tags 에서 뺀다)
+    const activeReasons = (w) => (w.special_reasons || []).filter((r) => r !== "NEW" || w.special_tags.some((t) => t.startsWith("신규 투입")));
+
+    async function load() {
+      workers = await api("/api/workers");
+      render();
+      fillWho();
     }
-    document.querySelectorAll("[data-off]").forEach(wireOff);
-    document.getElementById("sp-add").addEventListener("click", () => {
-      const who = document.getElementById("sp-who");
-      const opt = who.selectedOptions[0];
-      if (!opt) { toast("지정할 작업자가 없습니다."); return; }
-      const [name, rest] = opt.textContent.split(" · ");
-      const today = new Date();
-      const d = today.getFullYear() + "." + String(today.getMonth() + 1).padStart(2, "0") + "." + String(today.getDate()).padStart(2, "0");
-      const tr = document.createElement("tr");
-      tr.innerHTML = '<td><b></b></td><td></td><td><span class="sp"></span></td><td class="num"></td><td>최동현 과장</td><td><span class="muted">-</span></td><td><button class="btn sm" data-off>해제</button></td>';
-      tr.cells[0].firstChild.textContent = name;
-      tr.cells[1].textContent = rest.replace(" ", " · ");
-      tr.cells[2].firstChild.textContent = document.getElementById("sp-why").value;
-      tr.cells[3].textContent = d;
-      document.getElementById("tbl").tBodies[0].prepend(tr);
-      wireOff(tr.querySelector("[data-off]"));
-      opt.remove();
-      toast(name + "님을 특별관리로 지정했습니다. (예시)");
+
+    function render() {
+      const designated = workers.filter((w) => w.is_special_care);
+      REASONS.forEach((r) => {
+        const n = designated.filter((w) => activeReasons(w).includes(r)).length;
+        $("n-" + r).textContent = n;
+        if ($("c-" + r)) $("c-" + r).innerHTML = `${n}<i>명</i>`;
+      });
+      $("n-all").textContent = designated.length;
+      $("c-today").innerHTML = `${designated.filter((w) => w.today_work).length}<i>명</i>`;
+
+      const chip = document.querySelector("#f-reason .chip.on"), reason = chip.dataset.v;
+      searchSummary(reason ? chip.firstChild.textContent.trim() : "");
+      const rows = designated.filter((w) => !reason || activeReasons(w).includes(reason));
+      $("n-shown").textContent = rows.length + "명";
+      $("rows").innerHTML = rows.length ? rows.map((w) => `
+        <tr data-id="${w.id}"><td><b>${esc(w.name)}</b></td><td>${esc([w.company, w.job_type].filter(Boolean).join(" · ") || "-")}</td>
+          <td>${w.special_tags.length ? spTags(w) : '<span class="status warn">사유 만료 · 해제 필요</span>'}</td>
+          <td class="muted" style="max-width:220px">${esc(w.special_memo || "-")}</td>
+          <td class="num">${w.special_since ? w.special_since.replaceAll("-", ".") : "-"}</td><td>${esc(w.special_by_name || "-")}</td>
+          <td>${w.today_work ? esc(w.today_work.work_zone_name) : '<span class="muted">배정 없음</span>'}</td>
+          <td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-off>해제</button></div></td></tr>`).join("")
+        : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 작업자가 없습니다</td></tr>';
+    }
+
+    // 지정할 작업자 고르기: 새로 지정할 때는 아직 지정 안 된 사람만
+    function fillWho() {
+      const list = editId ? workers.filter((w) => w.id === editId) : workers.filter((w) => !w.is_special_care);
+      $("sp-who").innerHTML = list.length
+        ? list.map((w) => `<option value="${w.id}">${esc(w.name)} · ${esc([w.company, w.job_type].filter(Boolean).join(" "))}</option>`).join("")
+        : '<option value="">지정할 작업자가 없습니다</option>';
+      $("sp-who").disabled = Boolean(editId);
+      suggest();
+    }
+
+    // 나이 · 투입일로 고령 · 신규 투입을 미리 골라 준다 (새로 지정할 때)
+    function suggest() {
+      const w = workers.find((x) => x.id === Number($("sp-who").value));
+      const days = w && w.start_date ? Math.round((new Date(todayStr()) - new Date(w.start_date)) / 86400000) : null;
+      const auto = { ELDERLY: w && w.age >= 60, NEW: days !== null && days <= 7 };
+      if (!editId) document.querySelectorAll("#sp-why .chip").forEach((c) => c.classList.toggle("on", Boolean(auto[c.dataset.v])));
+      $("sp-auto").textContent = w ? [w.age != null && `만 ${w.age}세`, days !== null && `투입 D+${days}`].filter(Boolean).join(" · ") : "";
+    }
+
+    function startEdit(w) {
+      editId = w ? w.id : null;
+      $("form-title").textContent = w ? `${w.name} 사유 바꾸기` : "특별관리 지정하기";
+      $("sp-add").textContent = w ? "저장" : "지정";
+      $("sp-cancel").hidden = !w;
+      $("sp-memo").value = w ? w.special_memo || "" : "";
+      fillWho();
+      if (w) document.querySelectorAll("#sp-why .chip").forEach((c) => c.classList.toggle("on", w.special_reasons.includes(c.dataset.v)));
+    }
+
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = Number($("sp-who").value);
+      const reasons = [...document.querySelectorAll("#sp-why .chip.on")].map((c) => c.dataset.v);
+      if (!id) return toast("지정할 작업자를 고르세요.");
+      if (!reasons.length) return toast("사유를 하나 이상 고르세요.");
+      try {
+        const w = await api(`/api/workers/${id}/special`, { method: "POST", body: { reasons, memo: $("sp-memo").value.trim() || null } });
+        toast(editId ? `${w.name}님의 특별관리 사유를 바꿨습니다.` : `${w.name}님을 특별관리로 지정했습니다.`);
+        startEdit(null);
+        await load();
+      } catch (err) { toast(err.message); }
     });
+    $("rows").addEventListener("click", async (e) => {
+      const tr = e.target.closest("tr[data-id]");
+      if (!tr) return;
+      const w = workers.find((x) => x.id === Number(tr.dataset.id));
+      if (e.target.closest("[data-edit]")) startEdit(w);
+      if (e.target.closest("[data-off]")) {
+        if (!confirm(`${w.name}님의 특별관리를 해제할까요?`)) return;
+        try {
+          await api(`/api/workers/${w.id}/special`, { method: "DELETE" });
+          toast(`${w.name}님의 특별관리를 해제했습니다.`);
+          if (editId === w.id) startEdit(null);
+          await load();
+        } catch (err) { toast(err.message); }
+      }
+    });
+    $("sp-who").addEventListener("change", suggest);
+    $("sp-cancel").addEventListener("click", () => startEdit(null));
+    $("filter").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
+
+    load().catch((err) => toast(err.message));
   </script>
 </body>
 </html>

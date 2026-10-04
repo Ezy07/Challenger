@@ -442,3 +442,7 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
 @media (prefers-reduced-motion: reduce) {
   body, .drawer, .menu-btn span, .scrim { transition: none !important; }
 }
+
+/* 입력 칸 두 개를 나란히 */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .two { grid-template-columns: 1fr; } }

@@ -57,7 +57,7 @@ uvicorn app.main:app --reload
 ```
 
 - 화면: <http://localhost:8000> → 로그인 화면 (`choi.dh` / 위에서 정한 비밀번호)
-- `--demo` 로 넣는 시연 데이터: 회원 9명(승인 대기 3 · 잠금 1 포함) · 작업자 14명 · 오늘 작업 5건 · 장비 6대와 3일치 일일 기록 · 카메라 7대 · ROI 4개와 ROI별 규칙 · 이벤트 9건(처리 기록 · 예시 스냅샷 포함).
+- `--demo` 로 넣는 시연 데이터: 회원 9명(승인 대기 3 · 잠금 1 포함) · 작업자 13명(특별관리 6 · 교육 이력 포함) · 작업 7건과 배정 · 구역 6곳(배치도 위치 포함) · 장비 10대와 3일치 일일 기록 · 카메라 8대 · ROI 4개와 ROI별 규칙 · 이벤트 9건(처리 기록 · 예시 스냅샷 포함). 날짜는 실행한 날 기준으로 들어갑니다.
   시연 회원(`oh.sy`, `park.jw` 등)도 관리자와 같은 비밀번호로 로그인됩니다. 예시 스냅샷은 `storage/snapshots/` 에 만들어집니다.
 - API 문서(직접 눌러 보기): <http://localhost:8000/docs>
 
@@ -81,7 +81,12 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 |---|---|---|
 | 로그인 · 회원가입 | `POST /api/auth/signup` · `POST /api/auth/login` · `GET /api/auth/me` | `login.html` · `signup.html` |
 | 회원 관리 (관리자) | `GET/POST /api/users` · `POST /api/users/{id}/approve` · `/reject` · `/reset-password` · `PATCH/DELETE /api/users/{id}` | `users.html` · `user-approval.html` · `user-edit.html` |
-| 기준 정보 | `GET /api/orgs` · `POST /api/orgs` · `GET /api/work-zones` · `GET /api/equipment` · `GET /api/detection-types` | 회사 · 부서 · 구역 · 장비 선택, 이벤트 필터 |
+| 조직 · 부서 | `GET/POST /api/orgs` · `PATCH/DELETE /api/orgs/{id}` (회사 아래 부서 최대 2단계) | `org.html` · 회원가입 |
+| 작업구역 | `GET/POST /api/work-zones` · `PATCH/DELETE /api/work-zones/{id}` · `GET /api/work-zones/summary` | `zones.html` |
+| 작업자 · 교육 | `GET/POST /api/workers` · `GET/PATCH/DELETE /api/workers/{id}` · `POST/DELETE /api/workers/{id}/special` · `GET /api/educations` · `POST /api/workers/{id}/educations` · `DELETE …/educations/{기록 id}` | `workers.html` · `worker-special.html` |
+| 작업 · 배정 | `GET/POST /api/works` (`?on=날짜`, `?upcoming=true`) · `GET/PATCH/DELETE /api/works/{id}` · `PUT /api/works/{id}/workers` · `GET /api/users/staff` | `works.html` · `zone-works.html` · `work-workers.html` |
+| 장비 · 일일 기록 | `GET/POST /api/equipment` · `GET/PATCH/DELETE /api/equipment/{id}` · `PUT /api/equipment/{id}/logs/{날짜}` · `POST /api/equipment/daily` | `equipment.html` · `equipment-detail.html` · `equipment-assign.html` · `zone-equipment.html` |
+| 판정 · 심각도 기준 | `GET /api/detection-types` · `PATCH /api/detection-types/{id}/rule` · `POST /api/detection-types/reset-rules` | `alert-threshold.html` · `alert-severity.html` |
 | 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` | `cameras.html` · `camera-edit.html` |
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
 | 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` · `GET /api/events/export.csv` | `events.html` · `event-detail.html` |
@@ -94,16 +99,18 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 1. **AI 감지 → 이벤트**: `POST /api/events` 가 ROI별 규칙(`roi_rule`) → 기본 규칙(`alert_rule`) 순으로 판정 기준(confidence)과 심각도를 정하고, 기준 미달이거나 쿨다운 시간 안에 같은 경보가 있으면 이벤트를 만들지 않습니다.
 2. **처리**: `ACK`(확인 시작) → 해제 항목(`release_check_item`)마다 `PERMIT` → 모두 허가되면 `RESOLVE` 로 처리완료. `FALSE_ALARM` 은 오탐 처리. 끝난 이벤트에는 `NOTE` 만 남길 수 있습니다.
 3. **권한**: `ADMIN` 전체 · `MANAGER` 이벤트 처리 · `VIEWER` 조회만. 가입하면 `PENDING` 이고 관리자가 승인해야 로그인됩니다. 비밀번호 5회 실패 시 잠김.
-4. **회원 삭제**: 처리 기록에 이름이 남아야 해서 행을 지우지 않고 `DELETED` 로 바꿉니다. 관리자가 직접 등록하거나 비밀번호를 초기화하면 임시 비밀번호가 화면에 한 번만 표시됩니다.
+4. **특별관리**: 사유(고령 · 고혈압 · 신규 투입 · 기타)를 여러 개 고를 수 있고, 신규 투입은 현장 투입일부터 7일이 지나면 자동으로 빠집니다. 감지 유형을 "사용 안 함"으로 끄면 그 유형은 이벤트를 만들지 않습니다.
+5. **삭제 규칙**: 작업자 삭제는 이력 때문에 행을 남기고(끝나지 않은 배정 · 장비 운전원에서는 빠짐), 배정이 남은 작업 · 카메라가 달린 장비 · 쓰이는 구역 · 하위 부서나 회원이 있는 조직은 지울 수 없습니다.
+6. **회원 삭제**: 처리 기록에 이름이 남아야 해서 행을 지우지 않고 `DELETED` 로 바꿉니다. 관리자가 직접 등록하거나 비밀번호를 초기화하면 임시 비밀번호가 화면에 한 번만 표시됩니다.
 
 ## 다음 할 일
 
 - [x] 이벤트 상세 · 처리 기록 화면 연결
 - [x] 회원가입 승인 · 회원 목록 · 회원정보 수정 · 카메라 목록 · 카메라 등록 화면 연결
-- [ ] 조직 · 부서 관리 화면 연결 (`org.html`)
-- [ ] 작업자 · 작업 · 장비 CRUD API
+- [x] 조직 · 부서 관리, 작업자 · 특별관리 · 교육, 작업 · 배정, 장비 · 일일 기록, 작업구역, 판정 · 심각도 기준 화면 연결
 - [ ] ROI 그리기 저장 · ROI별 규칙 API
-- [ ] 관제화면 실시간 알림 (WebSocket 또는 주기적 조회)
+- [ ] 관제화면 패널(TC/작업구역 · 섹터 감지경보 · 특별관리근로자)을 실제 데이터로 (알림 팝업은 30초 조회로 연결됨)
+- [ ] 통계 · 리포트 · 카메라 배치도 화면 연결
 - [ ] YOLO 탐지 파이프라인 → `POST /api/events` 연동
 - [ ] 스냅샷 이미지 업로드 · 저장 위치 정하기
 - [ ] DB 변경 이력 관리 (Alembic)

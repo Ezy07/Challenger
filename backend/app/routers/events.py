@@ -38,7 +38,7 @@ from ..schemas import (
 
 router = APIRouter(prefix="/api/events", tags=["이벤트"])
 
-DEFAULT_RULE = AlertRule(min_confidence=0.5, default_severity=Severity.MEDIUM, cooldown_sec=60)
+DEFAULT_RULE = AlertRule(min_confidence=0.5, default_severity=Severity.MEDIUM, cooldown_sec=60, is_active=True)
 CLOSED = {EventStatus.DONE, EventStatus.FALSE}
 SEVERITY_RANK = case({Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2}, value=Event.severity)
 STATUS_KO = {EventStatus.NEW: "미처리", EventStatus.ACK: "확인중", EventStatus.DONE: "처리완료", EventStatus.FALSE: "오탐"}
@@ -61,6 +61,8 @@ def ingest(body: EventIn, db: DB):
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "이 카메라의 ROI 가 아닙니다.")
 
     rule = dtype.rule or DEFAULT_RULE
+    if not rule.is_active:
+        return EventIngestOut(created=False, reason="사용 안 함 (판정 기준 화면에서 꺼진 감지 유형)")
     override = None
     if body.roi_id is not None:
         override = db.scalar(

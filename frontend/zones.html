@@ -53,74 +53,152 @@
       <section class="cell plan-wrap">
         <div class="row between">
           <div class="label">현장 배치도 <span>구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
-          <div class="legend"><span><i style="background:#3ddc84"></i>정상</span><span><i style="background:#ffb020"></i>점검 필요</span><span><i style="background:#ff5d5d"></i>작업중지</span><span>◯ 점선 = TC 선회반경</span></div>
+          <div class="legend"><span><i style="background:#3ddc84"></i>정상</span><span><i style="background:#ffb020"></i>점검 필요</span><span><i style="background:#ff5d5d"></i>작업중지 · 높음 경보</span><span><i style="background:#8e9aab"></i>오늘 작업 없음</span></div>
         </div>
-        <div class="plan" id="plan">
-          <div class="road h"></div><div class="road v"></div>
-          <div class="tc" style="--c:#6cb6ff; left:24%; top:28%; width:30%; aspect-ratio:1"></div><div class="tc-dot" style="left:24%; top:28%"></div>
-          <div class="tc" style="--c:#ff9a1f; left:72%; top:26%; width:27%; aspect-ratio:1"></div><div class="tc-dot" style="left:72%; top:26%"></div>
-          <div class="tc" style="--c:#c084fc; left:48.5%; top:55%; width:24%; aspect-ratio:1"></div><div class="tc-dot" style="left:48.5%; top:55%"></div>
-          <div class="tc" style="--c:#ffb020; left:24%; top:82%; width:24%; aspect-ratio:1"></div><div class="tc-dot" style="left:24%; top:82%"></div>
-          <button class="zone-box" data-z="0" style="--c:#3ddc84; left:6%; top:8%; width:36%; height:38%"><b>101동 갱폼 인양구역</b><small>TC-1 · 작업 2 · 인원 6</small><span class="status ok">정상</span></button>
-          <button class="zone-box alarm" data-z="1" style="--c:#ff5d5d; left:55%; top:8%; width:38%; height:38%"><b>102동 대형거푸집구역</b><small>TC-2 · 작업 1 · 인원 2</small><span class="status stop">작업중지</span></button>
-          <button class="zone-box" data-z="2" style="--c:#3ddc84; left:38%; top:62%; width:21%; height:30%"><b>중앙 자재하역장</b><small>TC-3 · 작업 1</small><span class="status ok">정상</span></button>
-          <button class="zone-box" data-z="3" style="--c:#3ddc84; left:6%; top:66%; width:28%; height:28%"><b>103동 외벽 인양구역</b><small>TC-4 · 작업 1 예정</small><span class="status mute">대기</span></button>
-          <button class="zone-box" data-z="4" style="--c:#ffb020; left:63%; top:62%; width:18%; height:30%"><b>Sector A 토공</b><small>EXC_01 · 인원 2</small><span class="status warn">점검</span></button>
-          <button class="zone-box" data-z="5" style="--c:#3ddc84; left:84%; top:62%; width:13%; height:30%"><b>외곽 야적장</b><small>DUMP-03</small><span class="status ok">정상</span></button>
-          <span class="cam-pin" style="left:40%; top:10%">📹 CAM_0001</span>
-          <span class="cam-pin" style="left:91%; top:10%">📹 CAM_0002</span>
-          <span class="cam-pin" style="left:79%; top:65%">📹 CAM_0003</span>
-          <span class="cam-pin" style="left:94%; top:95%">📹 CAM_0004</span>
-        </div>
+        <div class="plan" id="plan"><div class="road h"></div><div class="road v"></div></div>
       </section>
     </main>
 
     <aside class="cell right">
       <div class="pad">
-        <div class="label" id="z-code">ZONE-02</div>
-        <h2 id="z-name" style="font-size:20px; letter-spacing:-0.03em">102동 대형거푸집구역</h2>
+        <div class="row between"><div class="label" id="z-code">-</div><button class="btn sm" id="new">＋ 새 구역</button></div>
+        <h2 id="z-name" style="font-size:20px; letter-spacing:-0.03em">-</h2>
         <div id="z-state"></div>
         <div class="stat4">
-          <div><span>작업</span><b id="z-work">1</b></div>
-          <div><span>인원</span><b id="z-people">2</b></div>
-          <div><span>장비</span><b id="z-eq">1</b></div>
-          <div><span>경보</span><b id="z-alarm">2</b></div>
+          <div><span>작업</span><b id="z-work">0</b></div>
+          <div><span>인원</span><b id="z-people">0</b></div>
+          <div><span>장비</span><b id="z-eq">0</b></div>
+          <div><span>경보</span><b id="z-alarm">0</b></div>
         </div>
         <div class="label" style="margin-top:4px">오늘 작업</div>
         <div id="z-works" style="display:grid; gap:6px"></div>
         <a class="btn primary block" id="z-go-works" href="zone-works.html">구역별 작업 목록 →</a>
         <a class="btn block" id="z-go-eq" href="zone-equipment.html">구역별 투입장비 목록 →</a>
+
+        <details id="edit-box" style="margin-top:6px">
+          <summary class="label" style="cursor:pointer">구역 이름 · 배치도 위치 바꾸기</summary>
+          <form id="form" style="display:grid; gap:8px; margin-top:8px">
+            <label class="field">구역 이름<input class="input" id="e-name" required maxlength="100" /></label>
+            <div class="two">
+              <label class="field">왼쪽 (%)<input class="input" type="number" id="e-x" min="0" max="100" step="1" /></label>
+              <label class="field">위 (%)<input class="input" type="number" id="e-y" min="0" max="100" step="1" /></label>
+            </div>
+            <div class="two">
+              <label class="field">너비 (%)<input class="input" type="number" id="e-w" min="1" max="100" step="1" /></label>
+              <label class="field">높이 (%)<input class="input" type="number" id="e-h" min="1" max="100" step="1" /></label>
+            </div>
+            <div class="row between"><button class="btn sm" type="button" id="del" style="color:var(--red)">구역 삭제</button><button class="btn sm primary">저장</button></div>
+          </form>
+        </details>
       </div>
     </aside>
   </div>
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    const ZONES = [
-      { code: "ZONE-01", name: "101동 갱폼 인양구역", state: ["ok", "정상"], work: 2, people: 6, eq: 4, alarm: 1, works: [["W-01", "101동 갱폼 인양", "진행중", "ok"], ["W-02", "101동 3층 슬래브 타설", "진행중", "ok"]] },
-      { code: "ZONE-02", name: "102동 대형거푸집구역", state: ["stop", "작업중지 · 신호수 미배치"], work: 1, people: 2, eq: 1, alarm: 2, works: [["W-03", "102동 대형거푸집 설치", "작업중지", "stop"]] },
-      { code: "ZONE-03", name: "중앙 자재하역장", state: ["ok", "정상"], work: 1, people: 0, eq: 1, alarm: 0, works: [["W-05", "자재 하역", "진행중", "ok"]] },
-      { code: "ZONE-04", name: "103동 외벽 인양구역", state: ["mute", "대기 · 작업 예정"], work: 1, people: 0, eq: 1, alarm: 0, works: [["W-06", "103동 외벽 배관", "예정", "mute"]] },
-      { code: "ZONE-05", name: "Sector A 토공", state: ["warn", "현장점검 · 지반침하 의심"], work: 1, people: 2, eq: 1, alarm: 3, works: [["W-04", "Sector A 터파기", "진행중", "ok"]] },
-      { code: "ZONE-06", name: "외곽 야적장", state: ["ok", "정상"], work: 1, people: 1, eq: 1, alarm: 0, works: [["W-07", "야적장 정리", "진행중", "ok"]] },
-    ];
-    function show(i) {
-      const z = ZONES[i];
-      document.querySelectorAll(".zone-box").forEach((b) => b.classList.toggle("on", Number(b.dataset.z) === i));
-      document.getElementById("z-code").textContent = z.code;
-      document.getElementById("z-name").textContent = z.name;
-      document.getElementById("z-state").innerHTML = '<span class="status ' + z.state[0] + '">' + z.state[1] + "</span>";
-      document.getElementById("z-work").textContent = z.work;
-      document.getElementById("z-people").textContent = z.people;
-      document.getElementById("z-eq").textContent = z.eq;
-      document.getElementById("z-alarm").textContent = z.alarm;
-      document.getElementById("z-alarm").style.color = z.alarm ? "var(--red)" : "";
-      document.getElementById("z-works").innerHTML = z.works.map((w) =>
-        '<a class="item" href="work-workers.html"><div class="item-top"><b>' + w[0] + " · " + w[1] + '</b><span class="status ' + w[3] + '">' + w[2] + "</span></div></a>").join("");
-      document.getElementById("z-go-works").href = "zone-works.html?zone=" + i;
-      document.getElementById("z-go-eq").href = "zone-equipment.html?zone=" + i;
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let zones = [], current = null, creating = false;
+
+    // 배치도 영역(0~1 비율 다각형)을 감싸는 사각형
+    function box(z) {
+      const p = z.plan_polygon;
+      if (!p || !p.length) return null;
+      const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
     }
-    document.querySelectorAll(".zone-box").forEach((b) => b.addEventListener("click", () => show(Number(b.dataset.z))));
-    show(1);
+    const pct = (v) => Math.round(v * 1000) / 10;
+
+    function state(z) {
+      if (z.open_high || z.works.some((w) => w.status === "STOPPED")) return ["stop", "#ff5d5d", z.open_high ? `높음 경보 ${z.open_high}건` : "작업중지"];
+      if (z.open_events) return ["warn", "#ffb020", `점검 필요 · 경보 ${z.open_events}건`];
+      if (!z.works.length) return ["mute", "#8e9aab", "오늘 작업 없음"];
+      return ["ok", "#3ddc84", "정상"];
+    }
+
+    function drawPlan() {
+      $("plan").querySelectorAll(".zone-box").forEach((b) => b.remove());
+      zones.forEach((z) => {
+        const b = box(z);
+        if (!b) return;
+        const [cls, color, text] = state(z);
+        const sub = [...z.equipment.filter((e) => e.kind === "TC").map((e) => e.name.split(" · ")[0]),
+          z.works.length && `작업 ${z.works.length}`, z.worker_count && `인원 ${z.worker_count}`].filter(Boolean).join(" · ");
+        $("plan").insertAdjacentHTML("beforeend", `
+          <button class="zone-box${cls === "stop" ? " alarm" : ""}${current && current.id === z.id ? " on" : ""}" data-z="${z.id}"
+            style="--c:${color}; left:${pct(b.x)}%; top:${pct(b.y)}%; width:${pct(b.w)}%; height:${pct(b.h)}%">
+            <b>${esc(z.name)}</b><small>${esc(sub || "-")}</small><span class="status ${cls}">${esc(text.split(" · ")[0])}</span></button>`);
+      });
+    }
+
+    function show(id) {
+      creating = false;
+      current = zones.find((z) => z.id === id) || zones[0];
+      if (!current) return;
+      history.replaceState(null, "", "?zone=" + current.id);
+      document.querySelectorAll(".zone-box").forEach((b) => b.classList.toggle("on", Number(b.dataset.z) === current.id));
+      const z = current, [cls, , text] = state(z);
+      $("z-code").textContent = "ZONE-" + pad2(z.id);
+      $("z-name").textContent = z.name;
+      $("z-state").innerHTML = `<span class="status ${cls}">${esc(text)}</span>`;
+      $("z-work").textContent = z.works.length;
+      $("z-people").textContent = z.worker_count;
+      $("z-eq").textContent = z.equipment.length;
+      $("z-alarm").textContent = z.open_events;
+      $("z-alarm").style.color = z.open_events ? "var(--red)" : "";
+      $("z-works").innerHTML = z.works.length ? z.works.map((w) =>
+        `<a class="item" href="work-workers.html?id=${w.id}"><div class="item-top"><b>W-${pad2(w.id)} · ${esc(w.name)}</b>${badge("workStatus", w.status)}</div></a>`).join("")
+        : '<p class="muted">오늘 이 구역 작업이 없습니다</p>';
+      $("z-go-works").href = "zone-works.html?zone=" + z.id;
+      $("z-go-eq").href = "zone-equipment.html?zone=" + z.id;
+      fillForm(z);
+    }
+
+    function fillForm(z) {
+      const b = (z && box(z)) || { x: 0.4, y: 0.4, w: 0.15, h: 0.15 };
+      $("e-name").value = z ? z.name : "";
+      [["e-x", b.x], ["e-y", b.y], ["e-w", b.w], ["e-h", b.h]].forEach(([id, v]) => { $(id).value = pct(v); });
+      $("del").hidden = !z;
+    }
+
+    async function load(id) {
+      zones = await api("/api/work-zones/summary");
+      drawPlan();
+      show(id);
+    }
+
+    $("plan").addEventListener("click", (e) => { const b = e.target.closest(".zone-box"); if (b) show(Number(b.dataset.z)); });
+    $("new").addEventListener("click", () => {
+      creating = true;
+      $("z-code").textContent = "새 구역";
+      $("z-name").textContent = "새 구역 만들기";
+      fillForm(null);
+      $("edit-box").open = true;
+      $("e-name").focus();
+    });
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const [x, y, w, h] = ["e-x", "e-y", "e-w", "e-h"].map((id) => Number($(id).value) / 100);
+      if (x + w > 1.0001 || y + h > 1.0001) return toast("배치도 밖으로 나갑니다. 왼쪽 + 너비, 위 + 높이가 100% 이하여야 합니다.");
+      const r = (v) => Math.round(v * 1000) / 1000;
+      const body = { name: $("e-name").value.trim(), plan_polygon: [[r(x), r(y)], [r(x + w), r(y)], [r(x + w), r(y + h)], [r(x), r(y + h)]] };
+      try {
+        const saved = creating ? await api("/api/work-zones", { method: "POST", body }) : await api(`/api/work-zones/${current.id}`, { method: "PATCH", body });
+        toast(creating ? "구역을 만들었습니다." : "구역을 저장했습니다.");
+        await load(saved.id);
+      } catch (err) { toast(err.message); }
+    });
+    $("del").addEventListener("click", async () => {
+      if (!confirm(`${current.name} 구역을 삭제할까요?`)) return;
+      try {
+        await api(`/api/work-zones/${current.id}`, { method: "DELETE" });
+        toast("구역을 삭제했습니다.");
+        await load(null);
+      } catch (err) { toast(err.message); }
+    });
+
+    load(Number(new URLSearchParams(location.search).get("zone"))).catch((err) => toast(err.message));
   </script>
 </body>
 </html>

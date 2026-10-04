@@ -71,7 +71,23 @@ const LABEL = {
   userStatus: { PENDING: ["warn", "대기"], ACTIVE: ["ok", "활성"], REJECTED: ["stop", "반려"], LOCKED: ["stop", "잠금"], DELETED: ["mute", "삭제"] },
   severity: { HIGH: ["stop", "높음"], MEDIUM: ["warn", "중간"], LOW: ["ok", "낮음"] },
   eventStatus: { NEW: ["stop", "미처리"], ACK: ["warn", "확인중"], DONE: ["ok", "처리완료"], FALSE: ["mute", "오탐"] },
+  workStatus: { IN_PROGRESS: ["ok", "진행중"], STOPPED: ["stop", "작업중지"], PLANNED: ["mute", "예정"], DONE: ["info", "완료"] },
+  equipStatus: { RUNNING: ["ok", "가동"], IDLE: ["mute", "대기"], MAINTENANCE: ["warn", "점검"], BROKEN: ["stop", "고장"] },
+  equipType: { TC: ["", "타워크레인"], PUMP_CAR: ["", "펌프카"], MIXER_TRUCK: ["", "믹서트럭"], DUMP_TRUCK: ["", "덤프트럭"],
+    EXCAVATOR: ["", "굴착기"], CRANE: ["", "이동식 크레인"], FORKLIFT: ["", "지게차"], ETC: ["", "기타"] },
+  specialReason: { ELDERLY: ["", "고령"], HYPERTENSION: ["", "고혈압"], NEW: ["", "신규 투입"], ETC: ["", "기타"] },
 };
+const EQUIP_ICON = { TC: "🏗", PUMP_CAR: "🚒", MIXER_TRUCK: "🚛", DUMP_TRUCK: "🚚", EXCAVATOR: "🚜", CRANE: "🏗", FORKLIFT: "🛻", ETC: "⚙" };
+const labelOf = (kind, value) => (LABEL[kind][value] || ["", value])[1];
+
+// 오늘 날짜 "2026-10-04" (브라우저 시간대 기준)
+const todayStr = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+// "2026-10-04" → "10.04"
+const md = (d) => (d ? d.slice(5).replace("-", ".") : "");
+// 작업 기간 "09.22 ~ 10.15" (하루짜리는 "10.04")
+const period = (w) => (w.end_date && w.end_date !== w.start_date ? `${md(w.start_date)} ~ ${md(w.end_date)}` : md(w.start_date));
+// 특별관리 표시 (지금 유효한 사유가 있을 때만)
+const spTags = (w) => (w.special_tags.length ? w.special_tags.map((t) => `<span class="sp">${esc(t)}</span>`).join(" ") : '<span class="muted">-</span>');
 function badge(kind, value) {
   const [cls, text] = LABEL[kind][value] || ["mute", value];
   return kind === "role" && value === "ADMIN"
@@ -86,8 +102,15 @@ function fmtTime(iso, { date = true, time = true } = {}) {
   return [date ? d.replaceAll("-", ".") : "", time ? t.slice(0, 8) : ""].filter(Boolean).join(" ");
 }
 
-// 조직 목록 → { id: "OO건설 · 안전팀" }
+// 조직 목록 → { id: "OO건설 · 공사팀 · 양중" } (회사부터 전체 경로)
 function orgNames(orgs) {
   const byId = Object.fromEntries(orgs.map((o) => [o.id, o]));
-  return Object.fromEntries(orgs.map((o) => [o.id, o.parent_id ? `${byId[o.parent_id].name} · ${o.name}` : o.name]));
+  const path = (o) => (o.parent_id && byId[o.parent_id] ? `${path(byId[o.parent_id])} · ${o.name}` : o.name);
+  return Object.fromEntries(orgs.map((o) => [o.id, path(o)]));
+}
+
+// /api/users/staff 결과 → 담당자 선택 칸
+function staffOptions(staff, selected) {
+  return '<option value="">담당자 없음</option>' + staff
+    .map((u) => `<option value="${u.id}"${u.id === selected ? " selected" : ""}>${esc(u.name)} ${esc(u.position || "")}</option>`).join("");
 }

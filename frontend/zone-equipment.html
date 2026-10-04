@@ -24,51 +24,52 @@
   <div class="page no-left">
     <header class="cell head"></header>
 
-    <main class="main scroll" id="cards">
-      <section class="cell zcard"><h3>101동 갱폼 인양구역 <span class="status ok">4대</span></h3>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🏗</span><div><b>T-CRN-01 · 1호기</b><small>운전원 김창식 (세진크레인)</small></div><span class="status ok">가동</span></a>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🚒</span><div><b>PUMP-01</b><small>담당 서준기 (대한골조) · 타설</small></div><span class="status ok">가동</span></a>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🚛</span><div><b>MIX-07 · MIX-12</b><small>OO레미콘 · 오늘 진입 6회</small></div><span class="status ok">가동</span></a>
-      </section>
-      <section class="cell zcard"><h3>102동 대형거푸집구역 <span class="status warn">1대</span></h3>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🏗</span><div><b>T-CRN-02 · 2호기</b><small>운전원 이상훈 · 신호수 미배치로 대기</small></div><span class="status stop">대기</span></a>
-      </section>
-      <section class="cell zcard"><h3>중앙 자재하역장 <span class="status ok">1대</span></h3>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🏗</span><div><b>M-CRN-01 · 3호기</b><small>운전원 박성민 (세진크레인)</small></div><span class="status ok">가동</span></a>
-      </section>
-      <section class="cell zcard"><h3>103동 외벽 인양구역 <span class="status mute">1대</span></h3>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🏗</span><div><b>T-CRN-03 · 4호기</b><small>운전원 미지정 · 10.06 작업 예정</small></div><span class="status mute">대기</span></a>
-      </section>
-      <section class="cell zcard"><h3>Sector A 토공 <span class="status warn">1대</span></h3>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🚜</span><div><b>EXC_01</b><small>운전원 정대호 (한빛토건) · 지반침하 의심</small></div><span class="status warn">점검</span></a>
-      </section>
-      <section class="cell zcard"><h3>외곽 야적장 <span class="status ok">1대</span></h3>
-        <a class="eq-row" href="equipment-detail.html"><span class="ico">🚚</span><div><b>DUMP-03</b><small>OO운수 · 오늘 운행 11회</small></div><span class="status ok">가동</span></a>
-      </section>
-    </main>
+    <main class="main scroll" id="cards"></main>
 
     <aside class="cell right">
       <div class="pad">
-        <div class="label">오늘 투입 요약 <span>10.02 기록 기준</span></div>
+        <div class="label">오늘 투입 요약 <span id="sum-date"></span></div>
         <div class="kpis" style="grid-template-columns:1fr 1fr">
-          <div class="kpi-box"><span>투입</span><strong>9<i>대</i></strong></div>
-          <div class="kpi-box"><span>대기 · 점검</span><strong style="color:var(--amber)">3<i>대</i></strong></div>
+          <div class="kpi-box"><span>투입</span><strong id="k-in">0<i>대</i></strong></div>
+          <div class="kpi-box"><span>대기 · 점검 · 고장</span><strong style="color:var(--amber)" id="k-stop">0<i>대</i></strong></div>
         </div>
+        <div id="idle"></div>
         <div class="hint">투입 구역은 <b>장비 등록 및 배정</b>에서 하루 한 번 바꿉니다. 장비를 누르면 장비 상세로 이동합니다.</div>
         <a class="btn primary block" href="equipment-assign.html">장비 등록 및 배정 →</a>
         <a class="btn block" href="zones.html">← 전체 구역 표시</a>
       </div>
     </aside>
   </div>
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    // zones.html 에서 ?zone=번호 로 들어오면 그 구역 카드를 강조하고 보이게 한다
-    const z = Number(new URLSearchParams(location.search).get("zone"));
-    const card = document.querySelectorAll(".zcard")[z];
-    if (new URLSearchParams(location.search).has("zone") && card) {
-      card.classList.add("on");
-      card.scrollIntoView({ block: "nearest" });
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+
+    function row(e) {
+      const who = e.operator_name ? `운전원 ${e.operator_name}${e.operator_company ? ` (${e.operator_company})` : ""}` : e.company || "운전원 미지정";
+      return `<a class="eq-row" href="equipment-detail.html?id=${e.id}"><span class="ico">${EQUIP_ICON[e.equip_type]}</span>
+        <div><b>${esc(e.name)}</b><small>${esc(labelOf("equipType", e.equip_type))} · ${esc(who)}</small></div>${badge("equipStatus", e.status)}</a>`;
     }
+
+    (async () => {
+      const [zones, items] = await Promise.all([api("/api/work-zones"), api("/api/equipment")]);
+      const focus = Number(new URLSearchParams(location.search).get("zone"));
+      $("cards").innerHTML = zones.map((z) => {
+        const list = items.filter((e) => e.work_zone_id === z.id);
+        const bad = list.some((e) => e.status === "BROKEN" || e.status === "MAINTENANCE");
+        return `<section class="cell zcard${z.id === focus ? " on" : ""}" data-z="${z.id}"><h3>${esc(z.name)} <span class="status ${list.length ? (bad ? "warn" : "ok") : "mute"}">${list.length}대</span></h3>
+          ${list.length ? list.map(row).join("") : '<div class="none">투입된 장비가 없습니다</div>'}</section>`;
+      }).join("");
+      const placed = items.filter((e) => e.work_zone_id);
+      $("sum-date").textContent = todayStr().slice(5).replace("-", ".") + " 기준";
+      $("k-in").innerHTML = `${placed.length}<i>대</i>`;
+      $("k-stop").innerHTML = `${placed.filter((e) => e.status !== "RUNNING").length}<i>대</i>`;
+      const idle = items.filter((e) => !e.work_zone_id);
+      $("idle").innerHTML = idle.length ? `<div class="label">미투입 장비</div>${idle.map(row).join("")}` : "";
+      const card = document.querySelector(".zcard.on");
+      if (card) card.scrollIntoView({ block: "nearest" });
+    })().catch((err) => toast(err.message));
   </script>
 </body>
 </html>

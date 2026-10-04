@@ -20,7 +20,7 @@
   <div class="page">
     <aside class="cell left">
       <div class="pad" id="zones">
-        <div class="label">작업구역 <span>6곳</span></div>
+        <div class="label">작업구역 <span id="n-zones">0곳</span></div>
       </div>
     </aside>
 
@@ -51,46 +51,45 @@
       </div>
     </aside>
   </div>
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    const DATA = [
-      { name: "101동 갱폼 인양구역", sub: "TC-1 · CAM_0001", works: [
-        ["W-01", "101동 갱폼 인양", "박진우 차장", "09.22 ~ 10.15", 4, 1, ["ok", "진행중"]],
-        ["W-02", "101동 3층 슬래브 타설", "김철수 과장", "10.02", 2, 1, ["ok", "진행중"]] ] },
-      { name: "102동 대형거푸집구역", sub: "TC-2 · CAM_0002", works: [
-        ["W-03", "102동 대형거푸집 설치", "박진우 차장", "09.28 ~ 10.10", 2, 1, ["stop", "작업중지"]] ] },
-      { name: "중앙 자재하역장", sub: "TC-3", works: [
-        ["W-05", "자재 하역", "박진우 차장", "10.02", 0, 0, ["ok", "진행중"]] ] },
-      { name: "103동 외벽 인양구역", sub: "TC-4", works: [
-        ["W-06", "103동 외벽 배관", "김철수 과장", "10.06 ~ 10.20", 0, 0, ["mute", "예정"]] ] },
-      { name: "Sector A 토공", sub: "CAM_0003 · EXC_01", works: [
-        ["W-04", "Sector A 터파기", "정민수 부장", "09.15 ~ 10.31", 2, 1, ["ok", "진행중"]] ] },
-      { name: "외곽 야적장", sub: "CAM_0004 · DUMP-03", works: [
-        ["W-07", "야적장 정리", "정민수 부장", "10.02", 1, 1, ["ok", "진행중"]] ] },
-    ];
-    const box = document.getElementById("zones");
-    DATA.forEach((z, i) => box.insertAdjacentHTML("beforeend",
-      '<button class="tc-card" data-z="' + i + '"><strong>' + z.name + ' <span class="muted">' + z.works.length + '</span></strong><p>' + z.sub + "</p></button>"));
-    function show(i) {
-      const z = DATA[i];
-      box.querySelectorAll(".tc-card").forEach((c) => c.classList.toggle("active", Number(c.dataset.z) === i));
-      document.getElementById("zname").textContent = z.name;
-      document.getElementById("zsub").textContent = z.sub;
-      document.getElementById("zwork").textContent = z.works.length;
-      document.getElementById("zpeople").textContent = z.works.reduce((a, w) => a + w[4], 0);
-      document.getElementById("zsp").textContent = z.works.reduce((a, w) => a + w[5], 0);
-      document.getElementById("rows").innerHTML = z.works.map((w) =>
-        '<tr data-go="work-workers.html"><td class="num">' + w[0] + "</td><td><b>" + w[1] + "</b></td><td>" + w[2] + '</td><td class="num">' + w[3] +
-        '</td><td class="num">' + w[4] + '명</td><td><span class="status ' + w[6][0] + '">' + w[6][1] + '</span></td><td><a class="btn sm" href="work-workers.html">작업자 보기</a></td></tr>').join("");
-      document.querySelectorAll("#rows tr").forEach((tr) => {
-        tr.style.cursor = "pointer";
-        tr.addEventListener("click", (e) => { if (!e.target.closest("a")) location.href = tr.dataset.go; });
-      });
-      document.getElementById("to-eq").href = "zone-equipment.html?zone=" + i;
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let zones = [], works = [];
+
+    function show(zoneId) {
+      const z = zones.find((x) => x.id === zoneId) || zones[0];
+      if (!z) return;
+      history.replaceState(null, "", "?zone=" + z.id);
+      document.querySelectorAll("#zones .tc-card").forEach((c) => c.classList.toggle("active", Number(c.dataset.z) === z.id));
+      const list = works.filter((w) => w.work_zone_id === z.id);
+      $("zname").textContent = z.name;
+      $("zsub").textContent = [...z.equipment.filter((e) => e.kind === "TC").map((e) => e.name.split(" · ")[0]), ...z.cameras].join(" · ") || "카메라 · TC 없음";
+      $("zwork").textContent = list.length;
+      $("zpeople").textContent = list.reduce((a, w) => a + w.worker_count, 0);
+      $("zsp").textContent = list.reduce((a, w) => a + w.special_count, 0);
+      $("rows").innerHTML = list.length ? list.map((w) => `
+        <tr data-href="work-workers.html?id=${w.id}" style="cursor:pointer"><td class="num">W-${pad2(w.id)}</td><td><b>${esc(w.name)}</b></td>
+          <td>${esc(w.manager_name || "-")}</td><td class="num">${period(w)}</td><td class="num">${w.worker_count}명</td>
+          <td>${badge("workStatus", w.status)}</td><td><a class="btn sm" href="work-workers.html?id=${w.id}">작업자 보기</a></td></tr>`).join("")
+        : '<tr><td colspan="7" class="muted" style="text-align:center; padding:28px">이 구역에 진행 · 예정 작업이 없습니다</td></tr>';
+      $("rows").querySelectorAll("tr[data-href]").forEach((tr) => tr.addEventListener("click", (e) => { if (!e.target.closest("a")) location.href = tr.dataset.href; }));
+      $("to-eq").href = "zone-equipment.html?zone=" + z.id;
     }
-    box.addEventListener("click", (e) => { const c = e.target.closest(".tc-card"); if (c) show(Number(c.dataset.z)); });
-    const q = Number(new URLSearchParams(location.search).get("zone"));
-    show(q >= 0 && q < DATA.length ? q : 0);
+
+    $("zones").addEventListener("click", (e) => { const c = e.target.closest(".tc-card"); if (c) show(Number(c.dataset.z)); });
+
+    (async () => {
+      [zones, works] = await Promise.all([api("/api/work-zones/summary"), api("/api/works", { query: { upcoming: true } })]);
+      $("n-zones").textContent = zones.length + "곳";
+      $("zones").insertAdjacentHTML("beforeend", zones.map((z) => {
+        const n = works.filter((w) => w.work_zone_id === z.id).length;
+        const sub = [...z.equipment.filter((e) => e.kind === "TC").map((e) => e.name.split(" · ")[0]), ...z.cameras.slice(0, 1)].join(" · ");
+        return `<button class="tc-card" data-z="${z.id}"><strong>${esc(z.name)} <span class="muted">${n}</span></strong><p>${esc(sub || "-")}</p></button>`;
+      }).join(""));
+      show(Number(new URLSearchParams(location.search).get("zone")));
+    })().catch((err) => toast(err.message));
   </script>
 </body>
 </html>

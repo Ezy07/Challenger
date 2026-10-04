@@ -14,6 +14,8 @@
     .dotc { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; }
     .scale-demo { display: grid; gap: 6px; font-size: 12px; }
     .scale-demo div { display: grid; grid-template-columns: 54px 1fr; gap: 8px; align-items: center; }
+    .tbl tr.changed td { background: rgba(255, 154, 31, 0.07); }
+    .switch:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
   </style>
 </head>
 <body>
@@ -24,26 +26,15 @@
       <section class="cell">
         <div class="pad">
           <div class="row between">
-            <div class="label">클래스별 판정 기준 <span>모델이 찾는 객체마다 따로 정합니다</span></div>
+            <div class="label">감지 유형별 판정 기준 <span id="changed">바뀐 항목 없음</span></div>
             <div class="row">
-              <button class="btn" data-toast="기본값으로 되돌렸습니다. (예시)">기본값으로</button>
-              <button class="btn primary" data-toast="판정 기준을 저장했습니다. (예시)">저장</button>
+              <button class="btn" id="reset">기본값으로</button>
+              <button class="btn primary" id="save">저장</button>
             </div>
           </div>
           <table class="tbl">
-            <thead><tr><th>클래스 (모델 이름)</th><th>판정 기준 confidence</th><th>쿨다운</th><th>사용</th></tr></thead>
-            <tbody>
-              <tr><td><span class="dotc" style="background:#ff1493"></span><b>사람</b> <span class="muted">person</span></td><td><div class="rng"><input type="range" min="10" max="95" value="50" data-out="c1" data-unit="%" /><b id="c1"></b></div></td><td><select class="input" style="width:110px"><option>30초</option><option selected>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#ffb020"></span><b>안전모 미착용</b> <span class="muted">no_helmet</span></td><td><div class="rng"><input type="range" min="10" max="95" value="60" data-out="c2" data-unit="%" /><b id="c2"></b></div></td><td><select class="input" style="width:110px"><option>30초</option><option>1분</option><option selected>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#3ddc84"></span><b>신호수</b> <span class="muted">signalman</span></td><td><div class="rng"><input type="range" min="10" max="95" value="55" data-out="c3" data-unit="%" /><b id="c3"></b></div></td><td><select class="input" style="width:110px"><option selected>30초</option><option>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#a78bfa"></span><b>트럭</b> <span class="muted">truck</span></td><td><div class="rng"><input type="range" min="10" max="95" value="45" data-out="c4" data-unit="%" /><b id="c4"></b></div></td><td><select class="input" style="width:110px"><option>30초</option><option selected>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#3e9cf0"></span><b>믹서 드럼</b> <span class="muted">mixer drum</span></td><td><div class="rng"><input type="range" min="10" max="95" value="50" data-out="c5" data-unit="%" /><b id="c5"></b></div></td><td><select class="input" style="width:110px"><option>30초</option><option selected>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#8b4513"></span><b>덤프 적재함</b> <span class="muted">dump body</span></td><td><div class="rng"><input type="range" min="10" max="95" value="50" data-out="c6" data-unit="%" /><b id="c6"></b></div></td><td><select class="input" style="width:110px"><option>30초</option><option selected>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#e5484d"></span><b>펌프카 붐</b> <span class="muted">boom</span></td><td><div class="rng"><input type="range" min="10" max="95" value="40" data-out="c7" data-unit="%" /><b id="c7"></b></div></td><td><select class="input" style="width:110px"><option selected>30초</option><option>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#f5a524"></span><b>아웃트리거</b> <span class="muted">outtrigger</span></td><td><div class="rng"><input type="range" min="10" max="95" value="40" data-out="c8" data-unit="%" /><b id="c8"></b></div></td><td><select class="input" style="width:110px"><option>30초</option><option selected>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#ff6b00"></span><b>굴착기</b> <span class="muted">excavator</span></td><td><div class="rng"><input type="range" min="10" max="95" value="45" data-out="c9" data-unit="%" /><b id="c9"></b></div></td><td><select class="input" style="width:110px"><option selected>30초</option><option>1분</option><option>5분</option></select></td><td><span class="switch on"></span></td></tr>
-              <tr><td><span class="dotc" style="background:#9acd32"></span><b>지게차</b> <span class="muted">forklift</span></td><td><div class="rng"><input type="range" min="10" max="95" value="50" data-out="c10" data-unit="%" /><b id="c10"></b></div></td><td><select class="input" style="width:110px"><option>30초</option><option selected>1분</option><option>5분</option></select></td><td><span class="switch"></span></td></tr>
-            </tbody>
+            <thead><tr><th>감지 유형 (코드)</th><th>판정 기준 confidence</th><th>쿨다운</th><th>사용</th></tr></thead>
+            <tbody id="rows"></tbody>
           </table>
         </div>
       </section>
@@ -51,19 +42,94 @@
 
     <aside class="cell right">
       <div class="pad">
-        <div class="label">이 화면의 두 가지 설정</div>
+        <div class="label">이 화면의 세 가지 설정</div>
         <div class="check info"><div><b>판정 기준 (confidence)</b><small>모델이 "이건 OO이다"라고 얼마나 확신해야 경보로 볼지. 높이면 경보가 줄고, 낮추면 놓치는 게 줄어요.</small></div></div>
-        <div class="check info"><div><b>쿨다운</b><small>같은 카메라에서 같은 경보를 다시 울리기까지 기다리는 시간. 짧으면 알림이 너무 자주 와요.</small></div></div>
+        <div class="check info"><div><b>쿨다운</b><small>같은 카메라 · 같은 ROI 에서 같은 경보를 다시 울리기까지 기다리는 시간. 짧으면 알림이 너무 자주 와요.</small></div></div>
+        <div class="check info"><div><b>사용</b><small>끄면 이 유형은 탐지돼도 이벤트를 만들지 않아요.</small></div></div>
         <div class="label" style="margin-top:6px">기준값에 따라 (예: 안전모)</div>
         <div class="scale-demo">
           <div><span class="status ok">30%</span><span class="muted">많이 잡지만 오탐도 많음</span></div>
           <div><span class="status warn">60%</span><span class="muted">보통 (추천)</span></div>
           <div><span class="status stop">90%</span><span class="muted">확실할 때만, 놓칠 수 있음</span></div>
         </div>
+        <div class="hint">YOLO 모델의 클래스 이름(person, helmet …)과 감지 유형을 잇는 표는 탐지 프로그램 작업 때 정합니다.</div>
         <a class="btn block" href="roi-rules.html">ROI별로 다르게 하려면 ROI별 규칙</a>
       </div>
     </aside>
   </div>
+  <script src="api.js"></script>
   <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const COOLDOWNS = [[10, "10초"], [30, "30초"], [60, "1분"], [120, "2분"], [300, "5분"], [600, "10분"], [1800, "30분"]];
+    const DOT = { HIGH: "var(--red)", MEDIUM: "var(--amber)", LOW: "var(--green)" };
+    let types = [];
+    const draft = new Map(); // 감지 유형 번호 → 바뀐 값
+
+    const secText = (s) => (COOLDOWNS.find(([v]) => v === s) || [s, s >= 60 ? `${Math.round(s / 60)}분` : `${s}초`])[1];
+
+    function render() {
+      $("rows").innerHTML = types.map((t) => {
+        const v = { ...t, ...draft.get(t.id) };
+        const pct = Math.round((v.min_confidence ?? 0.5) * 100);
+        const cds = COOLDOWNS.some(([s]) => s === v.cooldown_sec) ? COOLDOWNS : [...COOLDOWNS, [v.cooldown_sec, secText(v.cooldown_sec)]].sort((a, b) => a[0] - b[0]);
+        return `<tr data-id="${t.id}"${draft.has(t.id) ? ' class="changed"' : ""}>
+          <td><span class="dotc" style="background:${DOT[v.default_severity] || "#8e9aab"}"></span><b>${esc(t.label)}</b> <span class="muted">${esc(t.code)}</span></td>
+          <td><div class="rng"><input type="range" min="0" max="100" step="1" value="${pct}" data-f="min_confidence" /><b>${pct}%</b></div></td>
+          <td><select class="input" style="width:110px" data-f="cooldown_sec">${cds.map(([s, txt]) => `<option value="${s}"${s === v.cooldown_sec ? " selected" : ""}>${txt}</option>`).join("")}</select></td>
+          <td><span class="switch${v.is_active ? " on" : ""}" data-f="is_active" role="switch" aria-checked="${v.is_active}" tabindex="0"></span></td></tr>`;
+      }).join("");
+      $("changed").textContent = draft.size ? `${draft.size}개 바뀜 · 저장 전` : "바뀐 항목 없음";
+      $("changed").style.color = draft.size ? "var(--orange)" : "";
+    }
+
+    function change(tr, field, value) {
+      const t = types.find((x) => x.id === Number(tr.dataset.id));
+      const next = { ...draft.get(t.id), [field]: value };
+      Object.keys(next).forEach((k) => { if (next[k] === t[k]) delete next[k]; });
+      if (Object.keys(next).length) draft.set(t.id, next); else draft.delete(t.id);
+    }
+
+    $("rows").addEventListener("input", (e) => {
+      if (e.target.type !== "range") return;
+      e.target.nextElementSibling.textContent = e.target.value + "%"; // 끄는 동안 숫자만 바꾸고, 다 놓으면 표시
+    });
+    $("rows").addEventListener("change", (e) => {
+      const tr = e.target.closest("tr"), f = e.target.dataset.f;
+      if (!f) return;
+      change(tr, f, f === "min_confidence" ? Number(e.target.value) / 100 : Number(e.target.value));
+      render();
+    });
+    const toggle = (sw) => { change(sw.closest("tr"), "is_active", !sw.classList.contains("on")); render(); };
+    $("rows").addEventListener("click", (e) => { const sw = e.target.closest(".switch"); if (sw) toggle(sw); });
+    $("rows").addEventListener("keydown", (e) => {
+      const sw = e.target.closest(".switch");
+      if (sw && (e.key === " " || e.key === "Enter")) { e.preventDefault(); toggle(sw); }
+    });
+
+    $("save").addEventListener("click", async () => {
+      if (!draft.size) return toast("바뀐 항목이 없습니다.");
+      try {
+        for (const [id, body] of draft) await api(`/api/detection-types/${id}/rule`, { method: "PATCH", body });
+        toast(`${draft.size}개 감지 유형의 판정 기준을 저장했습니다.`);
+        draft.clear();
+        types = await api("/api/detection-types");
+        render();
+      } catch (err) { toast(err.message); }
+    });
+    $("reset").addEventListener("click", async () => {
+      if (!confirm("모든 감지 유형의 판정 기준 · 심각도 · 쿨다운 · 사용 여부를 처음 값으로 되돌릴까요?")) return;
+      try {
+        types = await api("/api/detection-types/reset-rules", { method: "POST" });
+        draft.clear();
+        render();
+        toast("기본값으로 되돌렸습니다.");
+      } catch (err) { toast(err.message); }
+    });
+    window.addEventListener("beforeunload", (e) => { if (draft.size) { e.preventDefault(); e.returnValue = ""; } });
+
+    api("/api/detection-types").then((list) => { types = list; render(); }).catch((err) => toast(err.message));
+  </script>
 </body>
 </html>

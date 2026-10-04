@@ -21,80 +21,33 @@
     <main class="main">
       <section class="cell searchbar">
         <div class="searchbar-row">
-          <input class="input" style="width:220px" placeholder="장비명 · 등록번호로 찾기" />
-          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <input class="input" id="q" style="width:220px" placeholder="장비명 · 등록번호로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <span class="muted" id="changed">바뀐 항목 없음</span>
           <span class="grow"></span>
-          <button class="btn" data-open="pop">＋ 장비 등록</button>
+          <button class="btn" id="add">＋ 장비 등록</button>
           <button class="btn primary" id="save">오늘 기록 저장</button>
         </div>
-        <div class="search-panel" hidden data-auto-summary>
+        <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
-            <div class="field wide">장비 종류
-              <div class="chips" data-single><span class="chip on">전체 <b>9</b></span><span class="chip">🏗 타워크레인 <b>4</b></span><span class="chip">🚒 펌프카 <b>1</b></span><span class="chip">🚛 믹서트럭 <b>2</b></span><span class="chip">🚜 굴착기 <b>1</b></span><span class="chip">🚚 덤프트럭 <b>1</b></span></div>
-            </div>
-            <div class="hint">하루 한 번 아침 조회 때 <b>투입 구역 · 운전원 · 상태</b>를 바꾸고 [오늘 기록 저장]을 누르면 장비 상세의 일일 기록에 남습니다.</div>
+            <div class="field wide">장비 종류<div class="chips" id="f-type" data-single></div></div>
+            <div class="hint">하루 한 번 아침 조회 때 <b>투입 구역 · 운전원 · 상태</b>를 바꾸고 [오늘 기록 저장]을 누르면 장비 상세의 일일 기록에 남습니다. 바꾸지 않은 장비도 오늘 상태가 기록됩니다.</div>
           </div>
           <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
         </div>
       </section>
       <section class="cell" style="padding:0 6px 6px; overflow:auto">
-        <table class="tbl" id="tbl">
-          <thead><tr><th>장비</th><th>종류</th><th>등록번호</th><th>투입 구역</th><th>운전원 · 담당</th><th>상태</th><th></th></tr></thead>
-          <tbody>
-            <tr><td><b>T-CRN-01 · 1호기</b></td><td>타워크레인 T형</td><td class="num">TC-2024-0117</td>
-              <td><select class="input"><option selected>101동 갱폼 인양구역</option><option>102동 대형거푸집구역</option><option>중앙 자재하역장</option><option>103동 외벽 인양구역</option><option>Sector A 토공</option><option>외곽 야적장</option><option>미투입</option></select></td>
-              <td><select class="input"><option selected>김창식 (세진크레인)</option><option>백승현 (세진크레인)</option><option>없음</option></select></td>
-              <td><select class="input"><option selected>가동</option><option>대기</option><option>점검</option><option>고장</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-            <tr><td><b>T-CRN-02 · 2호기</b></td><td>타워크레인 러핑</td><td class="num">TC-2024-0118</td>
-              <td><select class="input"><option>101동 갱폼 인양구역</option><option selected>102동 대형거푸집구역</option><option>중앙 자재하역장</option><option>103동 외벽 인양구역</option><option>Sector A 토공</option><option>외곽 야적장</option><option>미투입</option></select></td>
-              <td><select class="input"><option selected>이상훈 (세진크레인)</option><option>백승현 (세진크레인)</option><option>없음</option></select></td>
-              <td><select class="input"><option>가동</option><option selected>대기</option><option>점검</option><option>고장</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-            <tr><td><b>M-CRN-01 · 3호기</b></td><td>타워크레인 T형</td><td class="num">TC-2025-0032</td>
-              <td><select class="input"><option>101동 갱폼 인양구역</option><option>102동 대형거푸집구역</option><option selected>중앙 자재하역장</option><option>103동 외벽 인양구역</option><option>Sector A 토공</option><option>외곽 야적장</option><option>미투입</option></select></td>
-              <td><select class="input"><option selected>박성민 (세진크레인)</option><option>없음</option></select></td>
-              <td><select class="input"><option selected>가동</option><option>대기</option><option>점검</option><option>고장</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-            <tr><td><b>T-CRN-03 · 4호기</b></td><td>타워크레인 러핑</td><td class="num">TC-2025-0033</td>
-              <td><select class="input"><option>101동 갱폼 인양구역</option><option>102동 대형거푸집구역</option><option>중앙 자재하역장</option><option selected>103동 외벽 인양구역</option><option>Sector A 토공</option><option>외곽 야적장</option><option>미투입</option></select></td>
-              <td><select class="input"><option>백승현 (세진크레인)</option><option selected>없음</option></select></td>
-              <td><select class="input"><option>가동</option><option selected>대기</option><option>점검</option><option>고장</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-            <tr><td><b>PUMP-01</b></td><td>콘크리트 펌프카</td><td class="num">경기 81사 2231</td>
-              <td><select class="input"><option selected>101동 갱폼 인양구역</option><option>102동 대형거푸집구역</option><option>미투입</option></select></td>
-              <td><select class="input"><option selected>서준기 (대한골조)</option><option>없음</option></select></td>
-              <td><select class="input"><option selected>가동</option><option>대기</option><option>점검</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-            <tr><td><b>MIX-07 · MIX-12</b></td><td>믹서트럭 2대</td><td class="num">OO레미콘</td>
-              <td><select class="input"><option selected>101동 갱폼 인양구역</option><option>미투입</option></select></td>
-              <td><select class="input"><option selected>OO레미콘 기사</option></select></td>
-              <td><select class="input"><option selected>가동</option><option>대기</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-            <tr><td><b>EXC_01</b></td><td>굴착기 0.8㎥</td><td class="num">EX-2023-0450</td>
-              <td><select class="input"><option>미투입</option><option selected>Sector A 토공</option><option>외곽 야적장</option></select></td>
-              <td><select class="input"><option selected>정대호 (한빛토건)</option><option>없음</option></select></td>
-              <td><select class="input"><option>가동</option><option>대기</option><option selected>점검</option><option>고장</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-            <tr><td><b>DUMP-03</b></td><td>덤프트럭 15t</td><td class="num">경기 94아 7710</td>
-              <td><select class="input"><option>미투입</option><option>Sector A 토공</option><option selected>외곽 야적장</option></select></td>
-              <td><select class="input"><option selected>OO운수 기사</option></select></td>
-              <td><select class="input"><option selected>가동</option><option>대기</option></select></td>
-              <td><a class="btn sm" href="equipment-detail.html">상세</a></td></tr>
-          </tbody>
+        <table class="tbl">
+          <thead><tr><th>장비</th><th>종류</th><th>등록번호</th><th>투입 구역</th><th>운전원</th><th>상태</th><th>오늘 기록</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
         </table>
       </section>
     </main>
 
     <aside class="cell right">
       <div class="pad">
-        <div class="label">구역별 투입 <span>오늘</span></div>
-        <div class="check"><div><b>101동 갱폼 인양구역</b><small>T-CRN-01 · PUMP-01 · 믹서트럭 2</small></div><span class="status ok">4대</span></div>
-        <div class="check warn"><div><b>102동 대형거푸집구역</b><small>T-CRN-02 (대기)</small></div><span class="status warn">1대</span></div>
-        <div class="check"><div><b>중앙 자재하역장</b><small>M-CRN-01</small></div><span class="status ok">1대</span></div>
-        <div class="check warn"><div><b>Sector A 토공</b><small>EXC_01 (점검)</small></div><span class="status warn">1대</span></div>
-        <div class="check"><div><b>외곽 야적장</b><small>DUMP-03</small></div><span class="status ok">1대</span></div>
+        <div class="label">구역별 투입 <span>저장 전 값 포함</span></div>
+        <div id="by-zone"></div>
         <a class="btn block" href="zone-equipment.html">구역별 투입장비 목록 →</a>
       </div>
     </aside>
@@ -103,40 +56,130 @@
   <div class="pop" id="pop" hidden>
     <div class="pop-card">
       <div class="pop-head">
-        <div><span class="role">새 장비</span><h2>장비 등록</h2><p>등록한 장비는 장비 현황과 관제화면 TC 패널(타워크레인만)에 나옵니다</p></div>
+        <div><span class="role">새 장비</span><h2>장비 등록</h2><p>타워크레인은 카메라 등록에서 TC CAM 과 연결할 수 있습니다</p></div>
         <button class="btn sm" data-close>닫기</button>
       </div>
-      <div class="pop-body">
-        <label class="field">장비 이름<input class="input" placeholder="예: EXC_02" /></label>
-        <label class="field">종류<select class="input"><option>타워크레인</option><option>펌프카</option><option>믹서트럭</option><option>굴착기</option><option>덤프트럭</option><option>지게차</option></select></label>
-        <label class="field">등록번호<input class="input" placeholder="차량번호 또는 장비 등록번호" /></label>
-        <label class="field">투입 구역<select class="input"><option>미투입</option><option>Sector A 토공</option><option>외곽 야적장</option></select></label>
-        <div class="row end"><button class="btn" data-close>취소</button><button class="btn primary" data-toast="장비를 등록했습니다. (예시)">등록</button></div>
-      </div>
+      <form class="pop-body" id="form">
+        <label class="field">장비 이름<input class="input" id="n-name" required maxlength="100" placeholder="예: EXC_02" /></label>
+        <div class="two">
+          <label class="field">종류<select class="input" id="n-type"></select></label>
+          <label class="field">등록번호<input class="input" id="n-reg" maxlength="50" placeholder="차량번호 또는 장비 등록번호" /></label>
+        </div>
+        <div class="two">
+          <label class="field">제원<input class="input" id="n-spec" maxlength="200" placeholder="예: 0.8㎥, 15t" /></label>
+          <label class="field">소속 회사<input class="input" id="n-company" maxlength="100" /></label>
+        </div>
+        <label class="field">투입 구역<select class="input" id="n-zone"></select></label>
+        <div class="row end"><button class="btn" type="button" data-close>취소</button><button class="btn primary">등록</button></div>
+      </form>
     </div>
   </div>
 
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    // 바뀐 줄을 표시하고 개수를 보여 준다
-    const changed = new Set();
-    document.querySelectorAll("#tbl select").forEach((sel) => {
-      const first = sel.value;
-      sel.addEventListener("change", () => {
-        const tr = sel.closest("tr");
-        const dirty = [...tr.querySelectorAll("select")].some((s) => s.value !== s.dataset.first);
-        tr.classList.toggle("changed", dirty);
-        if (dirty) changed.add(tr); else changed.delete(tr);
-        document.getElementById("changed").textContent = changed.size ? changed.size + "대 바뀜 · 저장 전" : "바뀐 항목 없음";
-      });
-      sel.dataset.first = first;
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let items = [], zones = [], workers = [];
+    const draft = new Map(); // 장비 번호 → 화면에서 바꾼 값 {work_zone_id, operator_id, status}
+
+    const opts = (list, selected, empty) => (empty ? `<option value="">${empty}</option>` : "")
+      + list.map(([v, t]) => `<option value="${v}"${String(v) === String(selected ?? "") ? " selected" : ""}>${esc(t)}</option>`).join("");
+    const value = (e) => draft.get(e.id) || { work_zone_id: e.work_zone_id, operator_id: e.operator_id, status: e.status };
+
+    async function load() {
+      [items, zones, workers] = await Promise.all([api("/api/equipment"), api("/api/work-zones"), api("/api/workers")]);
+      draft.clear();
+      const types = [...new Set(items.map((e) => e.equip_type))];
+      const keep = (document.querySelector("#f-type .chip.on") || {}).dataset;
+      $("f-type").innerHTML = [`<span class="chip" data-v="">전체 <b>${items.length}</b></span>`, ...types.map((t) =>
+        `<span class="chip" data-v="${t}">${EQUIP_ICON[t]} ${labelOf("equipType", t)} <b>${items.filter((e) => e.equip_type === t).length}</b></span>`)].join("");
+      const on = [...$("f-type").children].find((c) => keep && c.dataset.v === keep.v) || $("f-type").firstElementChild;
+      on.classList.add("on");
+      render();
+    }
+
+    function render() {
+      const q = $("q").value.trim().toLowerCase(), type = document.querySelector("#f-type .chip.on").dataset.v;
+      searchSummary(type ? labelOf("equipType", type) : "");
+      const zoneOpts = zones.map((z) => [z.id, z.name]);
+      const workerOpts = workers.map((w) => [w.id, `${w.name}${w.company ? ` (${w.company})` : ""}`]);
+      const statusOpts = Object.keys(LABEL.equipStatus).map((s) => [s, labelOf("equipStatus", s)]);
+      const shown = items.filter((e) => (!type || e.equip_type === type) && (!q || (e.name + " " + (e.reg_no || "")).toLowerCase().includes(q)));
+      $("rows").innerHTML = shown.map((e) => {
+        const v = value(e);
+        return `<tr data-id="${e.id}" class="${draft.has(e.id) ? "changed" : ""}"><td><b>${esc(e.name)}</b></td>
+          <td>${esc(labelOf("equipType", e.equip_type))}${e.spec ? `<small class="muted" style="display:block">${esc(e.spec)}</small>` : ""}</td><td class="num">${esc(e.reg_no || "-")}</td>
+          <td><select class="input" data-f="work_zone_id">${opts(zoneOpts, v.work_zone_id, "미투입")}</select></td>
+          <td><select class="input" data-f="operator_id">${opts(workerOpts, v.operator_id, "없음")}</select></td>
+          <td><select class="input" data-f="status">${opts(statusOpts, v.status)}</select></td>
+          <td>${e.today_log ? '<span class="status ok">기록됨</span>' : '<span class="status mute">없음</span>'}</td>
+          <td><a class="btn sm" href="equipment-detail.html?id=${e.id}">상세</a></td></tr>`;
+      }).join("") || '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 장비가 없습니다</td></tr>';
+      $("changed").textContent = draft.size ? `${draft.size}대 바뀜 · 저장 전` : "바뀐 항목 없음";
+      $("changed").style.color = draft.size ? "var(--orange)" : "";
+
+      // 오른쪽: 화면에서 바꾼 값까지 반영한 구역별 투입
+      $("by-zone").innerHTML = [...zones.map((z) => [z.id, z.name]), ["", "미투입"]].map(([zid, name]) => {
+        const list = items.filter((e) => String(value(e).work_zone_id ?? "") === String(zid));
+        if (!list.length) return "";
+        const bad = list.filter((e) => value(e).status !== "RUNNING");
+        return `<div class="check ${zid === "" ? "info" : bad.length ? "warn" : ""}"><div><b>${esc(name)}</b>
+          <small>${list.map((e) => esc(e.name.split(" · ")[0]) + (value(e).status !== "RUNNING" ? ` (${labelOf("equipStatus", value(e).status)})` : "")).join(" · ")}</small></div>
+          <span class="status ${zid === "" ? "info" : bad.length ? "warn" : "ok"}">${list.length}대</span></div>`;
+      }).join("");
+    }
+
+    $("rows").addEventListener("change", (e) => {
+      const sel = e.target.closest("select[data-f]");
+      if (!sel) return;
+      const eq = items.find((x) => x.id === Number(sel.closest("tr").dataset.id));
+      const v = { ...value(eq), [sel.dataset.f]: sel.dataset.f === "status" ? sel.value : Number(sel.value) || null };
+      const same = v.work_zone_id === eq.work_zone_id && v.operator_id === eq.operator_id && v.status === eq.status;
+      if (same) draft.delete(eq.id); else draft.set(eq.id, v);
+      render();
     });
-    document.getElementById("save").addEventListener("click", () => {
-      toast(changed.size ? changed.size + "대의 오늘 기록을 저장했습니다. (예시)" : "바뀐 항목은 없지만 오늘 기록을 저장했습니다. (예시)");
-      changed.forEach((tr) => { tr.classList.remove("changed"); tr.querySelectorAll("select").forEach((s) => { s.dataset.first = s.value; }); });
-      changed.clear();
-      document.getElementById("changed").textContent = "바뀐 항목 없음";
+
+    $("save").addEventListener("click", async () => {
+      const changedCount = draft.size;
+      try {
+        await api("/api/equipment/daily", { method: "POST", body: { items: items.map((e) => ({ equipment_id: e.id, ...value(e) })) } });
+        toast(changedCount ? `${changedCount}대를 바꾸고 오늘 기록을 저장했습니다.` : "바뀐 항목은 없지만 오늘 기록을 저장했습니다.");
+        await load();
+      } catch (err) { toast(err.message); }
     });
+    window.addEventListener("beforeunload", (e) => { if (draft.size) { e.preventDefault(); e.returnValue = ""; } });
+
+    $("add").addEventListener("click", () => {
+      $("form").reset();
+      $("n-type").innerHTML = Object.keys(LABEL.equipType).map((t) => `<option value="${t}">${labelOf("equipType", t)}</option>`).join("");
+      $("n-zone").innerHTML = opts(zones.map((z) => [z.id, z.name]), "", "미투입");
+      $("pop").hidden = false;
+      $("n-name").focus();
+    });
+    $("form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      if (draft.size && !confirm("저장하지 않은 변경이 있습니다. 장비를 등록하면 화면을 새로 불러와 변경이 사라집니다. 계속할까요?")) return;
+      try {
+        const e = await api("/api/equipment", { method: "POST", body: {
+          name: $("n-name").value.trim(), equip_type: $("n-type").value, reg_no: $("n-reg").value.trim() || null,
+          spec: $("n-spec").value.trim() || null, company: $("n-company").value.trim() || null, work_zone_id: Number($("n-zone").value) || null,
+        } });
+        $("pop").hidden = true;
+        toast(`${e.name} 장비를 등록했습니다.`);
+        await load();
+      } catch (err) { toast(err.message); }
+    });
+
+    $("q").addEventListener("input", render);
+    $("f-type").addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      $("f-type").querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c === chip));
+      render();
+    });
+
+    load().catch((err) => toast(err.message));
   </script>
 </body>
 </html>

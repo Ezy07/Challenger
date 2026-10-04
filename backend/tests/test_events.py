@@ -159,7 +159,7 @@ def test_detail_has_zone_and_equipment_list(client, manager):
     zones = {z["id"]: z["name"] for z in client.get("/api/work-zones", headers=manager).json()}
     assert zones[detail["work_zone_id"]] == detail["work_zone_name"]
     tcs = [e for e in client.get("/api/equipment", headers=manager).json() if e["equip_type"] == "TC"]
-    assert len(tcs) == 3
+    assert len(tcs) == 4
 
 
 def test_demo_history_is_consistent(client, manager):

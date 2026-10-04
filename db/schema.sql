@@ -65,21 +65,53 @@ CREATE TABLE worker (
   job_type         VARCHAR(50)  NULL,                         -- 형틀목공, 신호수 ...
   phone            VARCHAR(20)  NULL,
   birth_date       DATE         NULL,                         -- 동명이인 구분 · 고령 판단
+  start_date       DATE         NULL,                         -- 현장 투입일 (신규 투입 7일 판단)
   is_special_care  TINYINT(1)   NOT NULL DEFAULT 0,           -- 특별관리 대상
-  special_reason   VARCHAR(200) NULL,                         -- 고령 · 고혈압 · 신규 투입 등 (민감정보)
-  is_active        TINYINT(1)   NOT NULL DEFAULT 1,
+  special_reasons  JSON         NULL,                         -- ["ELDERLY","HYPERTENSION","NEW","ETC"]
+  special_memo     VARCHAR(200) NULL,                         -- 건강정보 등 (민감정보)
+  special_since    DATE         NULL,                         -- 특별관리 지정일
+  special_by       BIGINT UNSIGNED NULL,                      -- 지정한 사람 (users)
+  is_active        TINYINT(1)   NOT NULL DEFAULT 1,           -- 삭제하면 0 (배정 이력은 남김)
   created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  CONSTRAINT fk_worker_special_by FOREIGN KEY (special_by) REFERENCES users (id)
+) ENGINE=InnoDB;
+
+-- 안전교육 목록 (코드 테이블)
+CREATE TABLE education (
+  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  edu_type   ENUM('GENERAL', 'SPECIAL') NOT NULL,             -- 기초안전보건교육 / 특별교육
+  name       VARCHAR(100) NOT NULL,                           -- '건설업 기초안전보건교육', '밀폐공간 작업' ...
+  is_active  TINYINT(1)   NOT NULL DEFAULT 1,                 -- 안 쓰는 교육은 삭제 대신 0
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_education_name (name)
+) ENGINE=InnoDB;
+
+-- 작업자별 교육 이수 이력 (같은 교육 재이수도 기록)
+CREATE TABLE worker_education (
+  id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  worker_id       BIGINT UNSIGNED NOT NULL,
+  edu_id          BIGINT UNSIGNED NOT NULL,
+  completed_date  DATE     NOT NULL,                          -- 이수일
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_worker_education_worker (worker_id),
+  CONSTRAINT fk_worker_edu_worker FOREIGN KEY (worker_id) REFERENCES worker (id) ON DELETE CASCADE,
+  CONSTRAINT fk_worker_edu_edu    FOREIGN KEY (edu_id)    REFERENCES education (id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE equipment (
   id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  name          VARCHAR(100) NOT NULL,                        -- TC 3호기, 굴착기 02 ...
-  equip_type    ENUM('TC', 'EXCAVATOR', 'PUMP_CAR', 'CRANE', 'FORKLIFT', 'ETC') NOT NULL,
-  work_zone_id  BIGINT UNSIGNED NULL,                         -- 투입 구역
+  name          VARCHAR(100) NOT NULL,                        -- T-CRN-01 · 1호기, EXC_01 ...
+  equip_type    ENUM('TC', 'EXCAVATOR', 'PUMP_CAR', 'MIXER_TRUCK', 'DUMP_TRUCK', 'CRANE', 'FORKLIFT', 'ETC') NOT NULL,
+  reg_no        VARCHAR(50)  NULL,                            -- 등록번호 · 차량번호
+  spec          VARCHAR(200) NULL,                            -- 제원 (T형 · 지브 55m, 15t ...)
+  company       VARCHAR(100) NULL,                            -- 소속 회사 (운전원 없이 오가는 트럭 등)
+  work_zone_id  BIGINT UNSIGNED NULL,                         -- 투입 구역 (NULL = 미투입)
   operator_id   BIGINT UNSIGNED NULL,                         -- 운전원 (현장작업자)
-  status        ENUM('RUNNING', 'IDLE', 'MAINTENANCE', 'OUT') NOT NULL DEFAULT 'IDLE',  -- 현재 상태
+  status        ENUM('RUNNING', 'IDLE', 'MAINTENANCE', 'BROKEN') NOT NULL DEFAULT 'IDLE',  -- 가동 · 대기 · 점검 · 고장
   PRIMARY KEY (id),
+  UNIQUE KEY uk_equipment_reg_no (reg_no),
   CONSTRAINT fk_equipment_zone     FOREIGN KEY (work_zone_id) REFERENCES work_zone (id),
   CONSTRAINT fk_equipment_operator FOREIGN KEY (operator_id)  REFERENCES worker (id)
 ) ENGINE=InnoDB;
@@ -132,6 +164,7 @@ CREATE TABLE alert_rule (
   min_confidence     DECIMAL(4,3) NOT NULL DEFAULT 0.500,
   default_severity   ENUM('HIGH', 'MEDIUM', 'LOW') NOT NULL DEFAULT 'MEDIUM',
   cooldown_sec       INT UNSIGNED NOT NULL DEFAULT 60,        -- 같은 경보를 다시 알리기까지
+  is_active          TINYINT(1)   NOT NULL DEFAULT 1,         -- 끄면 이 유형은 이벤트를 만들지 않음
   PRIMARY KEY (id),
   UNIQUE KEY uk_alert_rule_type (detection_type_id),
   CONSTRAINT fk_alert_rule_type FOREIGN KEY (detection_type_id) REFERENCES detection_type (id),
@@ -217,10 +250,12 @@ CREATE TABLE work (
   work_zone_id  BIGINT UNSIGNED NOT NULL,
   manager_id    BIGINT UNSIGNED NULL,                         -- 담당자 (users)
   name          VARCHAR(100) NOT NULL,                        -- 갱폼 인양, 거푸집 설치 ...
-  work_date     DATE         NOT NULL,
+  start_date    DATE         NOT NULL,
+  end_date      DATE         NULL,                            -- 비우면 하루짜리 작업
   status        ENUM('PLANNED', 'IN_PROGRESS', 'DONE', 'STOPPED') NOT NULL DEFAULT 'PLANNED',
+  description   VARCHAR(1000) NULL,                           -- 작업 내용 · 주의사항
   PRIMARY KEY (id),
-  KEY idx_work_date (work_date),
+  KEY idx_work_start (start_date),
   CONSTRAINT fk_work_zone    FOREIGN KEY (work_zone_id) REFERENCES work_zone (id),
   CONSTRAINT fk_work_manager FOREIGN KEY (manager_id)   REFERENCES users (id)
 ) ENGINE=InnoDB;
@@ -239,7 +274,8 @@ CREATE TABLE equipment_daily_log (
   id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   equipment_id  BIGINT UNSIGNED NOT NULL,
   log_date      DATE         NOT NULL,
-  status        ENUM('RUNNING', 'IDLE', 'MAINTENANCE', 'OUT') NOT NULL,
+  status        ENUM('RUNNING', 'IDLE', 'MAINTENANCE', 'BROKEN') NOT NULL,
+  inspected_at  DATETIME     NULL,                            -- 운전 전 점검 완료 시각
   note          VARCHAR(500) NULL,
   recorded_by   BIGINT UNSIGNED NULL,
   created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,

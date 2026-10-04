@@ -81,16 +81,31 @@ class EquipType(StrEnum):
     TC = "TC"
     EXCAVATOR = "EXCAVATOR"
     PUMP_CAR = "PUMP_CAR"
+    MIXER_TRUCK = "MIXER_TRUCK"
+    DUMP_TRUCK = "DUMP_TRUCK"
     CRANE = "CRANE"
     FORKLIFT = "FORKLIFT"
     ETC = "ETC"
 
 
 class EquipStatus(StrEnum):
-    RUNNING = "RUNNING"
-    IDLE = "IDLE"
-    MAINTENANCE = "MAINTENANCE"
-    OUT = "OUT"
+    RUNNING = "RUNNING"          # 가동
+    IDLE = "IDLE"                # 대기
+    MAINTENANCE = "MAINTENANCE"  # 점검
+    BROKEN = "BROKEN"            # 고장
+    # 미투입은 상태가 아니라 투입 구역(work_zone_id)이 없는 것으로 나타낸다
+
+
+class SpecialReason(StrEnum):
+    ELDERLY = "ELDERLY"            # 고령 (만 60세 이상)
+    HYPERTENSION = "HYPERTENSION"  # 고혈압 · 건강 주의
+    NEW = "NEW"                    # 신규 투입 (투입 후 7일 이내, 지나면 자동으로 빠짐)
+    ETC = "ETC"                    # 기타
+
+
+class EduType(StrEnum):
+    GENERAL = "GENERAL"  # 건설업 기초안전보건교육
+    SPECIAL = "SPECIAL"  # 특별교육
 
 
 class WorkStatus(StrEnum):
@@ -203,6 +218,7 @@ class AlertRule(Base):
     min_confidence: Mapped[Decimal] = mapped_column(Numeric(4, 3), default=Decimal("0.5"))
     default_severity: Mapped[Severity] = mapped_column(enum_col(Severity), default=Severity.MEDIUM)
     cooldown_sec: Mapped[int] = mapped_column(Integer, default=60)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # 끄면 이 유형은 이벤트를 만들지 않음
 
     detection_type: Mapped[DetectionType] = relationship(back_populates="rule")
 
@@ -287,10 +303,44 @@ class Worker(Base):
     job_type: Mapped[str | None] = mapped_column(String(50))
     phone: Mapped[str | None] = mapped_column(String(20))
     birth_date: Mapped[date | None] = mapped_column(Date)
+    start_date: Mapped[date | None] = mapped_column(Date)  # 현장 투입일 (신규 투입 7일 판단)
     is_special_care: Mapped[bool] = mapped_column(Boolean, default=False)
-    special_reason: Mapped[str | None] = mapped_column(String(200))
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    special_reasons: Mapped[list | None] = mapped_column(JSON)  # ["ELDERLY", "HYPERTENSION", ...]
+    special_memo: Mapped[str | None] = mapped_column(String(200))  # 건강정보 = 민감정보
+    special_since: Mapped[date | None] = mapped_column(Date)  # 지정일
+    special_by: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))  # 지정한 사람
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # 삭제하면 0 (배정 이력은 남김)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
+
+    special_user: Mapped[User | None] = relationship()
+    educations: Mapped[list["WorkerEducation"]] = relationship(
+        order_by="WorkerEducation.completed_date", cascade="all, delete-orphan"
+    )
+
+
+class Education(Base):
+    """안전교육 목록 (코드 테이블)"""
+
+    __tablename__ = "education"
+
+    id: Mapped[int] = mapped_column(Id, primary_key=True)
+    edu_type: Mapped[EduType] = mapped_column(enum_col(EduType))
+    name: Mapped[str] = mapped_column(String(100), unique=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class WorkerEducation(Base):
+    """작업자별 교육 이수 이력 (같은 교육 재이수도 기록)"""
+
+    __tablename__ = "worker_education"
+
+    id: Mapped[int] = mapped_column(Id, primary_key=True)
+    worker_id: Mapped[int] = mapped_column(Id, ForeignKey("worker.id", ondelete="CASCADE"), index=True)
+    edu_id: Mapped[int] = mapped_column(Id, ForeignKey("education.id"))
+    completed_date: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
+
+    education: Mapped[Education] = relationship()
 
 
 class Work(Base):
@@ -300,8 +350,14 @@ class Work(Base):
     work_zone_id: Mapped[int] = mapped_column(Id, ForeignKey("work_zone.id"))
     manager_id: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))
     name: Mapped[str] = mapped_column(String(100))
-    work_date: Mapped[date] = mapped_column(Date, index=True)
+    start_date: Mapped[date] = mapped_column(Date, index=True)
+    end_date: Mapped[date | None] = mapped_column(Date)  # 비우면 하루짜리 작업
     status: Mapped[WorkStatus] = mapped_column(enum_col(WorkStatus), default=WorkStatus.PLANNED)
+    description: Mapped[str | None] = mapped_column(String(1000))  # 작업 내용 · 주의사항
+
+    work_zone: Mapped[WorkZone] = relationship()
+    manager: Mapped[User | None] = relationship()
+    assignments: Mapped[list["WorkAssignment"]] = relationship(cascade="all, delete-orphan")
 
 
 class WorkAssignment(Base):
@@ -311,6 +367,8 @@ class WorkAssignment(Base):
     worker_id: Mapped[int] = mapped_column(Id, ForeignKey("worker.id"), primary_key=True)
     assigned_date: Mapped[date] = mapped_column(Date, primary_key=True)
 
+    worker: Mapped[Worker] = relationship()
+
 
 class Equipment(Base):
     __tablename__ = "equipment"
@@ -318,9 +376,15 @@ class Equipment(Base):
     id: Mapped[int] = mapped_column(Id, primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
     equip_type: Mapped[EquipType] = mapped_column(enum_col(EquipType))
-    work_zone_id: Mapped[int | None] = mapped_column(Id, ForeignKey("work_zone.id"))
+    reg_no: Mapped[str | None] = mapped_column(String(50), unique=True)  # 등록번호 · 차량번호
+    spec: Mapped[str | None] = mapped_column(String(200))  # 제원 (T형 · 지브 55m, 15t ...)
+    company: Mapped[str | None] = mapped_column(String(100))  # 소속 회사 (운전원 없이 오가는 트럭 등)
+    work_zone_id: Mapped[int | None] = mapped_column(Id, ForeignKey("work_zone.id"))  # NULL = 미투입
     operator_id: Mapped[int | None] = mapped_column(Id, ForeignKey("worker.id"))
     status: Mapped[EquipStatus] = mapped_column(enum_col(EquipStatus), default=EquipStatus.IDLE)
+
+    work_zone: Mapped[WorkZone | None] = relationship()
+    operator: Mapped[Worker | None] = relationship()
 
 
 class EquipmentDailyLog(Base):
@@ -331,6 +395,9 @@ class EquipmentDailyLog(Base):
     equipment_id: Mapped[int] = mapped_column(Id, ForeignKey("equipment.id", ondelete="CASCADE"))
     log_date: Mapped[date] = mapped_column(Date)
     status: Mapped[EquipStatus] = mapped_column(enum_col(EquipStatus))
+    inspected_at: Mapped[datetime | None] = mapped_column(DateTime)  # 운전 전 점검 완료 시각
     note: Mapped[str | None] = mapped_column(String(500))
     recorded_by: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
+
+    recorder: Mapped[User | None] = relationship()

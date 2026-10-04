@@ -18,10 +18,10 @@
     .node.l2 { padding-left: 44px; }
     .node .k { font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 5px; background: #243044; color: var(--muted); }
     .node .k.main { background: rgba(255, 154, 31, 0.18); color: var(--orange); }
-    .info { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px 16px; }
-    .info div span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700; }
-    .info div b { font-size: 15px; }
-    @media (max-width: 1100px) { .info { grid-template-columns: 1fr 1fr; } }
+    .org-info { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px 16px; }
+    .org-info div span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700; }
+    .org-info div b { font-size: 15px; }
+    @media (max-width: 1100px) { .org-info { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
@@ -29,23 +29,10 @@
     <aside class="cell left">
       <div class="pad">
         <div class="label">조직도 <span>organization</span></div>
-        <div class="tree" id="tree">
-          <button class="node l0"><span class="k main">원청</span>OO건설<span class="n">7</span></button>
-          <button class="node l1">현장소장실<span class="n">1</span></button>
-          <button class="node l1 on">안전팀<span class="n">2</span></button>
-          <button class="node l1">공무팀<span class="n">1</span></button>
-          <button class="node l1">공사팀<span class="n">3</span></button>
-          <button class="node l2">양중<span class="n">1</span></button>
-          <button class="node l2">토공<span class="n">1</span></button>
-          <button class="node l2">타설<span class="n">1</span></button>
-          <button class="node l0"><span class="k">협력사</span>대한골조<span class="n">0</span></button>
-          <button class="node l0"><span class="k">협력사</span>한빛토건<span class="n">0</span></button>
-          <button class="node l0"><span class="k">협력사</span>세진크레인<span class="n">0</span></button>
-          <button class="node l0"><span class="k">협력사</span>우리설비<span class="n">0</span></button>
-        </div>
+        <div class="tree" id="tree"></div>
         <div class="row">
-          <button class="btn sm" data-open="add-pop">＋ 하위 부서</button>
-          <button class="btn sm" data-open="add-pop">＋ 협력사</button>
+          <button class="btn sm" id="add-dept">＋ 하위 부서</button>
+          <button class="btn sm" id="add-co">＋ 협력사</button>
         </div>
       </div>
     </aside>
@@ -54,31 +41,28 @@
 
     <main class="main">
       <section class="cell">
-        <div class="info">
-          <div><span>선택한 부서</span><b id="org-name">안전팀</b></div>
-          <div><span>상위 조직</span><b>OO건설</b></div>
-          <div><span>구분</span><b>DEPT (부서)</b></div>
-          <div><span>소속 회원</span><b>2명</b></div>
+        <div class="org-info">
+          <div><span>선택한 조직</span><b id="i-name">-</b></div>
+          <div><span>상위 조직</span><b id="i-parent">-</b></div>
+          <div><span>구분</span><b id="i-type">-</b></div>
+          <div><span>소속 회원</span><b id="i-count">0명</b></div>
         </div>
       </section>
-      <section class="cell"><div class="pad">
+      <section class="cell"><form class="pad" id="form">
         <div class="row between">
-          <div class="label">이 부서 정보 바꾸기</div>
-          <div class="row"><button class="btn sm" data-toast="소속 회원이 있으면 삭제할 수 없습니다. 먼저 회원을 다른 부서로 옮기세요.">삭제</button><button class="btn sm primary" data-toast="부서 정보를 저장했습니다. (예시)">저장</button></div>
+          <div class="label">이 조직 정보 바꾸기</div>
+          <div class="row"><button class="btn sm" type="button" id="del">삭제</button><button class="btn sm primary">저장</button></div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-          <label class="field">부서 이름<input class="input" value="안전팀" /></label>
-          <label class="field">상위 조직<select class="input"><option>OO건설</option><option>공사팀</option><option>(없음 · 최상위)</option></select></label>
+        <div class="two">
+          <label class="field">이름<input class="input" id="f-name" required maxlength="100" /></label>
+          <label class="field">상위 조직<select class="input" id="f-parent"></select></label>
         </div>
         <div class="label" style="margin-top:6px">소속 회원 <span>회원정보 수정에서 소속을 바꿀 수 있습니다</span></div>
         <table class="tbl">
           <thead><tr><th>이름</th><th>아이디</th><th>역할</th><th>상태</th></tr></thead>
-          <tbody>
-            <tr data-href="user-edit.html"><td><b>최동현 과장</b></td><td>choi.dh</td><td><span class="role">관리자</span></td><td><span class="status ok">활성</span></td></tr>
-            <tr data-href="user-edit.html"><td><b>오세영 주임</b></td><td>oh.sy</td><td><span class="status info">안전관리자</span></td><td><span class="status ok">활성</span></td></tr>
-          </tbody>
+          <tbody id="members"></tbody>
         </table>
-      </div></section>
+      </form></section>
     </main>
 
     <aside class="cell right">
@@ -86,6 +70,7 @@
         <div class="label">구조 규칙</div>
         <div class="check info"><div><b>원청 · 협력사</b><small>회사 단위 (type = COMPANY)</small></div><span class="status info">최상위</span></div>
         <div class="check info"><div><b>부서</b><small>회사 아래 최대 2단계 (type = DEPT)</small></div><span class="status info">parent_id</span></div>
+        <div class="check warn"><div><b>삭제</b><small>하위 부서나 소속 회원이 있으면 지울 수 없음</small></div><span class="status warn">!</span></div>
         <div class="hint">협력사 작업자는 회원이 아니라 <b>현장작업자</b>로 따로 관리합니다. 여기의 협력사는 협력사 소속 <b>회원</b>(안전담당 등)을 위한 조직입니다.</div>
       </div>
     </aside>
@@ -94,25 +79,119 @@
   <div class="pop" id="add-pop" hidden>
     <div class="pop-card">
       <div class="pop-head">
-        <div><span class="role">새 조직</span><h2>조직 · 부서 추가</h2><p>상위 조직을 고르지 않으면 최상위 회사로 만들어집니다</p></div>
+        <div><span class="role" id="a-tag">새 조직</span><h2 id="a-title">조직 · 부서 추가</h2><p id="a-help"></p></div>
         <button class="btn sm" data-close>닫기</button>
       </div>
-      <div class="pop-body">
-        <label class="field">이름<input class="input" placeholder="예: 품질팀" /></label>
-        <label class="field">구분<select class="input"><option>부서 (DEPT)</option><option>회사 (COMPANY)</option></select></label>
-        <label class="field">상위 조직<select class="input"><option>OO건설</option><option>공사팀</option><option>(없음 · 최상위)</option></select></label>
-        <div class="row end"><button class="btn" data-close>취소</button><button class="btn primary" data-toast="조직을 추가했습니다. (예시)">추가</button></div>
-      </div>
+      <form class="pop-body" id="add-form">
+        <label class="field">이름<input class="input" id="a-name" required maxlength="100" placeholder="예: 품질팀" /></label>
+        <label class="field" id="a-parent-box">상위 조직<select class="input" id="a-parent"></select></label>
+        <div class="row end"><button class="btn" type="button" data-close>취소</button><button class="btn primary">추가</button></div>
+      </form>
     </div>
   </div>
 
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    document.querySelectorAll(".node").forEach((n) => n.addEventListener("click", () => {
-      document.querySelectorAll(".node").forEach((x) => x.classList.remove("on"));
-      n.classList.add("on");
-      document.getElementById("org-name").textContent = n.childNodes[n.childNodes.length - 2].textContent.trim() || n.textContent;
-    }));
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let orgs = [], users = [], names = {}, sel = null, addType = "DEPT";
+
+    const depth = (o) => (o.parent_id ? 1 + depth(orgs.find((x) => x.id === o.parent_id)) : 0);
+    const children = (id) => orgs.filter((o) => o.parent_id === id);
+    const members = (id) => users.filter((u) => u.org_id === id && u.status !== "DELETED");
+    // 회사 → 부서 → 하위 부서 순서로 펼친 목록
+    const ordered = () => {
+      const out = [];
+      const walk = (o) => { out.push(o); children(o.id).forEach(walk); };
+      orgs.filter((o) => !o.parent_id).forEach(walk);
+      return out;
+    };
+    // 이 조직 아래 전체 (자기 포함) 회원 수
+    const total = (o) => members(o.id).length + children(o.id).reduce((a, c) => a + total(c), 0);
+
+    async function load(selectId) {
+      [orgs, users] = await Promise.all([api("/api/orgs"), api("/api/users")]);
+      names = orgNames(orgs);
+      $("tree").innerHTML = ordered().map((o) => `
+        <button class="node l${depth(o)}" data-id="${o.id}">${o.type === "COMPANY" ? `<span class="k${o.is_prime ? " main" : ""}">${o.is_prime ? "원청" : "협력사"}</span>` : ""}${esc(o.name)}<span class="n">${total(o)}</span></button>`).join("");
+      show(selectId || (sel && sel.id) || (orgs[0] && orgs[0].id));
+    }
+
+    function show(id) {
+      sel = orgs.find((o) => o.id === id) || orgs[0];
+      if (!sel) return;
+      document.querySelectorAll(".node").forEach((n) => n.classList.toggle("on", Number(n.dataset.id) === sel.id));
+      const parent = orgs.find((o) => o.id === sel.parent_id);
+      $("i-name").textContent = sel.name;
+      $("i-parent").textContent = parent ? names[parent.id] : "(없음 · 최상위)";
+      $("i-type").textContent = sel.type === "COMPANY" ? (sel.is_prime ? "COMPANY (원청)" : "COMPANY (협력사)") : "DEPT (부서)";
+      $("i-count").textContent = members(sel.id).length + "명";
+      $("f-name").value = sel.name;
+      // 부서는 회사나 1단계 부서 아래로만 옮길 수 있다 (자기 자신 · 하위 제외)
+      const below = new Set();
+      const mark = (o) => { below.add(o.id); children(o.id).forEach(mark); };
+      mark(sel);
+      const canParent = orgs.filter((o) => !below.has(o.id) && depth(o) < (children(sel.id).length ? 1 : 2));
+      $("f-parent").innerHTML = sel.type === "COMPANY"
+        ? '<option value="">(없음 · 최상위)</option>'
+        : canParent.map((o) => `<option value="${o.id}"${o.id === sel.parent_id ? " selected" : ""}>${esc(names[o.id])}</option>`).join("");
+      $("f-parent").disabled = sel.type === "COMPANY";
+      $("members").innerHTML = members(sel.id).map((u) => `
+        <tr data-href="user-edit.html?id=${u.id}" style="cursor:pointer"><td><b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
+          <td>${badge("role", u.role)}</td><td>${badge("userStatus", u.status)}</td></tr>`).join("")
+        || '<tr><td colspan="4" class="muted" style="text-align:center; padding:20px">소속 회원이 없습니다</td></tr>';
+      $("members").querySelectorAll("tr[data-href]").forEach((tr) => tr.addEventListener("click", () => { location.href = tr.dataset.href; }));
+    }
+
+    function openAdd(type) {
+      addType = type;
+      $("a-tag").textContent = type === "COMPANY" ? "새 협력사" : "새 부서";
+      $("a-title").textContent = type === "COMPANY" ? "협력사 추가" : "하위 부서 추가";
+      $("a-help").textContent = type === "COMPANY" ? "회사는 최상위 조직으로 만들어집니다" : "회사 아래 최대 2단계까지 만들 수 있습니다";
+      $("a-parent-box").hidden = type === "COMPANY";
+      $("a-parent").innerHTML = orgs.filter((o) => depth(o) < 2)
+        .map((o) => `<option value="${o.id}"${sel && o.id === sel.id ? " selected" : ""}>${esc(names[o.id])}</option>`).join("");
+      $("a-name").value = "";
+      $("add-pop").hidden = false;
+      $("a-name").focus();
+    }
+
+    $("tree").addEventListener("click", (e) => { const n = e.target.closest(".node"); if (n) show(Number(n.dataset.id)); });
+    $("add-dept").addEventListener("click", () => openAdd("DEPT"));
+    $("add-co").addEventListener("click", () => openAdd("COMPANY"));
+    $("add-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const o = await api("/api/orgs", { method: "POST", body: {
+          type: addType, name: $("a-name").value.trim(), parent_id: addType === "COMPANY" ? null : Number($("a-parent").value),
+        } });
+        $("add-pop").hidden = true;
+        toast(`${o.name}을(를) 추가했습니다.`);
+        await load(o.id);
+      } catch (err) { toast(err.message); }
+    });
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = { name: $("f-name").value.trim() };
+      if (sel.type === "DEPT") body.parent_id = Number($("f-parent").value);
+      try {
+        await api(`/api/orgs/${sel.id}`, { method: "PATCH", body });
+        toast("조직 정보를 저장했습니다.");
+        await load(sel.id);
+      } catch (err) { toast(err.message); }
+    });
+    $("del").addEventListener("click", async () => {
+      if (!confirm(`${sel.name}을(를) 삭제할까요?`)) return;
+      try {
+        await api(`/api/orgs/${sel.id}`, { method: "DELETE" });
+        toast("삭제했습니다.");
+        sel = null;
+        await load(null);
+      } catch (err) { toast(err.message); }
+    });
+
+    load(null).catch((err) => toast(err.message));
   </script>
 </body>
 </html>
