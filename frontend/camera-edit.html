@@ -72,7 +72,7 @@
         <div class="label">미리보기</div>
         <div class="cell cam" style="height:180px; box-shadow:none">
           <div class="scene" id="pv-scene"><div class="ground-line"></div><div class="bld" style="left:10%; width:22%; height:52%;"></div></div>
-          <video class="cam-video" id="pv-video" muted loop playsinline hidden></video>
+          <video class="cam-video" id="pv-video" muted loop playsinline autoplay hidden></video>
           <div class="cam-tag" id="pv-name">새 카메라</div><div class="cam-time js-cam-time"></div>
         </div>
         <div class="check"><div><b>사용</b><small>끄면 탐지를 멈춤 (관제화면에서도 빠짐)</small></div><span class="switch on" id="ce-active"></span></div>
@@ -160,10 +160,12 @@
       $("video-help").innerHTML = v && !v.browser_ok
         ? `<span style="color:var(--amber)">⚠ ${esc(v.codec || "알 수 없는")} 형식이라 이 PC 브라우저에서는 안 보일 수 있습니다. H.264 로 바꿔 넣으세요 (storage/videos/README.md).</span>`
         : "실제 카메라 대신 폴더에 넣은 영상을 반복 재생합니다. 파일을 새로 넣었으면 이 화면을 새로고침하세요.";
+      // 영상은 바로 보이게 둔다 (숨긴 영상은 브라우저가 자동재생을 안 함). 첫 화면 전에는 투명해서 예시 그림이 비친다
       const video = $("pv-video");
       if (!src) { video.pause(); video.removeAttribute("src"); video.hidden = true; $("pv-scene").hidden = false; return; }
-      if (video.getAttribute("src") !== src) video.src = src;
-      video.onplaying = () => { video.hidden = false; $("pv-scene").hidden = true; };
+      video.hidden = false;
+      if (video.getAttribute("src") !== src) { $("pv-scene").hidden = false; video.src = src; }
+      video.onplaying = () => { $("pv-scene").hidden = true; };
       video.onerror = () => { video.hidden = true; $("pv-scene").hidden = false; };
       video.play().catch(() => {});
     }

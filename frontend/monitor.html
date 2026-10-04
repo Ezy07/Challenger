@@ -1524,20 +1524,30 @@
       }
     });
 
+    // 자동재생이 막힌 브라우저면 화면을 한 번 누를 때 다시 시도한다
+    function playWhenAllowed(video) {
+      video.play().catch(() => {
+        document.addEventListener("pointerdown", () => video.play().catch(() => {}), { once: true });
+      });
+    }
+
     // 영상 파일이 연결된 카메라는 그 칸에서 영상을 반복 재생한다 (카메라 등록에서 영상 소스 = 영상 파일)
     // 영상을 못 여는 경우(로그인 전, H.265 를 못 트는 PC 등)에는 예시 그림을 그대로 둔다
     alertFetch("/api/cameras").then((cams) => {
       cams.filter((c) => c.view_slot && c.is_active && c.stream_url && c.stream_url.startsWith("videos/")).forEach((c) => {
         const cell = document.querySelector(`.cam.cam-${c.view_slot}[data-page="${c.view_page}"]`);
         if (!cell) return;
+        // 브라우저는 숨겨진 영상의 자동재생을 시작하지 않으므로, 영상은 처음부터 보이게 두고(첫 화면 전에는 투명)
+        // 재생이 시작되면 뒤의 예시 그림을 숨긴다
         const video = document.createElement("video");
-        Object.assign(video, { muted: true, loop: true, autoplay: true, playsInline: true, className: "cam-video" });
-        video.hidden = true;
+        video.className = "cam-video";
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        ["muted", "loop", "playsinline", "autoplay"].forEach((a) => video.setAttribute(a, ""));
         video.src = "/" + encodeURI(c.stream_url);
-        video.addEventListener("playing", () => {
-          video.hidden = false;
-          cell.querySelector(".scene").style.visibility = "hidden";
-        });
+        video.addEventListener("playing", () => { cell.querySelector(".scene").style.visibility = "hidden"; });
+        playWhenAllowed(video);
         video.addEventListener("error", () => {
           video.remove();
           const zone = cell.querySelector(".cam-zone");
