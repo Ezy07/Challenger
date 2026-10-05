@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 8 * 60  # 관제 근무 한 교대 시간
     ingest_api_key: str = "change-me-too"  # AI 탐지 프로그램이 이벤트를 올릴 때 쓰는 키
     max_failed_logins: int = 5
+    login_lock_minutes: int = 15  # 비밀번호를 max_failed_logins 번 틀리면 이만큼 로그인 금지 (지나면 자동 해제)
 
     @field_validator("ingest_api_key")
     @classmethod

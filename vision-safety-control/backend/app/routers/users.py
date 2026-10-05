@@ -110,6 +110,7 @@ def update_user(user_id: int, body: UserUpdate, db: DB, admin: Admin):
         setattr(user, key, value)
     if data.get("status") == UserStatus.ACTIVE:
         user.failed_login_count = 0  # 잠금 해제
+        user.locked_until = None
     db.commit()
     return user
 
@@ -121,6 +122,7 @@ def reset_password(user_id: int, db: DB, _: Admin):
     pw = temp_password()
     user.password_hash = hash_password(pw)
     user.failed_login_count = 0
+    user.locked_until = None
     if user.status == UserStatus.LOCKED:
         user.status = UserStatus.ACTIVE
     db.commit()

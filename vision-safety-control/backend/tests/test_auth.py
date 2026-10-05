@@ -1,4 +1,9 @@
+from datetime import datetime, timedelta
+
+from sqlalchemy import select
+
 from app.config import settings
+from app.models import User, UserStatus
 
 from .conftest import login
 
@@ -34,18 +39,61 @@ def test_duplicate_login_id(client):
     assert client.post("/api/auth/signup", json=SIGNUP).status_code == 409
 
 
-def test_lock_after_failed_logins(client, admin):
-    for _ in range(settings.max_failed_logins - 1):
-        assert client.post("/api/auth/login", json={"login_id": "manager.test", "password": "x"}).status_code == 401
-    res = client.post("/api/auth/login", json={"login_id": "manager.test", "password": "x"})
-    assert res.status_code == 403
-    # 맞는 비밀번호여도 잠겨 있으면 못 들어옴
-    assert client.post("/api/auth/login", json={"login_id": "manager.test", "password": "manager-pass-1234"}).status_code == 403
+def fail(client, login_id="manager.test", times=1):
+    for _ in range(times):
+        res = client.post("/api/auth/login", json={"login_id": login_id, "password": "x"})
+    return res
 
-    users = client.get("/api/users", headers=admin).json()
-    uid = next(u["id"] for u in users if u["login_id"] == "manager.test")
+
+def test_lock_after_failed_logins_is_temporary(client, admin, db_session):
+    for _ in range(settings.max_failed_logins):
+        assert fail(client).status_code == 401
+    # 맞는 비밀번호여도 잠긴 동안은 못 들어옴
+    res = client.post("/api/auth/login", json={"login_id": "manager.test", "password": "manager-pass-1234"})
+    assert res.status_code == 403 and "까지 로그인할 수 없습니다" in res.json()["detail"]
+    # 잠긴 동안 더 틀려도 잠금 시간이 늘지 않고, 계정 상태는 그대로 ACTIVE
+    fail(client, times=3)
+    with db_session() as db:
+        user = db.scalar(select(User).where(User.login_id == "manager.test"))
+        assert user.status == UserStatus.ACTIVE
+        assert user.locked_until <= datetime.now() + timedelta(minutes=settings.login_lock_minutes)
+        user.locked_until = datetime.now() - timedelta(seconds=1)  # 잠금 시간이 지났다고 치고
+        db.commit()
+    login(client, "manager.test", "manager-pass-1234")
+    with db_session() as db:
+        user = db.scalar(select(User).where(User.login_id == "manager.test"))
+        assert (user.failed_login_count, user.locked_until) == (0, None)
+
+
+def test_count_restarts_after_lock_expires(client, db_session):
+    fail(client, times=settings.max_failed_logins)
+    with db_session() as db:
+        user = db.scalar(select(User).where(User.login_id == "manager.test"))
+        user.locked_until = datetime.now() - timedelta(seconds=1)
+        db.commit()
+    fail(client)  # 풀린 뒤 한 번 틀렸다고 바로 다시 잠기지 않는다
+    login(client, "manager.test", "manager-pass-1234")
+
+
+def test_admin_unlocks_temporary_lock(client, admin):
+    fail(client, times=settings.max_failed_logins)
+    uid = next(u["id"] for u in client.get("/api/users", headers=admin).json() if u["login_id"] == "manager.test")
+    assert client.get(f"/api/users/{uid}", headers=admin).json()["locked_until"]
     assert client.patch(f"/api/users/{uid}", json={"status": "ACTIVE"}, headers=admin).status_code == 200
     login(client, "manager.test", "manager-pass-1234")
+
+
+def test_wrong_password_never_reveals_account(client, admin):
+    """없는 아이디 · 승인 대기 · 삭제 · 잠긴 계정 모두 비밀번호가 틀리면 똑같은 401"""
+    client.post("/api/auth/signup", json=SIGNUP)  # PENDING
+    uid = next(u["id"] for u in client.get("/api/users", headers=admin).json() if u["login_id"] == "manager.test")
+    client.patch(f"/api/users/{uid}", json={"status": "LOCKED"}, headers=admin)
+    answers = [fail(client, login_id) for login_id in ("nobody.here", "hong.gd", "manager.test")]
+    assert {r.status_code for r in answers} == {401}
+    assert len({r.json()["detail"] for r in answers}) == 1
+    # 관리자가 잠근 계정은 맞는 비밀번호일 때만 잠금 안내
+    res = client.post("/api/auth/login", json={"login_id": "manager.test", "password": "manager-pass-1234"})
+    assert res.status_code == 403 and "잠겼습니다" in res.json()["detail"]
 
 
 def test_admin_only_routes(client, manager):
@@ -74,9 +122,9 @@ def test_admin_creates_user_with_temp_password(client, admin):
 
 
 def test_reset_password_unlocks(client, admin):
-    for _ in range(settings.max_failed_logins):
-        client.post("/api/auth/login", json={"login_id": "manager.test", "password": "x"})
+    fail(client, times=settings.max_failed_logins)
     uid = next(u["id"] for u in client.get("/api/users", headers=admin).json() if u["login_id"] == "manager.test")
+    client.patch(f"/api/users/{uid}", json={"status": "LOCKED"}, headers=admin)
     res = client.post(f"/api/users/{uid}/reset-password", headers=admin).json()
     assert res["user"]["status"] == "ACTIVE"
     login(client, "manager.test", res["temp_password"])

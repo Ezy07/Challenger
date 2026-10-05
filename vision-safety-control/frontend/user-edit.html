@@ -137,7 +137,8 @@
       $("ue-rank").value = u.position || "";
       $("ue-phone").value = u.phone || "";
       $("ue-org").value = u.org_id || "";
-      $("ue-login").textContent = `마지막 접속 ${u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "없음"} · 비밀번호 실패 ${u.failed_login_count}회`;
+      $("ue-login").textContent = `마지막 접속 ${u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "없음"} · 비밀번호 실패 ${u.failed_login_count}회`
+        + (u.locked_until && new Date(u.locked_until) > new Date() ? ` · ${fmtTime(u.locked_until).slice(11, 16)}까지 로그인 잠김` : "");
       document.querySelectorAll("#ue-status .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === u.status));
       document.querySelector(`input[name=role][value=${u.role}]`).checked = true;
 

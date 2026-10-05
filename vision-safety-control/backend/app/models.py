@@ -145,6 +145,7 @@ class User(Base):
     approved_by: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime)
     failed_login_count: Mapped[int] = mapped_column(SmallInteger, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now(), onupdate=datetime.now)

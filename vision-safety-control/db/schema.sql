@@ -36,7 +36,8 @@ CREATE TABLE users (
   status              ENUM('PENDING', 'ACTIVE', 'REJECTED', 'LOCKED', 'DELETED') NOT NULL DEFAULT 'PENDING',  -- DELETED: 처리 기록 때문에 행은 남김
   approved_by         BIGINT UNSIGNED NULL,                   -- 승인한 관리자
   approved_at         DATETIME     NULL,
-  failed_login_count  TINYINT UNSIGNED NOT NULL DEFAULT 0,    -- 5회 실패 시 LOCKED
+  failed_login_count  TINYINT UNSIGNED NOT NULL DEFAULT 0,    -- 5회 실패 시 15분 잠금 (locked_until)
+  locked_until        DATETIME     NULL,                      -- 이 시각까지 로그인 금지. LOCKED(관리자 잠금)와 별개
   last_login_at       DATETIME     NULL,
   created_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

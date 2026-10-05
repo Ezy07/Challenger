@@ -74,6 +74,7 @@ class UserOut(Out):
     approved_by: int | None
     approved_at: datetime | None
     failed_login_count: int
+    locked_until: datetime | None = None
     last_login_at: datetime | None
     created_at: datetime
 
