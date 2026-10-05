@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>페이지 지도 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto; align-content: start; overflow: auto; }
+    .intro { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 10px; }
+    .intro p { font-size: 13.5px; line-height: 1.7; color: #c5d0dc; }
+    .intro code { font-family: Consolas, monospace; font-size: 12.5px; background: #121820; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--ink); }
+    .sec { display: flex; align-items: baseline; gap: 10px; margin: 6px 2px -2px; font-size: 17px; font-weight: 800; }
+    .sec span { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 6px; }
+    .sec .mvp { background: rgba(255, 93, 93, 0.16); color: #ff9b9b; }
+    .sec .ext { background: rgba(108, 182, 255, 0.14); color: #c5e4ff; }
+    .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+    .grp { border-top: 4px solid var(--c); }
+    .grp h3 { display: flex; align-items: center; gap: 9px; font-size: 16px; }
+    .grp h3 i { width: 26px; height: 26px; border-radius: 50%; background: var(--c); color: #0c1016; font-style: normal; font-size: 13px; display: grid; place-items: center; }
+    .grp a { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 2px 8px; padding: 9px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+    .grp a:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .grp a b { grid-row: span 2; color: var(--orange); font-size: 12px; padding-top: 1px; }
+    .grp a strong { font-size: 14px; }
+    .grp a small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .grp a em { grid-column: 2; font-style: normal; font-family: Consolas, monospace; font-size: 11px; color: #6b7889; }
+  </style>
+</head>
+<body>
+  <div class="page full">
+    <header class="cell head"></header>
+    <main class="main scroll">
+      <div class="intro">
+        <section class="cell"><div class="pad">
+          <div class="label">이 폴더는?</div>
+          <p>관제 시스템에 필요한 화면을 <b>기능별로 하나씩 나눠 만든 예시</b>입니다. 디자인은 <code>dashboard.html</code> 을 그대로 따랐고, 숫자와 이름은 모두 가짜 예시입니다.
+          아직 데이터베이스가 없어서 <b>저장 · 삭제 버튼은 안내 문구만</b> 뜹니다. 대신 버튼 · 표의 줄 · 카메라 화면을 누르면 실제로 다음 화면으로 넘어갑니다.</p>
+        </div></section>
+        <section class="cell"><div class="pad">
+          <div class="label">화면 번호 읽는 법</div>
+          <p><code>3-1</code> = 3번 대분류(이벤트 로그)의 1번째 화면. 메뉴 구성은 <code>비전AI 안전관제 페이지 구성 1차.txt</code> 를 그대로 따랐습니다.
+          모든 화면 왼쪽 위 <code>☰</code> 버튼을 누르면 왼쪽에서 전체 메뉴가 나오고, 들여쓴 <code>ㄴ</code> 화면은 메모장의 하위 화면입니다.</p>
+        </div></section>
+      </div>
+      <div class="sec">업무 화면 <span class="mvp">관제 · 안전관리자</span></div>
+      <div class="groups" id="work"></div>
+      <div class="sec">관리자 화면 <span class="ext">관리자만 보임</span></div>
+      <div class="groups" id="admin"></div>
+      <div class="sec">메인 <span class="ext">로그인 전</span></div>
+      <div class="groups">
+        <section class="cell grp" style="--c:#c5d0dc"><div class="pad">
+          <h3><i>M</i>메인</h3>
+          <a href="login.html"><b>M-1</b><strong>로그인</strong><small>비로그인 메인. 로그인하면 관제화면으로 이동</small><em>login.html</em></a>
+          <a href="signup.html"><b>M-2</b><strong>회원가입</strong><small>가입 신청 → 관리자가 회원가입 승인에서 승인</small><em>signup.html</em></a>
+          <a href="monitor.html"><b>M-3</b><strong>관제화면 (로그인 시)</strong><small>로그인 후 첫 화면 = 1-1 관제화면</small><em>monitor.html</em></a>
+        </div></section>
+      </div>
+    </main>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    // 화면 목록은 common.js 의 MENU 하나에서 가져온다 (여기에 따로 적지 않음)
+    const COLORS = ["#e5484d", "#2fbf71", "#f5a524", "#3e9cf0", "#a78bfa", "#7dcea0", "#ff9a1f", "#c5d0dc"];
+    const card = (g, gi) => `
+      <section class="cell grp" style="--c:${COLORS[gi] || "#7f95b2"}"><div class="pad">
+        <h3><i>${g.no}</i>${g.name}</h3>
+        ${g.pages.map((p) => p[0]
+          ? `<a href="${p[0]}" style="margin-left:${(p[3] || 0) * 16}px"><b>${pageNo(g, p)}</b><strong>${p[3] ? "ㄴ " : ""}${p[1]}</strong><small>${p[2]}</small><em>${p[0]}</em></a>`
+          : `<div class="label" style="margin-top:4px">${p[1]}</div>`).join("")}
+      </div></section>`;
+    document.getElementById("work").innerHTML = MENU.filter((g) => !g.admin).map((g) => card(g, MENU.indexOf(g))).join("");
+    document.getElementById("admin").innerHTML = MENU.filter((g) => g.admin).map((g) => card(g, MENU.indexOf(g))).join("");
+  </script>
+</body>
+</html>

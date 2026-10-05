@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>회원 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .tbl td { vertical-align: middle; }
+    .av { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #243044; font-weight: 800; font-size: 13px; margin-right: 8px; vertical-align: middle; }
+    .pending-link { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 12px; background: rgba(255, 176, 32, 0.1); border: 1px solid rgba(255, 176, 32, 0.5); font-size: 13px; font-weight: 700; }
+    .pending-link:hover { background: rgba(255, 176, 32, 0.18); }
+  </style>
+</head>
+<body>
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <b id="n-shown"></b>
+          <span class="grow"></span>
+          <a class="btn" href="user-approval.html">가입 승인 대기 <span class="status warn" id="n-pending">0명</span></a>
+          <button class="btn primary" data-open="pop">＋ 회원 등록</button>
+        </div>
+        <div class="search-panel" id="filter" hidden>
+          <div class="search-fields">
+            <div class="field">역할
+              <div class="chips" id="f-role" data-single>
+                <span class="chip on" data-v="">전체 <b id="n-all">0</b></span><span class="chip" data-v="ADMIN">관리자 <b id="n-ADMIN">0</b></span>
+                <span class="chip" data-v="MANAGER">안전관리자 <b id="n-MANAGER">0</b></span><span class="chip" data-v="VIEWER">조회 전용 <b id="n-VIEWER">0</b></span>
+              </div>
+            </div>
+            <div class="field">계정 상태
+              <div class="chips" id="f-status" data-single>
+                <span class="chip on" data-v="">전체</span><span class="chip" data-v="ACTIVE">활성</span><span class="chip" data-v="LOCKED">잠금</span>
+              </div>
+            </div>
+          </div>
+          <div class="row end"><button class="btn" type="button" id="reset">초기화</button><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
+      </section>
+      <section class="cell" style="padding:0 6px 6px">
+        <table class="tbl">
+          <thead><tr><th>이름</th><th>아이디</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">역할별로 할 수 있는 일</div>
+        <div class="check"><div><b>관리자</b><small>모든 화면 · 회원 · 카메라 · 알림 규칙 관리</small></div><span class="role">ADMIN</span></div>
+        <div class="check info"><div><b>안전관리자</b><small>관제화면 · 이벤트 처리 · 작업자 · 작업 · 장비 관리</small></div><span class="status info">MANAGER</span></div>
+        <div class="check warn"><div><b>조회 전용</b><small>화면 보기만, 저장 · 처리 불가</small></div><span class="status mute">VIEWER</span></div>
+        <div class="hint">줄을 누르면 <b>회원정보 수정</b> 화면에서 역할과 계정 상태를 바꿀 수 있습니다. 비밀번호 5번 틀리면 <b>잠금</b> 상태가 됩니다.</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pop" id="pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="role">관리자가 직접 등록</span><h2>회원 등록</h2><p>등록하면 승인 없이 바로 활성 상태가 되고, 첫 비밀번호가 한 번만 표시됩니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <form class="pop-body" id="new-form">
+        <label class="field">이름<input class="input" id="n-name" placeholder="예: 홍길동" required /></label>
+        <label class="field">직급<input class="input" id="n-position" placeholder="예: 대리" /></label>
+        <label class="field">아이디<input class="input" id="n-login" placeholder="영문 소문자 · 숫자 · 점(.) 4~20자" required /></label>
+        <label class="field">휴대폰<input class="input" id="n-phone" placeholder="010-0000-0000" /></label>
+        <label class="field">소속<select class="input" id="n-org"></select></label>
+        <label class="field">역할<select class="input" id="n-role"><option value="MANAGER">안전관리자</option><option value="VIEWER">조회 전용</option><option value="ADMIN">관리자</option></select></label>
+        <div class="row end"><button class="btn" type="button" data-close>취소</button><button class="btn primary">등록</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="pop" id="pw-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="status ok">완료</span><h2 id="pw-title">첫 비밀번호</h2><p>이 창을 닫으면 다시 볼 수 없습니다. 본인에게 전달하고 로그인 후 바꾸도록 안내하세요.</p></div>
+      </div>
+      <div class="pop-body">
+        <div class="input" id="pw-value" style="font-family:Consolas,monospace; font-size:18px; user-select:all"></div>
+        <div class="row end"><button class="btn primary" data-close>확인</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pop" id="del-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="status stop">삭제</span><h2 id="del-title">회원 삭제</h2><p>삭제한 회원은 로그인할 수 없고, 처리 기록에는 이름만 남습니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="row end" style="margin-top:14px"><button class="btn" data-close>취소</button><button class="btn danger" id="del-ok">삭제</button></div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const me = getAuth() && getAuth().user;
+    let users = [], orgs = {}, delId = null;
+    const pickedChip = (id) => document.querySelector(`#${id} .chip.on`).dataset.v;
+
+    async function load() {
+      const [list, orgList] = await Promise.all([api("/api/users"), api("/api/orgs")]);
+      users = list;
+      orgs = orgNames(orgList);
+      $("n-org").innerHTML = '<option value="">소속 없음</option>' +
+        orgList.map((o) => `<option value="${o.id}">${esc(orgs[o.id])}</option>`).join("");
+      render();
+    }
+
+    function render() {
+      const members = users.filter((u) => u.status === "ACTIVE" || u.status === "LOCKED");
+      $("n-all").textContent = members.length;
+      ["ADMIN", "MANAGER", "VIEWER"].forEach((r) => { $("n-" + r).textContent = members.filter((u) => u.role === r).length; });
+      $("n-pending").textContent = users.filter((u) => u.status === "PENDING").length + "명";
+
+      const q = $("q").value.trim().toLowerCase(), role = pickedChip("f-role"), st = pickedChip("f-status");
+      searchSummary([role && LABEL.role[role][1], st && LABEL.userStatus[st][1]].filter(Boolean).join(" · "));
+      const rows = members.filter((u) => (!role || u.role === role) && (!st || u.status === st)
+        && (!q || (u.name + " " + u.login_id).toLowerCase().includes(q)));
+      $("n-shown").textContent = `${rows.length}명`;
+      $("rows").innerHTML = rows.length ? rows.map((u) => {
+        const self = me && me.id === u.id;
+        const lastLogin = self ? "지금 접속 중" : u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "접속 기록 없음";
+        const del = self ? '<button class="btn sm" disabled title="본인 계정은 삭제할 수 없습니다">삭제</button>' : '<button class="btn sm" data-del>삭제</button>';
+        return `<tr data-id="${u.id}">
+          <td><span class="av">${esc(u.name[0])}</span><b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
+          <td>${badge("role", u.role)}</td><td>${esc(orgs[u.org_id] || "-")}</td><td>${lastLogin}</td>
+          <td>${badge("userStatus", u.status)}</td>
+          <td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html?id=${u.id}">수정</a>${del}</div></td></tr>`;
+      }).join("") : '<tr><td colspan="7" class="muted" style="text-align:center; padding:28px">해당하는 회원이 없습니다</td></tr>';
+    }
+
+    $("rows").addEventListener("click", (e) => {
+      const tr = e.target.closest("tr[data-id]");
+      if (!tr) return;
+      const id = Number(tr.dataset.id);
+      if (e.target.closest("[data-del]")) {
+        delId = id;
+        $("del-title").textContent = users.find((u) => u.id === id).name + " 삭제";
+        $("del-pop").hidden = false;
+      } else if (!e.target.closest("a, button")) {
+        location.href = "user-edit.html?id=" + id;
+      }
+    });
+    $("del-ok").addEventListener("click", async () => {
+      $("del-pop").hidden = true;
+      try {
+        await api(`/api/users/${delId}`, { method: "DELETE" });
+        toast("회원을 삭제했습니다.");
+        await load();
+      } catch (err) { toast(err.message); }
+    });
+
+    $("new-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const res = await api("/api/users", { method: "POST", body: {
+          name: $("n-name").value.trim(), position: $("n-position").value.trim() || null,
+          login_id: $("n-login").value.trim(), phone: $("n-phone").value.trim() || null,
+          org_id: Number($("n-org").value) || null, role: $("n-role").value,
+        } });
+        $("pop").hidden = true;
+        $("new-form").reset();
+        $("pw-title").textContent = `${res.user.name}님 (${res.user.login_id}) 첫 비밀번호`;
+        $("pw-value").textContent = res.temp_password;
+        $("pw-pop").hidden = false;
+        await load();
+      } catch (err) { toast(err.message); }
+    });
+
+    // 칩은 common.js 가 켜고 끈 뒤(같은 클릭이 위로 올라옴) 바로 다시 그린다
+    $("filter").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
+    $("reset").addEventListener("click", () => {
+      document.querySelectorAll("#filter .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === ""));
+      render();
+    });
+    $("q").addEventListener("input", render);
+
+    load().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

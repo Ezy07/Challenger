@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>구역 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .mini-cam { position: relative; width: 96px; height: 54px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+    .mini-cam svg { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; }
+    .tbl td { vertical-align: middle; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <div class="page full">
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <input class="input" style="width:240px" placeholder="구역 이름으로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="muted">줄을 누르면 규칙 화면, 스위치로 켜고 끄기</span>
+          <span class="grow"></span>
+          <a class="btn primary" href="roi-draw.html">＋ 새 구역 그리기</a>
+        </div>
+        <div class="search-panel" hidden data-auto-summary>
+          <div class="search-fields">
+            <div class="field wide">카메라
+              <div class="chips" data-single><span class="chip on">전체</span><span class="chip">CAM_0001</span><span class="chip">CAM_0002</span><span class="chip">CAM_0003</span><span class="chip">CAM_0004</span></div>
+            </div>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
+      </section>
+      <section class="cell" style="padding:0 6px 6px">
+        <table class="tbl">
+          <thead><tr><th>미리보기</th><th>구역 이름</th><th>카메라</th><th>종류</th><th>규칙</th><th>이번 주 이벤트</th><th>사용</th><th></th></tr></thead>
+          <tbody>
+            <tr data-href="roi-rules.html">
+              <td><div class="mini-cam"><div class="scene red"></div><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="52,48 92,46 96,84 46,86" fill="rgba(255,93,93,0.3)" stroke="#ff5d5d" stroke-width="2" /></svg></div></td>
+              <td><b><span class="swatch" style="background:#ff5d5d"></span>102동 인양 하부</b></td><td>CAM_0002</td><td>침범 감지</td><td>침범 · 장비 근접</td><td>42건</td><td><span class="switch on"></span></td><td><a class="btn sm" href="roi-draw.html">수정</a></td>
+            </tr>
+            <tr data-href="roi-rules.html">
+              <td><div class="mini-cam"><div class="scene"></div><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="40,50 70,50 74,82 36,82" fill="rgba(255,93,93,0.3)" stroke="#ff5d5d" stroke-width="2" /></svg></div></td>
+              <td><b><span class="swatch" style="background:#ff5d5d"></span>101동 갱폼 인양 하부</b></td><td>CAM_0001</td><td>침범 감지</td><td>침범</td><td>24건</td><td><span class="switch on"></span></td><td><a class="btn sm" href="roi-draw.html">수정</a></td>
+            </tr>
+            <tr data-href="roi-rules.html">
+              <td><div class="mini-cam"><div class="scene"></div><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="8,70 30,70 30,84 8,84" fill="rgba(61,220,132,0.3)" stroke="#3ddc84" stroke-width="2" /></svg></div></td>
+              <td><b><span class="swatch" style="background:#3ddc84"></span>101동 안전 통로</b></td><td>CAM_0001</td><td>안전 통로</td><td>이탈</td><td>7건</td><td><span class="switch on"></span></td><td><a class="btn sm" href="roi-draw.html">수정</a></td>
+            </tr>
+            <tr data-href="roi-rules.html">
+              <td><div class="mini-cam"><div class="scene green"></div><svg viewBox="0 0 100 100" preserveAspectRatio="none"><circle cx="38" cy="66" r="22" fill="rgba(255,176,32,0.3)" stroke="#ffb020" stroke-width="2" /></svg></div></td>
+              <td><b><span class="swatch" style="background:#ffb020"></span>EXC_01 작업반경</b></td><td>CAM_0003</td><td>장비 작업반경</td><td>장비 근접 5m</td><td>36건</td><td><span class="switch on"></span></td><td><a class="btn sm" href="roi-draw.html">수정</a></td>
+            </tr>
+            <tr data-href="roi-rules.html">
+              <td><div class="mini-cam"><div class="scene green"></div><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="56,60 94,60 94,84 56,84" fill="rgba(108,182,255,0.3)" stroke="#6cb6ff" stroke-width="2" /></svg></div></td>
+              <td><b><span class="swatch" style="background:#6cb6ff"></span>토공 지반침하 감시</b></td><td>CAM_0003</td><td>출입금지</td><td>침범 · 체류 1분</td><td>15건</td><td><span class="switch on"></span></td><td><a class="btn sm" href="roi-draw.html">수정</a></td>
+            </tr>
+            <tr data-href="roi-rules.html">
+              <td><div class="mini-cam"><div class="scene teal"></div><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="12,58 70,58 70,84 12,84" fill="rgba(142,154,171,0.3)" stroke="#8e9aab" stroke-width="2" /></svg></div></td>
+              <td><b><span class="swatch" style="background:#8e9aab"></span>야적장 적치 구역</b></td><td>CAM_0004</td><td>침범 감지</td><td>체류 5분</td><td>-</td><td><span class="switch"></span></td><td><a class="btn sm" href="roi-draw.html">수정</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

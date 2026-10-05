@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>작업 등록 및 배정 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pick { display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
+    .pick .person { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+    .pick .person b { font-size: 13px; }
+    .pick .person small { display: block; color: var(--muted); font-size: 11.5px; }
+    .sp { font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); margin-left: 4px; }
+    .empty { padding: 16px; text-align: center; color: var(--muted); font-size: 12.5px; border: 1px dashed var(--line); border-radius: 10px; }
+    @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page no-right">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="row between"><div class="label">작업 <span id="n-works">0건</span></div><button class="btn sm primary" id="new">＋ 새 작업</button></div>
+        <div class="chips" id="scope" data-single><span class="chip on" data-v="today">오늘</span><span class="chip" data-v="upcoming">진행 · 예정 전체</span></div>
+        <div id="list" style="display:grid; gap:8px"></div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main scroll">
+      <section class="cell"><form class="pad" id="form">
+        <div class="label">작업 정보 <span id="work-no">새 작업</span></div>
+        <label class="field">작업 이름<input class="input" id="f-name" required maxlength="100" placeholder="예: 102동 대형거푸집 설치" /></label>
+        <div class="two">
+          <label class="field">작업구역<select class="input" id="f-zone"></select></label>
+          <label class="field">담당 안전관리자<select class="input" id="f-manager"></select></label>
+        </div>
+        <div class="two">
+          <label class="field">시작일<input class="input" type="date" id="f-start" required /></label>
+          <label class="field">종료 예정일 <small class="muted">(비우면 하루)</small><input class="input" type="date" id="f-end" /></label>
+        </div>
+        <label class="field">상태<select class="input" id="f-status"><option value="PLANNED">예정</option><option value="IN_PROGRESS">진행중</option><option value="STOPPED">작업중지</option><option value="DONE">완료</option></select></label>
+        <label class="field">작업 내용 · 주의사항<textarea class="input" id="f-desc" maxlength="1000"></textarea></label>
+        <div class="row end">
+          <button class="btn" type="button" id="del">삭제</button>
+          <button class="btn primary">저장</button>
+        </div>
+      </form></section>
+
+      <section class="cell"><div class="pad" id="assign-box">
+        <div class="label">작업자 배정 <span id="cnt">0명 배정</span></div>
+        <div class="pick" id="assigned"></div>
+        <div class="label" style="margin-top:8px">배정할 수 있는 작업자 <span>오늘 다른 작업이 없는 사람</span></div>
+        <input class="input" id="find" placeholder="이름 · 직종으로 찾기" />
+        <label class="row muted" style="gap:6px; font-size:12px"><input type="checkbox" id="show-busy" /> 다른 작업에 배정된 사람도 보기 (겸직)</label>
+        <div class="pick" id="pool"></div>
+        <div class="hint" id="assign-hint">배정을 바꾸면 바로 저장됩니다. 특별관리 · 교육 미이수 작업자에는 표시가 붙습니다.</div>
+        <a class="btn block" id="to-workers" href="work-workers.html">작업별 작업자 목록에서 보기 →</a>
+      </div></section>
+    </main>
+  </div>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let works = [], work = null, workers = [];
+
+    async function loadList() {
+      const scope = document.querySelector("#scope .chip.on").dataset.v;
+      works = await api("/api/works", { query: scope === "today" ? { on: todayStr() } : { upcoming: true } });
+      $("n-works").textContent = works.length + "건";
+      $("list").innerHTML = works.length ? works.map((w) => `
+        <button class="tc-card${work && work.id === w.id ? " active" : ""}" data-id="${w.id}">
+          <div class="code">W-${pad2(w.id)} · ${labelOf("workStatus", w.status)}</div><strong>${esc(w.name)}</strong>
+          <p>${esc(w.work_zone_name)} · ${w.worker_count}명 · ${period(w)}</p></button>`).join("")
+        : '<p class="muted">작업이 없습니다</p>';
+    }
+
+    async function openWork(id) {
+      work = id ? await api(`/api/works/${id}`) : null;
+      history.replaceState(null, "", id ? "?id=" + id : location.pathname);
+      $("work-no").textContent = work ? "W-" + pad2(work.id) : "새 작업";
+      $("f-name").value = work ? work.name : "";
+      $("f-zone").value = work ? work.work_zone_id : $("f-zone").value;
+      $("f-manager").value = work ? work.manager_id || "" : "";
+      $("f-start").value = work ? work.start_date : todayStr();
+      $("f-end").value = work ? work.end_date || "" : "";
+      $("f-status").value = work ? work.status : "PLANNED";
+      $("f-desc").value = work ? work.description || "" : "";
+      $("del").hidden = !work;
+      $("assign-box").style.opacity = work ? 1 : 0.45;
+      $("assign-box").style.pointerEvents = work ? "" : "none";
+      $("to-workers").href = work ? "work-workers.html?id=" + work.id : "work-workers.html";
+      document.querySelectorAll("#list .tc-card").forEach((c) => c.classList.toggle("active", work && Number(c.dataset.id) === work.id));
+      renderAssign();
+    }
+
+    function person(w, assigned) {
+      const marks = [...w.special_tags.map((t) => t.split(" ")[0]), ...(w.general_edu ? [] : ["교육 미이수"])]
+        .map((t) => `<span class="sp">${esc(t)}</span>`).join("");
+      const busy = !assigned && w.today_work ? ` · ${esc(w.today_work.name)}에 배정됨` : "";
+      return `<div class="person"><div><b>${esc(w.name)}${marks}</b><small>${esc([w.company, w.job_type].filter(Boolean).join(" · "))}${busy}</small></div>
+        <button class="btn sm${assigned ? "" : " primary"}" data-move="${w.id}">${assigned ? "빼기" : "배정"}</button></div>`;
+    }
+
+    function renderAssign() {
+      const assignedIds = new Set(work ? work.workers.map((w) => w.id) : []);
+      $("cnt").textContent = assignedIds.size + "명 배정";
+      $("assigned").innerHTML = work && work.workers.length ? work.workers.map((w) => person(w, true)).join("") : '<div class="empty">아직 배정된 작업자가 없습니다</div>';
+      const q = $("find").value.trim(), showBusy = $("show-busy").checked;
+      const pool = workers.filter((w) => !assignedIds.has(w.id) && (showBusy || !w.today_work) && (!q || (w.name + (w.job_type || "")).includes(q)));
+      $("pool").innerHTML = pool.length ? pool.map((w) => person(w, false)).join("") : '<div class="empty">배정할 수 있는 작업자가 없습니다</div>';
+    }
+
+    async function reloadWorkers() { workers = await api("/api/workers"); }
+
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = {
+        name: $("f-name").value.trim(), work_zone_id: Number($("f-zone").value), manager_id: Number($("f-manager").value) || null,
+        start_date: $("f-start").value, end_date: $("f-end").value || null, status: $("f-status").value, description: $("f-desc").value.trim() || null,
+      };
+      try {
+        const saved = work ? await api(`/api/works/${work.id}`, { method: "PATCH", body }) : await api("/api/works", { method: "POST", body });
+        toast(work ? "작업을 저장했습니다." : "작업을 등록했습니다. 이제 작업자를 배정하세요.");
+        await loadList();
+        await openWork(saved.id);
+      } catch (err) { toast(err.message); }
+    });
+    $("del").addEventListener("click", async () => {
+      if (!confirm(`W-${pad2(work.id)} ${work.name} 작업을 삭제할까요?`)) return;
+      try {
+        await api(`/api/works/${work.id}`, { method: "DELETE" });
+        toast("작업을 삭제했습니다.");
+        await loadList();
+        await openWork(null);
+      } catch (err) { toast(err.message); }
+    });
+
+    document.querySelector("main").addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-move]");
+      if (!b) return;
+      const id = Number(b.dataset.move);
+      const ids = work.workers.map((w) => w.id);
+      const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+      try {
+        work = await api(`/api/works/${work.id}/workers`, { method: "PUT", body: { worker_ids: next } });
+        await reloadWorkers();
+        renderAssign();
+        loadList();
+      } catch (err) { toast(err.message); }
+    });
+    $("list").addEventListener("click", (e) => {
+      const c = e.target.closest("[data-id]");
+      if (c) openWork(Number(c.dataset.id)).catch((err) => toast(err.message));
+    });
+    $("scope").addEventListener("click", (e) => { if (e.target.closest(".chip")) loadList().catch((err) => toast(err.message)); });
+    $("new").addEventListener("click", () => openWork(null));
+    $("find").addEventListener("input", renderAssign);
+    $("show-busy").addEventListener("change", renderAssign);
+
+    (async () => {
+      const [zones, staff] = await Promise.all([api("/api/work-zones"), api("/api/users/staff"), reloadWorkers()]);
+      $("f-zone").innerHTML = zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join("");
+      $("f-manager").innerHTML = staffOptions(staff);
+      await loadList();
+      const id = Number(new URLSearchParams(location.search).get("id"));
+      await openWork(id || (works[0] && works[0].id) || null);
+    })().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

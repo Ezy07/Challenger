@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>카메라 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 10px; align-content: start; overflow: auto; min-height: 0; }
+    .camcard { overflow: hidden; display: grid; grid-template-rows: 150px auto; }
+    .camcard:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .camcard .cam { border-radius: 0; }
+    .camcard dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 12px 14px; font-size: 12.5px; }
+    .camcard dt { color: var(--muted); font-weight: 700; }
+    .camcard dd { text-align: right; font-weight: 700; }
+    .grid-sep { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin-top: 6px; font-size: 15px; font-weight: 800; }
+    .grid-sep span { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .offline { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(8,12,18,0.82); font-weight: 800; color: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="page full">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <input class="input" id="q" style="width:240px" placeholder="카메라 이름 · 위치로 찾기" />
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filters">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <b id="n-total"></b>
+          <span class="muted">카드를 누르면 수정 화면으로 이동</span>
+          <span class="grow"></span>
+          <a class="btn" href="camera-map.html">🗺 배치도로 보기</a>
+          <a class="btn primary" href="camera-edit.html">＋ 카메라 추가</a>
+        </div>
+        <div class="search-panel" id="filters" hidden>
+          <div class="search-fields">
+            <div class="field">종류
+              <div class="chips" id="f-type" data-single>
+                <span class="chip on" data-v="">전체 <b id="n-all">0</b></span>
+                <span class="chip" data-v="FIXED">현장 CAM <b id="n-FIXED">0</b></span>
+                <span class="chip" data-v="TC">TC CAM <b id="n-TC">0</b></span>
+              </div>
+            </div>
+            <div class="field">사용 여부
+              <div class="chips" id="f-active" data-single>
+                <span class="chip on" data-v="">전체</span><span class="chip" data-v="1">사용</span><span class="chip" data-v="0">사용 안 함</span>
+              </div>
+            </div>
+            <div class="hint">온라인 · 오프라인 같은 <b>연결 상태</b>는 영상 수신 서버를 붙인 뒤에 표시됩니다.</div>
+          </div>
+          <div class="row end"><button class="btn" type="button" id="reset">초기화</button><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
+      </section>
+      <div class="grid" id="grid"></div>
+    </main>
+  </div>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const SCENES = ["", "red", "green", "teal"];
+    let cams = [], equipment = {};
+
+    async function load() {
+      const [list, eq] = await Promise.all([api("/api/cameras"), api("/api/equipment")]);
+      cams = list;
+      equipment = Object.fromEntries(eq.map((e) => [e.id, e.name]));
+      render();
+    }
+
+    function card(c, i) {
+      const scene = c.camera_type === "TC"
+        ? '<div class="scene" style="background:linear-gradient(180deg,#1a2c40 0%,#14202e 42%,#101820 42%,#0c1218 100%)"><div class="ground-line"></div><div class="mast" style="left:50%; height:62%; background:#6cb6ff"></div><div class="jib" style="left:50%; top:20%; width:32%; background:#6cb6ff"></div></div>'
+        : `<div class="scene ${SCENES[i % SCENES.length]}"><div class="ground-line"></div><div class="bld" style="left:10%; width:20%; height:46%;"></div></div>`;
+      const slot = c.view_slot ? `${c.view_page}페이지 · ${c.view_slot}번 칸` : "표시 안 함";
+      return `
+        <a class="cell camcard" href="camera-edit.html?id=${c.id}">
+          <div class="cam">${scene}${c.is_active ? "" : '<div class="offline">⏸ 사용 안 함</div>'}
+            <div class="cam-tag">${esc(c.name)}</div>
+            <div class="cam-time">${c.is_active ? '<span class="status ok">사용</span>' : '<span class="status mute">꺼짐</span>'}</div></div>
+          <dl><dt>구역</dt><dd>${esc(c.work_zone_name || "-")}</dd>
+            ${c.location_desc ? `<dt>설치 위치</dt><dd>${esc(c.location_desc)}</dd>` : ""}
+            ${c.camera_type === "TC" ? `<dt>연결 장비</dt><dd>${esc(equipment[c.equipment_id] || "-")}</dd>` : ""}
+            <dt>관제화면</dt><dd>${slot}</dd>
+            <dt>영상</dt><dd>${videoSrc(c.stream_url) ? "📁 " + esc(c.stream_url.slice(7)) : c.stream_url ? "RTSP" : "-"}</dd></dl>
+        </a>`;
+    }
+
+    function render() {
+      $("n-all").textContent = cams.length;
+      ["FIXED", "TC"].forEach((t) => { $("n-" + t).textContent = cams.filter((c) => c.camera_type === t).length; });
+
+      const q = $("q").value.trim().toLowerCase();
+      const typeChip = document.querySelector("#f-type .chip.on"), type = typeChip.dataset.v;
+      const activeChip = document.querySelector("#f-active .chip.on"), active = activeChip.dataset.v;
+      searchSummary([type && typeChip.firstChild.textContent.trim(), active && activeChip.textContent].filter(Boolean).join(" · "));
+      const shown = cams.filter((c) => (!type || c.camera_type === type)
+        && (active === "" || String(Number(c.is_active)) === active)
+        && (!q || [c.name, c.work_zone_name, c.location_desc].join(" ").toLowerCase().includes(q)));
+      $("n-total").textContent = shown.length + "대";
+      const fixed = shown.filter((c) => c.camera_type === "FIXED"), tc = shown.filter((c) => c.camera_type === "TC");
+      $("grid").innerHTML = !shown.length
+        ? '<div class="grid-sep muted">조건에 맞는 카메라가 없습니다</div>'
+        : fixed.map(card).join("")
+          + (tc.length ? '<div class="grid-sep">2페이지 · TC 관제 CAM <span>크레인마다 1대, 장비(타워크레인)와 연결</span></div>' + tc.map(card).join("") : "");
+    }
+
+    // 칩은 common.js 가 켜고 끈 뒤(같은 클릭이 위로 올라옴) 바로 다시 그린다
+    $("filters").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
+    $("reset").addEventListener("click", () => {
+      document.querySelectorAll("#filters .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === ""));
+      render();
+    });
+    $("q").addEventListener("input", render);
+
+    load().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

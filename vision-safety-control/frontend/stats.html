@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>요약 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
+    .keys { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }
+    .keys div { display: flex; align-items: center; gap: 8px; }
+    .keys i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+    .keys b { margin-left: auto; font-variant-numeric: tabular-nums; }
+    .hbar { border-radius: 6px; }
+    .hbar:hover, .hbar:focus-visible { background: rgba(255, 255, 255, 0.04); outline: none; }
+    .hbar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hbars { grid-template-columns: minmax(0, 1fr); }
+    .main .cell .pad { overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">기간</div>
+        <div id="periods" style="display:grid; gap:8px">
+          <button class="tc-card active" data-p="today"><div class="code" id="d-today"></div><strong>오늘</strong><p>어제와 비교</p></button>
+          <button class="tc-card" data-p="week"><div class="code" id="d-week"></div><strong>최근 7일</strong><p>그 앞 7일과 비교</p></button>
+          <button class="tc-card" data-p="month"><div class="code" id="d-month"></div><strong>이번 달</strong><p>1일부터 오늘까지</p></button>
+          <button class="tc-card" data-p="custom"><div class="code">직접 고르기</div><strong>기간 선택</strong><p>시작 · 끝 날짜</p></button>
+        </div>
+        <div id="custom" hidden style="display:grid; gap:8px">
+          <label class="field">시작 날짜<input class="input" type="date" id="c-from" /></label>
+          <label class="field">끝 날짜<input class="input" type="date" id="c-to" /></label>
+          <button class="btn primary" id="c-apply">보기</button>
+        </div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main" id="stats-main">
+      <div class="kpis">
+        <div class="kpi-box"><span>이벤트</span><strong id="k-total">-</strong><em id="d-total"></em></div>
+        <div class="kpi-box"><span>높음 (즉시 조치)</span><strong id="k-high" style="color:var(--red)">-</strong><em id="d-high"></em></div>
+        <div class="kpi-box"><span>아직 미처리 · 확인중</span><strong id="k-open" style="color:var(--amber)">-</strong><em class="muted" id="d-open"></em></div>
+        <div class="kpi-box"><span>평균 처리 시간</span><strong id="k-time">-</strong><em id="d-time"></em></div>
+      </div>
+      <div class="two">
+        <section class="cell">
+          <div class="pad">
+            <div class="label">종류별 건수 <span id="type-sub"></span></div>
+            <div class="hbars" id="by-type"></div>
+            <details class="viz-table"><summary>표로 보기</summary><table class="tbl" id="t-type"></table></details>
+            <a class="btn" id="to-events" href="events.html">이벤트 목록에서 보기</a>
+          </div>
+        </section>
+        <section class="cell">
+          <div class="pad">
+            <div class="label">구역별 건수 <span>많은 순</span></div>
+            <div class="hbars" id="by-zone"></div>
+            <details class="viz-table"><summary>표로 보기</summary><table class="tbl" id="t-zone"></table></details>
+            <a class="btn" href="zones.html">구역 배치도에서 보기</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">눈여겨볼 것</div>
+        <div id="notes"></div>
+        <a class="btn block" href="stats-trend.html">추이 차트</a>
+        <a class="btn primary block" id="to-report" href="stats-report.html">리포트 만들기</a>
+      </div>
+    </aside>
+  </div>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const dot = (s) => s.slice(5).replace("-", ".");
+    const today = new Date();
+    const RANGES = {
+      today: [iso(today), iso(today)],
+      week: [iso(new Date(Date.now() - 6 * 86400000)), iso(today)],
+      month: [iso(new Date(today.getFullYear(), today.getMonth(), 1)), iso(today)],
+    };
+    $("d-today").textContent = RANGES.today[0].replaceAll("-", ".");
+    $("d-week").textContent = `${dot(RANGES.week[0])} ~ ${dot(RANGES.week[1])}`;
+    $("d-month").textContent = `${today.getMonth() + 1}월`;
+
+    // 앞 기간과 비교한 차이. 건수 · 시간은 줄어드는 게 좋은 방향 (▼ 초록)
+    function delta(now, before, unit) {
+      if (now == null || before == null) return '<span class="muted">비교할 앞 기간 기록 없음</span>';
+      const d = Math.round((now - before) * 10) / 10;
+      if (!d) return '<span class="muted">앞 기간과 같음</span>';
+      return `<span class="${d > 0 ? "up" : "down"}">${d > 0 ? "▲" : "▼"} 앞 기간보다 ${Math.abs(d)}${unit}</span>`;
+    }
+
+    // 가로 막대: 한 가지 색(주황). 값은 막대 끝 숫자 + 툴팁, 표로 보기에 전부
+    function bars(id, list, total) {
+      const max = Math.max(1, ...list.map((x) => x.count));
+      $(id).innerHTML = list.length ? list.map((x) => `
+        <div class="hbar" tabindex="0" data-tip-value="${x.count}건 · ${Math.round(x.count * 100 / total)}%" data-tip-label="${esc(x.label)}">
+          <span title="${esc(x.label)}">${esc(x.label)}</span><div class="track"><i style="width:${(x.count / max) * 100}%"></i></div><b>${x.count}</b></div>`).join("")
+        : '<p class="muted">기록이 없습니다</p>';
+    }
+    function table(id, head, list, total) {
+      $(id).innerHTML = `<thead><tr><th>${head}</th><th>건수</th><th>비율</th></tr></thead><tbody>`
+        + list.map((x) => `<tr><td>${esc(x.label)}</td><td class="num">${x.count}</td><td class="num">${Math.round(x.count * 100 / total)}%</td></tr>`).join("") + "</tbody>";
+    }
+
+    async function load(from, to) {
+      $("stats-main").style.opacity = 0.55; // 다시 불러오는 동안 이전 그림을 흐리게 유지
+      const s = await api("/api/stats/summary", { query: { date_from: from, date_to: to } });
+      $("stats-main").style.opacity = 1;
+      const c = s.current, p = s.previous, single = from === to;
+      $("k-total").innerHTML = `${c.total}<i>건</i>`;
+      $("d-total").innerHTML = delta(c.total, p.total, "건");
+      $("k-high").innerHTML = `${c.high}<i>건</i>`;
+      $("d-high").innerHTML = delta(c.high, p.high, "건");
+      $("k-open").innerHTML = `${c.open}<i>건</i>`;
+      $("d-open").textContent = c.handled_rate == null ? "기록 없음" : `처리율 ${c.handled_rate}%`;
+      $("k-time").innerHTML = c.avg_handle_min == null ? "-" : `${Math.round(c.avg_handle_min)}<i>분</i>`;
+      $("d-time").innerHTML = delta(c.avg_handle_min == null ? null : Math.round(c.avg_handle_min), p.avg_handle_min == null ? null : Math.round(p.avg_handle_min), "분");
+      $("type-sub").textContent = `${single ? dot(from) : `${dot(from)} ~ ${dot(to)}`} · ${c.total}건`;
+      bars("by-type", s.by_type, c.total);
+      bars("by-zone", s.by_zone, c.total);
+      table("t-type", "종류", s.by_type, c.total);
+      table("t-zone", "구역", s.by_zone, c.total);
+      $("to-report").href = `stats-report.html?date_from=${from}&date_to=${to}`;
+
+      // 눈여겨볼 것: 가장 많은 구역 · 가장 몰린 2시간 · 가장 많은 종류 · 남은 미처리
+      const notes = [];
+      if (s.by_zone[0]) notes.push(["stop", s.by_zone[0].label, "이 기간 경보가 가장 많은 구역", `${s.by_zone[0].count}건`]);
+      const pairs = s.by_hour.map((n, h) => [h, n + (s.by_hour[h + 1] || 0)]).slice(0, 23);
+      const [peakH, peakN] = pairs.reduce((a, b) => (b[1] > a[1] ? b : a), [0, 0]);
+      if (peakN) notes.push(["warn", `${pad2(peakH)}~${pad2(peakH + 2)}시`, "경보가 가장 몰린 시간대", `${peakN}건`]);
+      if (s.by_type[0]) notes.push(["info", s.by_type[0].label, "가장 많이 나온 종류", `${s.by_type[0].count}건`]);
+      notes.push(c.open ? ["stop", "남은 미처리 · 확인중", "처리 기록에서 마무리하세요", `${c.open}건`] : ["ok", "남은 미처리 없음", "이 기간 이벤트를 모두 처리함", "✓"]);
+      $("notes").innerHTML = notes.map(([cls, title, sub, val]) => `<div class="check ${cls}"><div><b>${esc(title)}</b><small>${esc(sub)}</small></div><span class="status ${cls}">${esc(val)}</span></div>`).join("")
+        + (c.open ? '<a class="btn block" href="event-handle.html">처리 기록으로 →</a>' : "");
+    }
+
+    $("periods").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-p]");
+      if (!b) return;
+      document.querySelectorAll("#periods .tc-card").forEach((x) => x.classList.toggle("active", x === b));
+      $("custom").hidden = b.dataset.p !== "custom";
+      if (b.dataset.p !== "custom") load(...RANGES[b.dataset.p]).catch((err) => toast(err.message));
+    });
+    $("c-apply").addEventListener("click", () => {
+      if (!$("c-from").value || !$("c-to").value) return toast("시작 · 끝 날짜를 고르세요.");
+      load($("c-from").value, $("c-to").value).catch((err) => toast(err.message));
+    });
+    [$("c-from").value, $("c-to").value] = RANGES.week;
+    attachTips($("stats-main"));
+    load(...RANGES.today).catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>구역 그리기 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr) auto; }
+    #draw { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; cursor: crosshair; }
+    .tools { padding: 12px 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; overflow: hidden; }
+    .colors { display: flex; gap: 6px; }
+    .colors i { width: 26px; height: 26px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
+    .colors i.on { border-color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">어느 카메라에 그릴까요?</div>
+        <button class="tc-card"><div class="code">CAM_0001</div><strong>101동 갱폼 인양구역</strong><p>구역 2개</p></button>
+        <button class="tc-card active"><div class="code">CAM_0002</div><strong>102동 대형거푸집구역</strong><p>구역 1개</p></button>
+        <button class="tc-card"><div class="code">CAM_0003</div><strong>Sector A 토공</strong><p>구역 2개</p></button>
+        <button class="tc-card"><div class="code">CAM_0004</div><strong>외곽 야적장</strong><p>구역 1개</p></button>
+        <div class="hint"><b>그리는 방법</b><br>① 화면에서 구역 모서리를 차례로 클릭<br>② 점이 3개 이상이면 다각형이 됩니다<br>③ 오른쪽에서 이름 · 종류를 정하고 저장</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell cam">
+        <div class="scene red">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
+        </div>
+        <svg id="draw" viewBox="0 0 1000 600" preserveAspectRatio="none"></svg>
+        <div class="cam-tag">CAM_0002 · 그리기 모드</div>
+        <div class="cam-zone" id="count">점 0개 · 화면을 클릭하세요</div>
+      </section>
+      <section class="cell tools">
+        <button class="btn" id="undo">↶ 마지막 점 지우기</button>
+        <button class="btn" id="clear">처음부터</button>
+        <button class="btn" id="sample">예시 구역 불러오기</button>
+        <span class="grow"></span>
+        <span class="muted">기존 구역</span>
+        <span class="chips"><span class="chip on">겹쳐 보기</span></span>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">구역 정보</div>
+        <label class="field">구역 이름<input class="input" value="102동 인양 하부" /></label>
+        <label class="field">구역 종류
+          <select class="input" id="kind"><option>침범 감지 (들어가면 경보)</option><option>출입금지 (항상 경보)</option><option>장비 작업반경</option><option>안전 통로 (벗어나면 경보)</option></select>
+        </label>
+        <div class="field">표시 색
+          <div class="colors" id="colors"><i class="on" style="background:#ff5d5d" data-c="#ff5d5d"></i><i style="background:#ffb020" data-c="#ffb020"></i><i style="background:#6cb6ff" data-c="#6cb6ff"></i><i style="background:#3ddc84" data-c="#3ddc84"></i></div>
+        </div>
+        <div class="check"><div><b>바로 사용</b><small>저장하면 탐지에 바로 반영</small></div><span class="switch on"></span></div>
+        <button class="btn primary block" data-toast="구역을 저장했습니다. (예시) 규칙은 ROI별 규칙에서 정하세요.">저장</button>
+        <a class="btn block" href="roi-rules.html">저장하고 규칙 정하기 →</a>
+        <a class="btn block" href="roi-list.html">구역 목록</a>
+      </div>
+    </aside>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const svg = document.getElementById("draw");
+    let pts = [];
+    let color = "#ff5d5d";
+    function render() {
+      const p = pts.map((q) => q.join(",")).join(" ");
+      svg.innerHTML =
+        (pts.length >= 3 ? `<polygon points="${p}" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="3" stroke-dasharray="14 8" />`
+                         : `<polyline points="${p}" fill="none" stroke="${color}" stroke-width="3" />`) +
+        pts.map((q, i) => `<circle cx="${q[0]}" cy="${q[1]}" r="9" fill="${i === 0 ? "#fff" : color}" stroke="#0c1016" stroke-width="3" />`).join("");
+      document.getElementById("count").textContent = pts.length
+        ? `점 ${pts.length}개` + (pts.length < 3 ? " · 3개 이상 찍으세요" : " · 구역 완성")
+        : "점 0개 · 화면을 클릭하세요";
+    }
+    svg.addEventListener("click", (e) => {
+      const r = svg.getBoundingClientRect();
+      pts.push([Math.round((e.clientX - r.left) / r.width * 1000), Math.round((e.clientY - r.top) / r.height * 600)]);
+      render();
+    });
+    document.getElementById("undo").onclick = () => { pts.pop(); render(); };
+    document.getElementById("clear").onclick = () => { pts = []; render(); };
+    document.getElementById("sample").onclick = () => { pts = [[520, 290], [920, 276], [960, 504], [460, 516]]; render(); };
+    document.querySelectorAll("#colors i").forEach((el) => el.onclick = () => {
+      document.querySelectorAll("#colors i").forEach((x) => x.classList.remove("on"));
+      el.classList.add("on");
+      color = el.dataset.c;
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

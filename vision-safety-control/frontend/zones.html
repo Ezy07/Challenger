@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>전체 구역 표시 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr); }
+    .plan-wrap { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .plan {
+      position: relative; flex: 1; min-height: 360px; border-radius: 12px; overflow: hidden;
+      background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 5% 6.25%,
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 5% 6.25%,
+        #10151c;
+      border: 1px solid var(--line);
+    }
+    .road { position: absolute; background: #1a212b; }
+    .road.h { left: 0; right: 0; top: 52%; height: 7%; }
+    .road.v { top: 0; bottom: 0; left: 46%; width: 5%; }
+    .zone-box {
+      position: absolute; display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+      padding: 8px 10px; border-radius: 10px; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
+      color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+    }
+    .zone-box:hover, .zone-box.on { background: color-mix(in srgb, var(--c) 28%, transparent); }
+    .zone-box.on { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
+    .zone-box:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+    .zone-box b { font-size: 13px; letter-spacing: -0.02em; }
+    .zone-box small { font-size: 11px; color: #c5d0dc; font-weight: 600; }
+    .zone-box .status { align-self: flex-start; }
+    .zone-box.alarm { animation: zone-flash 1.2s ease-in-out infinite; }
+    @keyframes zone-flash { 50% { background: rgba(255, 93, 93, 0.35); } }
+    .tc { position: absolute; border-radius: 50%; border: 2px dashed var(--c); opacity: 0.55; pointer-events: none; transform: translate(-50%, -50%); }
+    .tc-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); pointer-events: none; }
+    .cam-pin { position: absolute; transform: translate(-50%, -50%); font-size: 10.5px; font-weight: 800; padding: 1px 5px; border-radius: 5px; background: rgba(8,12,18,0.85); border: 1px solid rgba(255,255,255,0.15); pointer-events: none; white-space: nowrap; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+    .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -2px; }
+    .stat4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    .stat4 div { padding: 8px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); text-align: center; }
+    .stat4 span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .stat4 b { font-size: 20px; font-variant-numeric: tabular-nums; }
+    @media (prefers-reduced-motion: reduce) { .zone-box.alarm { animation: none; } }
+  </style>
+</head>
+<body>
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell plan-wrap">
+        <div class="row between">
+          <div class="label">현장 배치도 <span>구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
+          <div class="legend"><span><i style="background:#3ddc84"></i>정상</span><span><i style="background:#ffb020"></i>점검 필요</span><span><i style="background:#ff5d5d"></i>작업중지 · 높음 경보</span><span><i style="background:#8e9aab"></i>오늘 작업 없음</span></div>
+        </div>
+        <div class="plan" id="plan"><div class="road h"></div><div class="road v"></div></div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="row between"><div class="label" id="z-code">-</div><button class="btn sm" id="new">＋ 새 구역</button></div>
+        <h2 id="z-name" style="font-size:20px; letter-spacing:-0.03em">-</h2>
+        <div id="z-state"></div>
+        <div class="stat4">
+          <div><span>작업</span><b id="z-work">0</b></div>
+          <div><span>인원</span><b id="z-people">0</b></div>
+          <div><span>장비</span><b id="z-eq">0</b></div>
+          <div><span>경보</span><b id="z-alarm">0</b></div>
+        </div>
+        <div class="label" style="margin-top:4px">오늘 작업</div>
+        <div id="z-works" style="display:grid; gap:6px"></div>
+        <a class="btn primary block" id="z-go-works" href="zone-works.html">구역별 작업 목록 →</a>
+        <a class="btn block" id="z-go-eq" href="zone-equipment.html">구역별 투입장비 목록 →</a>
+
+        <details id="edit-box" style="margin-top:6px">
+          <summary class="label" style="cursor:pointer">구역 이름 · 배치도 위치 바꾸기</summary>
+          <form id="form" style="display:grid; gap:8px; margin-top:8px">
+            <label class="field">구역 이름<input class="input" id="e-name" required maxlength="100" /></label>
+            <div class="two">
+              <label class="field">왼쪽 (%)<input class="input" type="number" id="e-x" min="0" max="100" step="1" /></label>
+              <label class="field">위 (%)<input class="input" type="number" id="e-y" min="0" max="100" step="1" /></label>
+            </div>
+            <div class="two">
+              <label class="field">너비 (%)<input class="input" type="number" id="e-w" min="1" max="100" step="1" /></label>
+              <label class="field">높이 (%)<input class="input" type="number" id="e-h" min="1" max="100" step="1" /></label>
+            </div>
+            <div class="row between"><button class="btn sm" type="button" id="del" style="color:var(--red)">구역 삭제</button><button class="btn sm primary">저장</button></div>
+          </form>
+        </details>
+      </div>
+    </aside>
+  </div>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    let zones = [], current = null, creating = false;
+
+    // 배치도 영역(0~1 비율 다각형)을 감싸는 사각형
+    function box(z) {
+      const p = z.plan_polygon;
+      if (!p || !p.length) return null;
+      const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+    }
+    const pct = (v) => Math.round(v * 1000) / 10;
+
+    function state(z) {
+      if (z.open_high || z.works.some((w) => w.status === "STOPPED")) return ["stop", "#ff5d5d", z.open_high ? `높음 경보 ${z.open_high}건` : "작업중지"];
+      if (z.open_events) return ["warn", "#ffb020", `점검 필요 · 경보 ${z.open_events}건`];
+      if (!z.works.length) return ["mute", "#8e9aab", "오늘 작업 없음"];
+      return ["ok", "#3ddc84", "정상"];
+    }
+
+    function drawPlan() {
+      $("plan").querySelectorAll(".zone-box").forEach((b) => b.remove());
+      zones.forEach((z) => {
+        const b = box(z);
+        if (!b) return;
+        const [cls, color, text] = state(z);
+        const sub = [...z.equipment.filter((e) => e.kind === "TC").map((e) => e.name.split(" · ")[0]),
+          z.works.length && `작업 ${z.works.length}`, z.worker_count && `인원 ${z.worker_count}`].filter(Boolean).join(" · ");
+        $("plan").insertAdjacentHTML("beforeend", `
+          <button class="zone-box${cls === "stop" ? " alarm" : ""}${current && current.id === z.id ? " on" : ""}" data-z="${z.id}"
+            style="--c:${color}; left:${pct(b.x)}%; top:${pct(b.y)}%; width:${pct(b.w)}%; height:${pct(b.h)}%">
+            <b>${esc(z.name)}</b><small>${esc(sub || "-")}</small><span class="status ${cls}">${esc(text.split(" · ")[0])}</span></button>`);
+      });
+    }
+
+    function show(id) {
+      creating = false;
+      current = zones.find((z) => z.id === id) || zones[0];
+      if (!current) return;
+      history.replaceState(null, "", "?zone=" + current.id);
+      document.querySelectorAll(".zone-box").forEach((b) => b.classList.toggle("on", Number(b.dataset.z) === current.id));
+      const z = current, [cls, , text] = state(z);
+      $("z-code").textContent = "ZONE-" + pad2(z.id);
+      $("z-name").textContent = z.name;
+      $("z-state").innerHTML = `<span class="status ${cls}">${esc(text)}</span>`;
+      $("z-work").textContent = z.works.length;
+      $("z-people").textContent = z.worker_count;
+      $("z-eq").textContent = z.equipment.length;
+      $("z-alarm").textContent = z.open_events;
+      $("z-alarm").style.color = z.open_events ? "var(--red)" : "";
+      $("z-works").innerHTML = z.works.length ? z.works.map((w) =>
+        `<a class="item" href="work-workers.html?id=${w.id}"><div class="item-top"><b>W-${pad2(w.id)} · ${esc(w.name)}</b>${badge("workStatus", w.status)}</div></a>`).join("")
+        : '<p class="muted">오늘 이 구역 작업이 없습니다</p>';
+      $("z-go-works").href = "zone-works.html?zone=" + z.id;
+      $("z-go-eq").href = "zone-equipment.html?zone=" + z.id;
+      fillForm(z);
+    }
+
+    function fillForm(z) {
+      const b = (z && box(z)) || { x: 0.4, y: 0.4, w: 0.15, h: 0.15 };
+      $("e-name").value = z ? z.name : "";
+      [["e-x", b.x], ["e-y", b.y], ["e-w", b.w], ["e-h", b.h]].forEach(([id, v]) => { $(id).value = pct(v); });
+      $("del").hidden = !z;
+    }
+
+    async function load(id) {
+      zones = await api("/api/work-zones/summary");
+      drawPlan();
+      show(id);
+    }
+
+    $("plan").addEventListener("click", (e) => { const b = e.target.closest(".zone-box"); if (b) show(Number(b.dataset.z)); });
+    $("new").addEventListener("click", () => {
+      creating = true;
+      $("z-code").textContent = "새 구역";
+      $("z-name").textContent = "새 구역 만들기";
+      fillForm(null);
+      $("edit-box").open = true;
+      $("e-name").focus();
+    });
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const [x, y, w, h] = ["e-x", "e-y", "e-w", "e-h"].map((id) => Number($(id).value) / 100);
+      if (x + w > 1.0001 || y + h > 1.0001) return toast("배치도 밖으로 나갑니다. 왼쪽 + 너비, 위 + 높이가 100% 이하여야 합니다.");
+      const r = (v) => Math.round(v * 1000) / 1000;
+      const body = { name: $("e-name").value.trim(), plan_polygon: [[r(x), r(y)], [r(x + w), r(y)], [r(x + w), r(y + h)], [r(x), r(y + h)]] };
+      try {
+        const saved = creating ? await api("/api/work-zones", { method: "POST", body }) : await api(`/api/work-zones/${current.id}`, { method: "PATCH", body });
+        toast(creating ? "구역을 만들었습니다." : "구역을 저장했습니다.");
+        await load(saved.id);
+      } catch (err) { toast(err.message); }
+    });
+    $("del").addEventListener("click", async () => {
+      if (!confirm(`${current.name} 구역을 삭제할까요?`)) return;
+      try {
+        await api(`/api/work-zones/${current.id}`, { method: "DELETE" });
+        toast("구역을 삭제했습니다.");
+        await load(null);
+      } catch (err) { toast(err.message); }
+    });
+
+    load(Number(new URLSearchParams(location.search).get("zone"))).catch((err) => toast(err.message));
+  </script>
+</body>
+</html>
