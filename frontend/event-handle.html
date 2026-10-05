@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: auto minmax(0, 1fr); }
     .results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .results .tc-card strong { font-size: 16px; }
     .results .ok-card { border-left-color: var(--green); }
@@ -33,7 +32,7 @@
 
     <header class="cell head"></header>
 
-    <main class="main">
+    <main class="main scroll">
       <section class="cell">
         <div class="pad" id="work">
           <div class="row between"><div class="label" id="work-title">이벤트를 고르세요</div><div id="work-status"></div></div>
@@ -61,7 +60,7 @@
           </div>
         </div>
       </section>
-      <section class="cell" style="overflow:auto">
+      <section class="cell">
         <div class="pad">
           <div class="label">이 이벤트의 처리 이력</div>
           <div class="log" id="log"></div>

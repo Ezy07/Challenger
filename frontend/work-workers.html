@@ -14,6 +14,8 @@
     .work-sum div > b { font-size: 15px; }
     .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
     .tbl tr.sp-row td:first-child { box-shadow: inset 3px 0 0 var(--orange); }
+    .cell { scrollbar-width: none; }  /* 스크롤바만 숨김 (휠 스크롤은 그대로) */
+    .cell::-webkit-scrollbar { display: none; }
     @media (max-width: 1100px) { .work-sum { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
