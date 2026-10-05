@@ -116,8 +116,14 @@
     });
     $("f-date").addEventListener("change", () => load().catch((err) => toast(err.message)));
 
-    $("f-date").value = todayStr();
-    load().catch((err) => toast(err.message));
+    // ?id= 로 열면 그 이벤트가 난 날짜의 목록을 연다 (지난 날짜 이벤트도 보이게)
+    async function start() {
+      const want = Number(new URLSearchParams(location.search).get("id"));
+      const ev = want ? await api("/api/events/" + want).catch(() => null) : null;
+      $("f-date").value = ev ? ev.detected_at.slice(0, 10) : todayStr();
+      await load();
+    }
+    start().catch((err) => toast(err.message));
   </script>
 </body>
 </html>

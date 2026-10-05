@@ -1,9 +1,9 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import select
 
-from app.models import Camera, DetectionType, Roi, RoiRule, Severity
+from app.models import Camera, DetectionType, Event, Roi, RoiRule, Severity
 
 
 def cam_id(db_session, name="CAM_0001"):
@@ -169,3 +169,23 @@ def test_demo_history_is_consistent(client, manager):
         detail = client.get(f"/api/events/{row['id']}", headers=manager).json()
         assert all(c["permitted"] for c in detail["check_items"])
         assert detail["actions"][-1]["action_type"] == "RESOLVE"
+
+
+def test_ingest_converts_timezone_and_rejects_future(client, ingest, db_session):
+    cam = cam_id(db_session)
+    local = datetime(2026, 10, 2, 9, 0, 0)
+    utc = local.astimezone().astimezone(timezone.utc)  # 같은 순간을 UTC 로
+    body = {"detection_type": "NO_HELMET", "camera_id": cam, "confidence": 0.9}
+
+    first = client.post("/api/events", json={**body, "detected_at": utc.isoformat()}, headers=ingest).json()
+    assert first["created"]
+    with db_session() as db:
+        assert db.get(Event, first["event_id"]).detected_at == local
+
+    # 같은 순간 + 30초를 다른 시간대로 보내도 쿨다운으로 잡힌다
+    kst = (local + timedelta(seconds=30)).astimezone().astimezone(timezone(timedelta(hours=9)))
+    soon = client.post("/api/events", json={**body, "detected_at": kst.isoformat()}, headers=ingest).json()
+    assert soon["reason"].startswith("쿨다운")
+
+    future = (datetime.now() + timedelta(hours=1)).isoformat()
+    assert client.post("/api/events", json={**body, "detected_at": future}, headers=ingest).status_code == 422

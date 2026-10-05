@@ -27,6 +27,14 @@ DEFAULT_COLUMNS = ["id", "time", "camera", "zone", "type", "severity", "confiden
 WIDTHS = {"id": 10, "time": 20, "camera": 12, "zone": 22, "type": 16, "severity": 8, "confidence": 8,
           "status": 10, "handler": 12, "memo": 40, "snapshot": 40}
 SEVERITY_FILL = {"높음": "FFE3E3", "중간": "FFF1D6", "낮음": "E3F6EA"}
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def safe_cell(value):
+    """엑셀이 수식으로 읽지 않게 = + - @ 로 시작하는 글자 앞에 ' 를 붙인다 (빈 값 표시 "-" 는 그대로)"""
+    if isinstance(value, str) and value != "-" and value.startswith(FORMULA_START):
+        return "'" + value
+    return value
 
 
 def to_csv(columns: list[str], rows: list[dict]) -> bytes:
@@ -35,7 +43,7 @@ def to_csv(columns: list[str], rows: list[dict]) -> bytes:
     w = csv.writer(buf)
     w.writerow([COLUMNS[c] for c in columns])
     for r in rows:
-        w.writerow([r[c] for c in columns])
+        w.writerow([safe_cell(r[c]) for c in columns])
     return ("﻿" + buf.getvalue()).encode("utf-8")
 
 
@@ -46,7 +54,7 @@ def to_xlsx(columns: list[str], rows: list[dict], title: str) -> bytes:
     ws.title = "이벤트"
     ws.append([COLUMNS[c] for c in columns])
     for r in rows:
-        ws.append([r[c] for c in columns])
+        ws.append([safe_cell(r[c]) for c in columns])
     head_fill = PatternFill("solid", fgColor="1C2430")
     for cell in ws[1]:
         cell.font = Font(bold=True, color="FFFFFF")

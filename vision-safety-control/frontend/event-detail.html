@@ -24,7 +24,7 @@
         <div class="label">이벤트 정보 <span id="no-label"></span></div>
         <div id="info"></div>
         <a class="btn primary block" id="handle-link" href="event-handle.html">처리 기록 쓰기</a>
-        <a class="btn block" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a>
+        <a class="btn block" id="snap-link" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a>
         <a class="btn block" href="events.html">← 이벤트 목록</a>
       </div>
     </aside>
@@ -98,6 +98,7 @@
         + row("종류", esc(e.detection_label)) + row("심각도", badge("severity", e.severity))
         + row("신뢰도", conf) + row("처리 상태", badge("eventStatus", e.status));
       $("handle-link").href = "event-handle.html?id=" + e.id;
+      $("snap-link").href = "event-snapshot.html?id=" + e.id;
       $("handle-link").textContent = e.status === "DONE" || e.status === "FALSE" ? "처리 기록 보기" : "처리 기록 쓰기";
 
       $("scene").className = "scene " + SCENE[e.severity];

@@ -122,3 +122,13 @@ def test_history_is_consistent(client, manager, db_session):
         detail = client.get(f"/api/events/{row['id']}", headers=manager).json()
         assert all(c["permitted"] for c in detail["check_items"])
         assert detail["actions"][-1]["action_type"] == "RESOLVE"
+
+
+def test_export_escapes_formulas():
+    from app.exporting import safe_cell, to_csv
+
+    assert safe_cell('=HYPERLINK("http://x","a")') == '\'=HYPERLINK("http://x","a")'
+    assert [safe_cell(v) for v in ["+1", "-1+2", "@SUM(A1)", "-", "보통 메모", 0.9, None]] == \
+        ["'+1", "'-1+2", "'@SUM(A1)", "-", "보통 메모", 0.9, None]
+    rows = list(csv.reader(io.StringIO(to_csv(["memo"], [{"memo": "=1+1"}]).decode("utf-8-sig"))))
+    assert rows[1] == ["'=1+1"]

@@ -40,6 +40,7 @@ from ..schemas import (
 router = APIRouter(prefix="/api/events", tags=["이벤트"])
 
 DEFAULT_RULE = AlertRule(min_confidence=0.5, default_severity=Severity.MEDIUM, cooldown_sec=60, is_active=True)
+FUTURE_SLACK = timedelta(minutes=5)  # AI 프로그램 PC 와 서버 시계가 이만큼은 달라도 받는다
 CLOSED = {EventStatus.DONE, EventStatus.FALSE}
 SEVERITY_RANK = case({Severity.HIGH: 0, Severity.MEDIUM: 1, Severity.LOW: 2}, value=Event.severity)
 STATUS_KO = {EventStatus.NEW: "미처리", EventStatus.ACK: "확인중", EventStatus.DONE: "처리완료", EventStatus.FALSE: "오탐"}
@@ -75,7 +76,10 @@ def ingest(body: EventIn, db: DB):
     if body.confidence is not None and body.confidence < float(min_conf):
         return EventIngestOut(created=False, reason=f"판정 기준 미달 ({body.confidence:.2f} < {float(min_conf):.2f})")
 
-    detected_at = body.detected_at or datetime.now()
+    now = datetime.now()
+    detected_at = body.detected_at or now
+    if detected_at > now + FUTURE_SLACK:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "감지 시각이 서버 시각보다 미래입니다. AI 프로그램 PC 시계를 확인하세요.")
     recent = db.scalar(
         select(Event.id).where(
             Event.detection_type_id == dtype.id,

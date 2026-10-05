@@ -267,15 +267,16 @@ function alertPopHtml() {
     </div>`;
 }
 
-function renderAlerts(items) {
+// items 는 최근 30건만, 숫자는 전체 건수(total)로 센다
+function renderAlerts(items, newTotal, openTotal) {
   const canHandle = (() => { try { return JSON.parse(localStorage.getItem("safety.auth")).user.role !== "VIEWER"; } catch (e) { return false; } })();
   const fresh = items.filter((e) => e.status === "NEW");
   const badge = document.getElementById("alert-badge");
-  badge.textContent = fresh.length;
+  badge.textContent = newTotal;
   badge.hidden = false;
-  badge.classList.toggle("zero", fresh.length === 0);
-  document.getElementById("alert-left").textContent = fresh.length;
-  document.getElementById("alert-ack").textContent = items.length - fresh.length;
+  badge.classList.toggle("zero", newTotal === 0);
+  document.getElementById("alert-left").textContent = newTotal;
+  document.getElementById("alert-ack").textContent = openTotal - newTotal;
   document.getElementById("alert-time").textContent = "마지막 확인 " + new Date().toTimeString().slice(0, 8);
   document.getElementById("feed").innerHTML = items.length ? items.map((e) => {
     const conf = e.confidence == null ? "" : ` · 신뢰도 ${Math.round(e.confidence * 100)}%`;
@@ -303,8 +304,8 @@ function renderAlerts(items) {
 }
 
 function loadAlerts() {
-  return alertFetch("/api/events?status=NEW&status=ACK&size=30")
-    .then((page) => renderAlerts(page.items))
+  return Promise.all([alertFetch("/api/events?status=NEW&status=ACK&size=30"), alertFetch("/api/events?status=NEW&size=1")])
+    .then(([open, fresh]) => renderAlerts(open.items, fresh.total, open.total))
     .catch((err) => {
       if (err.message === "login") {
         // 로그인 전(예시로 여는 화면)에는 숫자 없이 두고, 팝업에서 로그인을 안내

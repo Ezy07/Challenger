@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .models import (
     ActionType,
@@ -206,6 +206,14 @@ class EventIn(BaseModel):
     bbox: list[float] | None = Field(default=None, min_length=4, max_length=4)
     detected_at: datetime | None = None  # 비우면 서버 시각
     snapshot_path: str | None = Field(default=None, max_length=500)
+
+    @field_validator("detected_at")
+    @classmethod
+    def to_local_time(cls, v: datetime | None) -> datetime | None:
+        """DB 는 서버 로컬 시각(시간대 없음)으로 저장한다. "...Z" · "+09:00" 이 붙어 오면 로컬 시각으로 바꾼다"""
+        if v is not None and v.tzinfo is not None:
+            v = v.astimezone().replace(tzinfo=None)
+        return v
 
 
 class EventIngestOut(BaseModel):
