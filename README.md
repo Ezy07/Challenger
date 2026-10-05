@@ -57,7 +57,7 @@ uvicorn app.main:app --reload
 ```
 
 - 화면: <http://localhost:8000> → 로그인 화면 (`choi.dh` / 위에서 정한 비밀번호)
-- `--demo` 로 넣는 시연 데이터: 회원 9명(승인 대기 3 · 잠금 1 포함) · 작업자 13명(특별관리 6 · 교육 이력 포함) · 작업 7건과 배정 · 구역 6곳(배치도 위치 포함) · 장비 10대와 3일치 일일 기록 · 카메라 8대 · ROI 4개와 ROI별 규칙 · 이벤트 9건(처리 기록 · 예시 스냅샷 포함). 날짜는 실행한 날 기준으로 들어갑니다.
+- `--demo` 로 넣는 시연 데이터: 회원 9명(승인 대기 3 · 잠금 1 포함) · 작업자 13명(특별관리 6 · 교육 이력 포함) · 작업 7건과 배정 · 구역 6곳(배치도 위치 포함) · 장비 10대와 3일치 일일 기록 · 카메라 8대 · ROI 4개와 ROI별 규칙 · 이벤트 9건(처리 기록 · 예시 스냅샷 포함). 날짜는 실행한 날 기준으로 들어갑니다. 통계 화면용으로 **지난 30일 이벤트(약 300건)**도 함께 들어가며, `--history-days 0` 으로 빼거나 일수를 바꿀 수 있습니다.
   시연 회원(`oh.sy`, `park.jw` 등)도 관리자와 같은 비밀번호로 로그인됩니다. 예시 스냅샷은 `storage/snapshots/` 에 만들어집니다.
 - API 문서(직접 눌러 보기): <http://localhost:8000/docs>
 
@@ -89,7 +89,9 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 판정 · 심각도 기준 | `GET /api/detection-types` · `PATCH /api/detection-types/{id}/rule` · `POST /api/detection-types/reset-rules` | `alert-threshold.html` · `alert-severity.html` |
 | 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` | `cameras.html` · `camera-edit.html` |
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
-| 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` · `GET /api/events/export.csv` | `events.html` · `event-detail.html` |
+| 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` | `events.html` · `event-detail.html` · `event-snapshot.html` |
+| 이벤트 내보내기 | `GET /api/events/export?format=csv\|xlsx\|zip&columns=…` (목록과 같은 조건) · `GET /api/events/export/preview` | `event-export.html` |
+| 통계 | `GET /api/stats/summary` (기간 · 앞 기간 비교) · `GET /api/stats/trend?days=14` · `GET /api/stats/report` | `stats.html` · `stats-trend.html` · `stats-report.html` (PDF 는 브라우저 인쇄 → PDF로 저장) |
 | 이벤트 처리 | `POST /api/events/{id}/actions` | `event-handle.html` |
 
 나머지 화면은 아직 예시 데이터로 보입니다. 화면에 API 를 붙일 때는 `api.js` 를 `common.js` 앞에 넣고 `api("/api/...")` 로 부르면 됩니다.
@@ -110,7 +112,8 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 - [x] 조직 · 부서 관리, 작업자 · 특별관리 · 교육, 작업 · 배정, 장비 · 일일 기록, 작업구역, 판정 · 심각도 기준 화면 연결
 - [ ] ROI 그리기 저장 · ROI별 규칙 API
 - [ ] 관제화면 패널(TC/작업구역 · 섹터 감지경보 · 특별관리근로자)을 실제 데이터로 (알림 팝업은 30초 조회로 연결됨)
-- [ ] 통계 · 리포트 · 카메라 배치도 화면 연결
+- [x] 이벤트 내보내기(CSV · 엑셀 · 스냅샷 묶음) · 스냅샷 조회 · 통계(요약 · 추이 · 리포트 PDF) 화면 연결
+- [ ] 카메라 배치도 · 단일 카메라 확대 화면 연결
 - [ ] YOLO 탐지 파이프라인 → `POST /api/events` 연동
 - [ ] 스냅샷 이미지 업로드 · 저장 위치 정하기
 - [ ] DB 변경 이력 관리 (Alembic)

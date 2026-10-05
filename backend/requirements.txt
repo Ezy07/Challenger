@@ -6,6 +6,7 @@ cryptography>=42       # MySQL 8 기본 인증(caching_sha2_password)에 필요
 pydantic-settings>=2.4
 bcrypt>=4.2
 pyjwt>=2.9
+openpyxl>=3.1         # 이벤트 엑셀 내보내기
 
 # 테스트
 pytest>=8

@@ -117,3 +117,60 @@ function staffOptions(staff, selected) {
   return '<option value="">담당자 없음</option>' + staff
     .map((u) => `<option value="${u.id}"${u.id === selected ? " selected" : ""}>${esc(u.name)} ${esc(u.position || "")}</option>`).join("");
 }
+
+/* 로그인이 필요한 파일 내려받기 (토큰을 붙여 받은 뒤 브라우저 저장 창으로) */
+async function apiDownload(path, query) {
+  const url = new URL(path, location.origin);
+  Object.entries(query || {}).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === "") return;
+    (Array.isArray(v) ? v : [v]).forEach((one) => url.searchParams.append(k, one));
+  });
+  const auth = getAuth();
+  const res = await fetch(url, { headers: auth ? { Authorization: "Bearer " + auth.access_token } : {} });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(errorText(data && data.detail, res.status));
+  }
+  const name = (/filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") || "") || [])[1] || "download";
+  const link = Object.assign(document.createElement("a"), { href: URL.createObjectURL(await res.blob()), download: name });
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  return name;
+}
+
+/* 차트 툴팁: data-tip-value · data-tip-label 이 있는 표시(막대 · 점)에 마우스를 올리거나 키보드로 고르면 값을 보여 준다.
+   값이 먼저(굵게), 이름이 뒤. 글자는 textContent 로만 넣는다 */
+function attachTips(root) {
+  let tip = document.querySelector(".viz-tip");
+  if (!tip) {
+    tip = document.createElement("div");
+    tip.className = "viz-tip";
+    tip.setAttribute("role", "tooltip");
+    tip.innerHTML = "<b></b><span></span>";
+    document.body.appendChild(tip);
+  }
+  const show = (el, x, y) => {
+    tip.querySelector("b").textContent = el.dataset.tipValue;
+    tip.querySelector("span").textContent = el.dataset.tipLabel;
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, x - w / 2)) + "px";
+    tip.style.top = Math.max(8, y - h - 12) + "px";
+  };
+  const hide = () => { tip.hidden = true; };
+  hide();
+  root.addEventListener("pointermove", (e) => {
+    const el = e.target.closest("[data-tip-value]");
+    if (el && root.contains(el)) show(el, e.clientX, e.clientY); else hide();
+  });
+  root.addEventListener("pointerleave", hide);
+  root.addEventListener("focusin", (e) => {
+    const el = e.target.closest("[data-tip-value]");
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    show(el, r.left + r.width / 2, r.top);
+  });
+  root.addEventListener("focusout", hide);
+}

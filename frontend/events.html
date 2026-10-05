@@ -24,7 +24,7 @@
           <span class="grow"></span>
           <select class="input" id="sort" style="width:150px" aria-label="정렬"><option value="latest">최신순</option><option value="severity">심각도 높은 순</option><option value="confidence">신뢰도 높은 순</option></select>
           <a class="btn" href="event-snapshot.html">🖼 스냅샷으로 보기</a>
-          <a class="btn primary" href="event-export.html">⬇ CSV 내보내기</a>
+          <a class="btn primary" id="to-export" href="event-export.html">⬇ 내보내기</a>
         </div>
         <form class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -98,6 +98,14 @@
       const types = picked("f-type"), sev = picked("f-severity"), st = picked("f-status");
       if (!types.length || !sev.length || !st.length) return render({ total: 0, items: [] });
       const date = $("f-date").value;
+      // 내보내기 화면으로 지금 조건을 넘긴다 (칩을 전부 고른 조건은 생략)
+      const pass = new URLSearchParams();
+      if (date) { pass.append("date_from", date); pass.append("date_to", date); }
+      if ($("f-zone").value) pass.append("work_zone_id", $("f-zone").value);
+      [["detection_type", "f-type", types], ["severity", "f-severity", sev], ["status", "f-status", st]].forEach(([key, id, on]) => {
+        if (on.length !== chips(id).length) on.forEach((v) => pass.append(key, v));
+      });
+      $("to-export").href = "event-export.html?" + pass;
       const data = await api("/api/events", { query: {
         date_from: date, date_to: date, work_zone_id: $("f-zone").value,
         detection_type: types, severity: sev, status: st,

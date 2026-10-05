@@ -216,6 +216,7 @@ class EventIngestOut(BaseModel):
 
 class EventRow(BaseModel):
     id: int
+    snapshot: str | None = None  # 첫 스냅샷 경로 ("snapshots/...")
     detected_at: datetime
     camera_name: str | None
     work_zone_name: str | None

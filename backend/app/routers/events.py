@@ -1,15 +1,15 @@
-import csv
-import io
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.orm import selectinload
 
+from ..config import settings
 from ..deps import DB, CurrentUser, Manager, ingest_key
+from ..exporting import COLUMNS, DEFAULT_COLUMNS, to_csv, to_xlsx, to_zip
 from ..models import (
     ActionType,
     AlertRule,
@@ -23,6 +23,7 @@ from ..models import (
     Roi,
     RoiRule,
     Severity,
+    User,
     WorkZone,
 )
 from ..schemas import (
@@ -120,11 +121,15 @@ Filter = Annotated[EventFilter, Depends()]
 
 # ROI 가 있으면 ROI 의 구역, 없으면 카메라가 놓인 구역
 ZONE_ID = func.coalesce(Roi.work_zone_id, Camera.work_zone_id)
+# 이벤트의 첫 스냅샷 (스냅샷 조회 화면 · 내보내기용)
+FIRST_SNAPSHOT = (
+    select(func.min(EventSnapshot.image_path)).where(EventSnapshot.event_id == Event.id).correlate(Event).scalar_subquery()
+)
 
 
 def filtered(f: EventFilter) -> Select:
     q = (
-        select(Event, Camera.name, WorkZone.name, DetectionType.code, DetectionType.label)
+        select(Event, Camera.name, WorkZone.name, DetectionType.code, DetectionType.label, FIRST_SNAPSHOT)
         .join(DetectionType, Event.detection_type_id == DetectionType.id)
         .outerjoin(Camera, Event.camera_id == Camera.id)
         .outerjoin(Roi, Event.roi_id == Roi.id)
@@ -152,8 +157,9 @@ def filtered(f: EventFilter) -> Select:
     return q.order_by(*order, Event.id.desc())
 
 
-def to_row(event: Event, camera_name, zone_name, code, label) -> EventRow:
+def to_row(event: Event, camera_name, zone_name, code, label, snapshot=None) -> EventRow:
     return EventRow(
+        snapshot=snapshot,
         id=event.id,
         detected_at=event.detected_at,
         camera_name=camera_name,
@@ -180,31 +186,108 @@ def list_events(
     return EventPage(total=total, page=page, size=size, items=[to_row(*r) for r in rows])
 
 
+ExportFormat = Literal["csv", "xlsx", "zip"]
+MEDIA = {
+    "csv": "text/csv; charset=utf-8",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "zip": "application/zip",
+}
+
+
+def pick_columns(columns: list[str] | None) -> list[str]:
+    cols = [c for c in (columns or DEFAULT_COLUMNS) if c in COLUMNS]
+    if not cols:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "넣을 항목을 하나 이상 고르세요.")
+    return list(dict.fromkeys(cols))
+
+
+def export_rows(db: DB, f: EventFilter, limit: int | None = None) -> tuple[list[dict], dict[int, str]]:
+    """내보내기 줄 (화면에 보이는 한글 값). 처리 담당자 · 조치 메모는 마지막 처리 기록에서 가져온다"""
+    q = filtered(f)
+    if limit:
+        q = q.limit(limit)
+    found = db.execute(q).all()
+    ids = [r[0].id for r in found]
+    handler, memo = {}, {}
+    if ids:
+        acts = db.execute(
+            select(EventAction.event_id, User.name, EventAction.memo)
+            .join(User, EventAction.user_id == User.id)
+            .where(EventAction.event_id.in_(ids))
+            .order_by(EventAction.id)
+        )
+        for event_id, user_name, text in acts:
+            handler[event_id] = user_name
+            if text:
+                memo[event_id] = text
+    rows, snapshots = [], {}
+    for r in found:
+        row = to_row(*r)
+        if row.snapshot:
+            snapshots[row.id] = row.snapshot
+        rows.append({
+            "_event_id": row.id,
+            "id": f"EV-{row.id}",
+            "time": row.detected_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "camera": row.camera_name or "-",
+            "zone": row.work_zone_name or "-",
+            "type": row.detection_label,
+            "severity": SEVERITY_KO[row.severity],
+            "confidence": f"{row.confidence:.0%}" if row.confidence is not None else "-",
+            "status": STATUS_KO[row.status],
+            "handler": handler.get(row.id, "-"),
+            "memo": memo.get(row.id, "-"),
+            "snapshot": row.snapshot or "-",
+        })
+    return rows, snapshots
+
+
+def snapshot_file(image_path: str):
+    """event_snapshot.image_path ("snapshots/...") → 실제 파일 (스냅샷 폴더 밖은 막음)"""
+    if not image_path.startswith("snapshots/"):
+        return None
+    path = (settings.snapshot_dir / image_path[len("snapshots/"):]).resolve()
+    root = settings.snapshot_dir.resolve()
+    return path if root in path.parents else None
+
+
+def file_response(content: bytes, fmt: str) -> Response:
+    name = f"events_{datetime.now():%Y%m%d_%H%M}.{fmt}"
+    return Response(content, media_type=MEDIA[fmt], headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@router.get("/export/preview")
+def export_preview(db: DB, _: CurrentUser, f: Filter, columns: Annotated[list[str] | None, Query()] = None):
+    """내보내기 화면의 미리보기: 조건에 맞는 건수와 앞 5줄"""
+    cols = pick_columns(columns)
+    total = db.scalar(select(func.count()).select_from(filtered(f).order_by(None).subquery()))
+    rows, _ = export_rows(db, f, limit=5)
+    return {
+        "total": total,
+        "columns": [{"key": c, "label": COLUMNS[c]} for c in cols],
+        "rows": [[r[c] for c in cols] for r in rows],
+    }
+
+
+@router.get("/export")
+def export(db: DB, _: CurrentUser, f: Filter, format: ExportFormat = "csv",
+           columns: Annotated[list[str] | None, Query()] = None):
+    """이벤트 내보내기: csv (분석용) · xlsx (보고용 서식) · zip (CSV + 이벤트별 탐지 이미지)"""
+    cols = pick_columns(columns)
+    rows, snaps = export_rows(db, f)
+    if format == "xlsx":
+        return file_response(to_xlsx(cols, rows, "이벤트 내보내기"), "xlsx")
+    if format == "zip":
+        files = {eid: p for eid, path in snaps.items() if (p := snapshot_file(path))}
+        return file_response(to_zip(cols, rows, files), "zip")
+    return file_response(to_csv(cols, rows), "csv")
+
+
 @router.get("/export.csv")
 def export_csv(db: DB, _: CurrentUser, f: Filter):
-    """이벤트 목록의 [CSV 내보내기]. 엑셀에서 한글이 깨지지 않게 BOM 을 붙인다."""
-    buf = io.StringIO()
-    buf.write("﻿")
-    w = csv.writer(buf)
-    w.writerow(["번호", "시각", "카메라", "구역", "종류", "심각도", "신뢰도", "처리 상태"])
-    for r in db.execute(filtered(f)).all():
-        row = to_row(*r)
-        w.writerow([
-            f"EV-{row.id}",
-            row.detected_at.strftime("%Y-%m-%d %H:%M:%S"),
-            row.camera_name or "-",
-            row.work_zone_name or "-",
-            row.detection_label,
-            SEVERITY_KO[row.severity],
-            f"{row.confidence:.0%}" if row.confidence is not None else "-",
-            STATUS_KO[row.status],
-        ])
-    filename = f"events_{datetime.now():%Y%m%d_%H%M}.csv"
-    return StreamingResponse(
-        iter([buf.getvalue()]),
-        media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+    """예전 주소 (기본 항목 CSV). 새 화면은 /api/events/export 를 쓴다"""
+    rows, _ = export_rows(db, f)
+    return file_response(to_csv(DEFAULT_COLUMNS, rows), "csv")
 
 
 # ---------------------------------------------------------------- 상세 · 처리

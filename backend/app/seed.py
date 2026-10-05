@@ -8,6 +8,7 @@
 """
 
 import argparse
+import random
 from pathlib import Path
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -376,12 +377,76 @@ def seed_demo(db: Session, password: str, snapshot_dir: Path | None = None) -> N
         db.add(event)
 
 
+# 지난 기록 만들 때 쓰는 값: 감지 유형별 하루 빈도 가중치, 시간대 가중치 (7~18시, 10시 · 14시 무렵 많음)
+HISTORY_TYPE_WEIGHT = {
+    "ZONE_INTRUSION": 9, "EQUIPMENT_PROXIMITY": 7, "NO_HELMET": 6, "NO_VEST": 4, "NO_SIGNALMAN": 4,
+    "ZONE_DWELL": 3, "TC_HOOK_PROXIMITY": 3, "LOAD_OVERHEAD_WORKER": 2, "GROUND_SUBSIDENCE": 1, "WEATHER": 1,
+}
+HISTORY_HOUR_WEIGHT = {7: 2, 8: 4, 9: 6, 10: 8, 11: 6, 12: 2, 13: 6, 14: 9, 15: 7, 16: 5, 17: 3, 18: 1}
+HISTORY_MEMOS = [
+    "현장 확인 후 작업자 이격 조치", "작업 반장에게 전달, 재교육 예정", "통제선 보강", "유도원 배치 후 작업 재개",
+    "인양 중지 후 신호수 배치", "보호구 착용 확인", "출입 통제 후 재개",
+]
+
+
+def seed_history(db: Session, days: int) -> int:
+    """오늘 전 days 일 동안의 지난 이벤트 (통계 · 추이 화면 시연용). 이미 지난 기록이 있으면 건너뛴다.
+    난수 시드를 고정해서 몇 번을 넣어도 같은 데이터가 나온다."""
+    today = datetime.combine(date.today(), datetime.min.time())
+    if days <= 0 or db.scalar(select(Event.id).where(Event.detected_at < today).limit(1)):
+        return 0
+    rnd = random.Random(20261005)
+    types = {t.code: t for t in db.scalars(select(DetectionType))}
+    rules = {r.detection_type_id: r for r in db.scalars(select(AlertRule))}
+    cams = db.scalars(select(Camera).where(Camera.camera_type == CameraType.FIXED).order_by(Camera.id)).all()
+    handlers = db.scalars(select(User).where(User.role.in_([Role.MANAGER, Role.ADMIN]), User.status == UserStatus.ACTIVE)).all()
+    codes, code_w = zip(*[(c, w) for c, w in HISTORY_TYPE_WEIGHT.items() if c in types])
+    hours, hour_w = zip(*HISTORY_HOUR_WEIGHT.items())
+    made = 0
+    for back in range(days, 0, -1):
+        day = today - timedelta(days=back)
+        # 주말은 적게, 시간이 지날수록 조금씩 줄어들게 (안전 조치 효과)
+        base = 5 if day.weekday() >= 5 else 13
+        n = max(1, round(base * (0.8 + 0.4 * back / days) + rnd.randint(-3, 3)))
+        for _ in range(n):
+            code = rnd.choices(codes, code_w)[0]
+            t = types[code]
+            at = day + timedelta(hours=rnd.choices(hours, hour_w)[0], minutes=rnd.randrange(60), seconds=rnd.randrange(60))
+            rule = rules.get(t.id)
+            event = Event(
+                camera_id=None if code == "WEATHER" else rnd.choice(cams).id,
+                detection_type_id=t.id,
+                severity=rule.default_severity if rule else Severity.MEDIUM,
+                confidence=None if code == "WEATHER" else Decimal(str(round(rnd.uniform(0.72, 0.98), 3))),
+                status=EventStatus.FALSE if rnd.random() < 0.1 else EventStatus.DONE,
+                detected_at=at,
+            )
+            who = rnd.choice(handlers).id
+            minutes = rnd.randint(2, 6)
+            event.actions.append(EventAction(user_id=who, action_type=ActionType.ACK, created_at=at + timedelta(minutes=minutes)))
+            if event.status == EventStatus.FALSE:
+                event.actions.append(EventAction(user_id=who, action_type=ActionType.FALSE_ALARM, memo="오탐 · 학습 데이터로 보냄",
+                                                 created_at=at + timedelta(minutes=minutes + rnd.randint(1, 4))))
+            else:
+                for item in t.check_items:  # 해제 항목을 모두 허가해야 처리완료
+                    minutes += rnd.randint(1, 3)
+                    event.actions.append(EventAction(user_id=who, action_type=ActionType.PERMIT, check_item_id=item.id,
+                                                     created_at=at + timedelta(minutes=minutes)))
+                event.actions.append(EventAction(user_id=who, action_type=ActionType.RESOLVE, memo=rnd.choice(HISTORY_MEMOS),
+                                                 created_at=at + timedelta(minutes=minutes + rnd.randint(2, 15))))
+            db.add(event)
+            made += 1
+    db.flush()
+    return made
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--create-tables", action="store_true", help="모델로 테이블 만들기 (없는 테이블만)")
     p.add_argument("--admin-id", default="choi.dh")
     p.add_argument("--admin-password", help="첫 관리자 비밀번호 (주면 관리자 계정을 만듦)")
     p.add_argument("--demo", action="store_true", help="시연용 구역 · 카메라 · 이벤트 넣기")
+    p.add_argument("--history-days", type=int, default=30, help="--demo 때 넣을 지난 이벤트 일수 (통계 화면용, 0 이면 안 넣음)")
     args = p.parse_args()
     if args.demo and not args.admin_password:
         p.error("--demo 는 --admin-password 와 같이 써야 합니다 (시연 회원 비밀번호로도 씀)")
@@ -394,6 +459,9 @@ def main() -> None:
             seed_admin(db, args.admin_id, args.admin_password)
         if args.demo:
             seed_demo(db, args.admin_password, settings.snapshot_dir)
+            made = seed_history(db, args.history_days)
+            if made:
+                print(f"지난 {args.history_days}일 이벤트 {made}건을 넣었습니다")
         db.commit()
     print("완료")
 

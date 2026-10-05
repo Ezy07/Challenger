@@ -14,13 +14,10 @@
 <body>
   <div class="page">
     <aside class="cell left">
-      <div class="pad" data-pick id="list">
-        <div class="label">이벤트 <span>눌러서 미리보기</span></div>
-        <button class="tc-card active" data-ev="0"><div class="code">EV-1042 · 14:32:10</div><strong>신호수 미배치 <span class="status stop">높음</span></strong><p>CAM_0002 · 102동 대형거푸집구역</p></button>
-        <button class="tc-card" data-ev="1"><div class="code">EV-1041 · 14:28:44</div><strong>지반침하 의심 <span class="status warn">중간</span></strong><p>CAM_0003 · Sector A 토공</p></button>
-        <button class="tc-card" data-ev="2"><div class="code">EV-1039 · 13:58:31</div><strong>ROI 침범 <span class="status warn">중간</span></strong><p>CAM_0001 · 101동 갱폼 인양구역</p></button>
-        <button class="tc-card" data-ev="3"><div class="code">EV-1038 · 13:41:09</div><strong>안전모 미착용 <span class="status ok">낮음</span></strong><p>CAM_0004 · 외곽 야적장</p></button>
-        <button class="tc-card" data-ev="4"><div class="code">EV-1036 · 12:57:13</div><strong>굴착기 작업반경 접근 <span class="status stop">높음</span></strong><p>CAM_0003 · Sector A 토공</p></button>
+      <div class="pad" id="list-box">
+        <div class="label">이벤트 <span id="n-list">눌러서 미리보기</span></div>
+        <label class="field">날짜<input class="input" type="date" id="f-date" /></label>
+        <div id="list" style="display:grid; gap:8px"></div>
         <a class="btn block" href="events.html">← 표로 보기</a>
       </div>
     </aside>
@@ -29,61 +26,98 @@
 
     <main class="main">
       <section class="cell cam">
-        <div class="scene red" id="scene">
+        <div class="scene" id="scene">
           <div class="ground-line"></div>
           <div class="bld" style="left:10%; width:22%; height:52%;"></div>
           <div class="mast" style="left:48%; height:64%;"></div>
           <div class="jib" style="left:48%; top:18%; width:34%;"></div>
-          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
-          <div class="box stop" id="box" style="left:58%; top:34%; width:16%; height:36%;"><em id="box-em">신호수 없음 85%</em></div>
+          <div class="box stop" id="box" style="left:56%; top:34%; width:16%; height:36%;"><em id="box-em"></em></div>
         </div>
-        <div class="cam-tag" id="tag">CAM_0002 · 탐지 순간</div>
-        <div class="cam-time" id="time">2026.10.01 14:32:10</div>
-        <div class="cam-zone" id="zone">102동 대형거푸집구역</div>
+        <img id="snap" alt="탐지 순간 스냅샷" hidden style="position:absolute; inset:0; z-index:1; width:100%; height:100%; object-fit:contain; background:#000" />
+        <div class="cam-tag" id="tag">-</div>
+        <div class="cam-time" id="time">-</div>
+        <div class="cam-zone" id="zone">-</div>
       </section>
     </main>
 
     <aside class="cell right">
       <div class="pad">
-        <div class="label">탐지 정보</div>
-        <div class="check stop" id="c-kind"><div><b>종류</b><small id="kind">신호수 미배치 (제38조)</small></div><span class="status stop" id="sev">높음</span></div>
-        <div class="check info"><div><b>신뢰도</b><small>모델이 얼마나 확신하는지</small></div><span class="status info" id="conf">85%</span></div>
-        <div class="check info"><div><b>카메라</b><small id="zone2">102동 대형거푸집구역</small></div><span class="status info" id="cam">CAM_0002</span></div>
-        <div class="check info"><div><b>처리 상태</b><small>담당자 확인 여부</small></div><span class="status stop" id="state">미처리</span></div>
-        <a class="btn primary block" href="event-detail.html">상세 화면으로 (앞뒤 영상 보기)</a>
-        <button class="btn block" data-toast="이미지를 저장했습니다. (예시)">이미지 저장</button>
+        <div class="label">탐지 정보 <span id="ev-no"></span></div>
+        <div class="check" id="c-kind"><div><b>종류</b><small id="kind">-</small></div><span class="status" id="sev">-</span></div>
+        <div class="check info"><div><b>신뢰도</b><small>모델이 얼마나 확신하는지</small></div><span class="status info" id="conf">-</span></div>
+        <div class="check info"><div><b>카메라</b><small id="zone2">-</small></div><span class="status info" id="cam">-</span></div>
+        <div class="check info"><div><b>처리 상태</b><small>담당자 확인 여부</small></div><span id="state">-</span></div>
+        <a class="btn primary block" id="to-detail" href="event-detail.html">상세 화면으로 (처리 기록 보기)</a>
+        <a class="btn block" id="save" href="#" download>이미지 저장</a>
+        <div class="hint" id="snap-note" hidden>이 이벤트의 스냅샷 파일을 찾지 못해 예시 그림을 보여 줍니다.</div>
       </div>
     </aside>
   </div>
 
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    // 고른 이벤트에 맞게 글자만 바꾼다 (그림은 예시)
-    const EV = [
-      ["CAM_0002", "102동 대형거푸집구역", "14:32:10", "신호수 미배치 (제38조)", "높음", "stop", "85%", "미처리", "red", "신호수 없음 85%"],
-      ["CAM_0003", "Sector A 토공", "14:28:44", "지반침하 의심", "중간", "warn", "96%", "확인중", "green", "지반침하 96%"],
-      ["CAM_0001", "101동 갱폼 인양구역", "13:58:31", "ROI 침범", "중간", "warn", "78%", "처리완료", "", "작업자 침범 78%"],
-      ["CAM_0004", "외곽 야적장", "13:41:09", "안전모 미착용", "낮음", "ok", "91%", "오탐", "teal", "안전모 없음 91%"],
-      ["CAM_0003", "Sector A 토공", "12:57:13", "굴착기 작업반경 접근", "높음", "stop", "82%", "처리완료", "green", "굴착기 근접 82%"],
-    ];
+    requireLogin();
     const $ = (id) => document.getElementById(id);
-    document.querySelectorAll("[data-ev]").forEach((btn) => btn.addEventListener("click", () => {
-      const e = EV[btn.dataset.ev];
-      $("tag").textContent = e[0] + " · 탐지 순간";
-      $("cam").textContent = e[0];
-      $("zone").textContent = $("zone2").textContent = e[1];
-      $("time").textContent = "2026.10.01 " + e[2];
-      $("kind").textContent = e[3];
-      $("sev").textContent = e[4];
-      $("sev").className = "status " + e[5];
-      $("c-kind").className = "check " + e[5];
-      $("box").className = "box " + e[5];
-      $("conf").textContent = e[6];
-      $("state").textContent = e[7];
-      $("state").className = "status " + (e[7] === "미처리" ? "stop" : e[7] === "확인중" ? "warn" : e[7] === "오탐" ? "mute" : "ok");
-      $("scene").className = "scene " + e[8];
-      $("box-em").textContent = e[9];
-    }));
+    let events = [], current = null;
+
+    async function load() {
+      const day = $("f-date").value;
+      const page = await api("/api/events", { query: { date_from: day, date_to: day, size: 100 } });
+      events = page.items.filter((e) => e.snapshot);
+      $("n-list").textContent = `${events.length}건 · 눌러서 미리보기`;
+      $("list").innerHTML = events.length ? events.map((e) => `
+        <button class="tc-card" data-id="${e.id}"><div class="code">EV-${e.id} · ${fmtTime(e.detected_at, { date: false })}</div>
+          <strong>${esc(e.detection_label)} ${badge("severity", e.severity)}</strong><p>${esc(e.camera_name || "-")} · ${esc(e.work_zone_name || "-")}</p></button>`).join("")
+        : '<p class="muted">이 날짜에 스냅샷이 있는 이벤트가 없습니다</p>';
+      const want = Number(new URLSearchParams(location.search).get("id"));
+      show(events.find((e) => e.id === want) || events[0]);
+    }
+
+    function show(e) {
+      current = e;
+      document.querySelectorAll("#list .tc-card").forEach((c) => c.classList.toggle("active", e && Number(c.dataset.id) === e.id));
+      if (!e) return;
+      history.replaceState(null, "", "?id=" + e.id);
+      const [cls] = LABEL.severity[e.severity];
+      const conf = e.confidence == null ? "-" : Math.round(e.confidence * 100) + "%";
+      $("ev-no").textContent = "EV-" + e.id;
+      $("tag").textContent = `${e.camera_name || "카메라 없음"} · 탐지 순간`;
+      $("time").textContent = fmtTime(e.detected_at);
+      $("zone").textContent = $("zone2").textContent = e.work_zone_name || "-";
+      $("kind").textContent = e.detection_label;
+      $("sev").className = "status " + cls;
+      $("sev").textContent = LABEL.severity[e.severity][1];
+      $("c-kind").className = "check " + cls;
+      $("box").className = "box " + cls;
+      $("box-em").textContent = `${e.detection_label} ${conf}`;
+      $("conf").textContent = conf;
+      $("cam").textContent = e.camera_name || "-";
+      $("state").innerHTML = badge("eventStatus", e.status);
+      $("to-detail").href = "event-detail.html?id=" + e.id;
+
+      // 실제 스냅샷: 열리면 보여 주고 저장 버튼을 켠다. 못 열면 예시 그림 + 안내
+      const src = "/" + encodeURI(e.snapshot);
+      const ext = e.snapshot.split(".").pop();
+      $("save").href = src;
+      $("save").download = `EV-${e.id}_${e.detection_code.toLowerCase()}.${ext}`;
+      $("snap").onload = () => { if (current === e) { $("snap").hidden = false; $("snap-note").hidden = true; $("save").classList.remove("disabled"); } };
+      $("snap").onerror = () => { if (current === e) { $("snap").hidden = true; $("snap-note").hidden = false; $("save").classList.add("disabled"); } };
+      $("snap").hidden = true;
+      $("snap").src = src;
+    }
+
+    $("list").addEventListener("click", (ev) => {
+      const c = ev.target.closest("[data-id]");
+      if (c) show(events.find((e) => e.id === Number(c.dataset.id)));
+    });
+    $("save").addEventListener("click", (ev) => {
+      if ($("save").classList.contains("disabled")) { ev.preventDefault(); toast("저장할 스냅샷 파일이 없습니다."); }
+    });
+    $("f-date").addEventListener("change", () => load().catch((err) => toast(err.message)));
+
+    $("f-date").value = todayStr();
+    load().catch((err) => toast(err.message));
   </script>
 </body>
 </html>
