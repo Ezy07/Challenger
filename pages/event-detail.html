@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3-1 이벤트 상세 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr) auto; }
+    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .info-row > span { color: var(--muted); font-weight: 700; }
+    .info-row b { text-align: right; }
+    .clip { padding: 12px 14px; display: grid; gap: 10px; overflow: hidden; }
+    .scrub { position: relative; height: 6px; border-radius: 99px; background: #2a3342; }
+    .scrub i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: inherit; background: var(--orange); }
+    .scrub b { position: absolute; left: 50%; top: -5px; width: 3px; height: 16px; background: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">이벤트 정보 <span>EV-1042</span></div>
+        <div>
+          <div class="info-row"><span>번호</span><b>EV-1042</b></div>
+          <div class="info-row"><span>발생 시각</span><b>2026.10.01 14:32:10</b></div>
+          <div class="info-row"><span>카메라</span><b>CAM_0002</b></div>
+          <div class="info-row"><span>구역</span><b>102동 대형거푸집구역</b></div>
+          <div class="info-row"><span>종류</span><b>신호수 미배치</b></div>
+          <div class="info-row"><span>관련 법규</span><b>산안법 제38조</b></div>
+          <div class="info-row"><span>심각도</span><b><span class="status stop">높음</span></b></div>
+          <div class="info-row"><span>처리 상태</span><b><span class="status stop">미처리</span></b></div>
+        </div>
+        <a class="btn primary block" href="event-handle.html">처리 기록 쓰기</a>
+        <a class="btn block" href="timeline.html">타임라인에서 보기</a>
+        <a class="btn block" href="events.html">← 이벤트 목록</a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell cam">
+        <div class="scene red">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
+          <div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em>신호수 없음 85%</em></div>
+          <div class="box" style="left:22%; top:46%; width:8%; height:24%;"><em>작업자 92%</em></div>
+          <div class="box info" style="left:72%; top:52%; width:7%; height:12%;"><em>인양물</em></div>
+        </div>
+        <div class="cam-tag">CAM_0002 · 탐지 순간</div>
+        <div class="cam-time">14:32:10</div>
+        <div class="cam-zone">102동 대형거푸집구역</div>
+      </section>
+      <section class="cell clip">
+        <div class="row between">
+          <div class="label">앞뒤 영상 클립 <span>탐지 전 10초 ~ 후 10초</span></div>
+          <div class="row">
+            <button class="btn sm" data-toast="영상 재생은 저장 서버 연결 후 동작합니다.">▶ 재생</button>
+            <button class="btn sm" data-toast="클립을 내려받았습니다. (예시)">⬇ 클립 저장</button>
+          </div>
+        </div>
+        <div class="scrub"><i></i><b></b></div>
+        <div class="thumbs" data-pick>
+          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div></div><span>-10초</span></div>
+          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div></div><span>-5초</span></div>
+          <div class="thumb on"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"></div></div><span>탐지 14:32:10</span></div>
+          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="box stop" style="left:60%; top:34%; width:16%; height:36%;"></div></div><span>+5초</span></div>
+          <div class="thumb"><div class="scene red"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="box stop" style="left:62%; top:34%; width:16%; height:36%;"></div></div><span>+10초</span></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">탐지된 객체 <span>3개</span></div>
+        <div class="check stop"><div><b>신호수 없음</b><small>인양 중 신호수 미탐지</small></div><span class="status stop">85%</span></div>
+        <div class="check"><div><b>작업자</b><small>안전모 · 조끼 착용</small></div><span class="status ok">92%</span></div>
+        <div class="check info"><div><b>인양물 (거푸집)</b><small>T-CRN-02 후크</small></div><span class="status info">79%</span></div>
+
+        <div class="label" style="margin-top:6px">해야 할 조치</div>
+        <div class="check stop"><div><b>인양 중지</b><small>신호수를 배치한 뒤 재개</small></div><span class="status stop">즉시</span></div>
+        <div class="check warn"><div><b>담당자 연락</b><small>박진우 차장 (양중)</small></div><span class="status warn">필요</span></div>
+
+        <div class="label" style="margin-top:6px">같은 구역의 비슷한 이벤트</div>
+        <a class="item ok" href="event-detail.html"><div class="item-top"><b>EV-1034 펌프카 붐 하부 출입</b></div><div class="desc">10:12:47 · 처리완료</div></a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>4-4 리포트 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr); }
+    .paper-wrap { padding: 18px; display: grid; justify-items: center; }
+    .paper { width: min(720px, 100%); background: #f6f7f9; color: #1c2430; border-radius: 6px; padding: 34px 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.45); display: grid; gap: 18px; }
+    .paper h2 { font-size: 22px; letter-spacing: -0.03em; }
+    .paper .meta { color: #5d6b7c; font-size: 12px; margin-top: 4px; }
+    .paper h3 { font-size: 14px; border-left: 4px solid #ff9a1f; padding-left: 8px; }
+    .paper table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .paper th, .paper td { padding: 7px 8px; border-bottom: 1px solid #dde2e8; text-align: left; }
+    .paper th { background: #eceff3; }
+    .paper .sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .paper .sum div { background: #fff; border: 1px solid #dde2e8; border-radius: 8px; padding: 10px; }
+    .paper .sum span { display: block; font-size: 11px; color: #5d6b7c; font-weight: 700; }
+    .paper .sum b { font-size: 22px; }
+    .paper p { font-size: 13px; line-height: 1.6; color: #3d4a5a; }
+    .mini { display: grid; gap: 6px; }
+    .mini div { display: grid; grid-template-columns: 120px 1fr 34px; gap: 8px; align-items: center; font-size: 12px; }
+    .mini i { height: 8px; border-radius: 99px; background: #ff9a1f; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">보고서 설정</div>
+        <div class="field">종류
+          <div class="chips" data-single><span class="chip">일간</span><span class="chip on">주간</span><span class="chip">월간</span></div>
+        </div>
+        <label class="field">시작 날짜<input class="input" type="date" value="2026-09-25" /></label>
+        <label class="field">끝 날짜<input class="input" type="date" value="2026-10-01" /></label>
+        <div class="field">넣을 내용
+          <label class="opt"><input type="checkbox" checked /> 요약 숫자</label>
+          <label class="opt"><input type="checkbox" checked /> 종류별 건수</label>
+          <label class="opt"><input type="checkbox" checked /> 구역별 건수 · 히트맵</label>
+          <label class="opt"><input type="checkbox" checked /> 높음 이벤트 목록</label>
+          <label class="opt"><input type="checkbox" /> 스냅샷 이미지</label>
+        </div>
+        <button class="btn primary block" data-toast="미리보기를 새로 만들었습니다. (예시)">미리보기 새로 만들기</button>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell paper-wrap">
+        <div class="paper">
+          <div>
+            <h2>주간 안전관제 보고서</h2>
+            <div class="meta">공동주택 건설현장 · OO단지 101~103동 · 2026.09.25 ~ 10.01 · 작성: 최동현 과장</div>
+          </div>
+          <div class="sum">
+            <div><span>전체 이벤트</span><b>168</b>건</div>
+            <div><span>높음</span><b style="color:#d6363c">31</b>건</div>
+            <div><span>처리율</span><b>96</b>%</div>
+            <div><span>평균 처리</span><b>7</b>분</div>
+          </div>
+          <h3>종류별 건수</h3>
+          <div class="mini">
+            <div><span>위험구역 침범</span><i style="width:100%"></i><b>49</b></div>
+            <div><span>장비 근접</span><i style="width:73%"></i><b>36</b></div>
+            <div><span>안전모 · 조끼 미착용</span><i style="width:63%"></i><b>31</b></div>
+            <div><span>신호수 미배치</span><i style="width:45%"></i><b>22</b></div>
+            <div><span>TC · 기상</span><i style="width:61%"></i><b>30</b></div>
+          </div>
+          <h3>높음 이벤트</h3>
+          <table>
+            <tr><th>일시</th><th>구역</th><th>내용</th><th>조치</th></tr>
+            <tr><td>10.01 14:32</td><td>102동 거푸집</td><td>신호수 미배치</td><td>인양 중지 · 신호수 배치</td></tr>
+            <tr><td>10.01 12:57</td><td>Sector A 토공</td><td>굴착기 작업반경 접근</td><td>유도원 배치</td></tr>
+            <tr><td>09.30 15:10</td><td>101동 갱폼</td><td>인양 하부 출입</td><td>통제선 보강</td></tr>
+          </table>
+          <h3>의견</h3>
+          <p>Sector A 토공 구역에서 굴착기 근접 경보가 반복되어, 작업반경 통제선과 유도원 배치를 늘릴 필요가 있습니다. 안전모 미착용은 지난주보다 40% 줄었습니다.</p>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">내려받기</div>
+        <button class="btn primary block" data-toast="PDF 만들기는 서버 연결 후 동작합니다.">⬇ PDF로 내려받기</button>
+        <button class="btn block" data-toast="인쇄 창을 엽니다. (예시)">🖨 인쇄</button>
+        <div class="label" style="margin-top:8px">지난 보고서</div>
+        <a class="item" href="#"><div class="item-top"><b>주간 09.18 ~ 09.24</b><span class="status info">PDF</span></div><div class="desc">182건 · 처리율 94%</div></a>
+        <a class="item" href="#"><div class="item-top"><b>주간 09.11 ~ 09.17</b><span class="status info">PDF</span></div><div class="desc">201건 · 처리율 91%</div></a>
+        <a class="item" href="#"><div class="item-top"><b>월간 2026.09</b><span class="status info">PDF</span></div><div class="desc">742건 · 처리율 93%</div></a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

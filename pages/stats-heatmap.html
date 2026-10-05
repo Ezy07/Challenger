@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>4-3 히트맵 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr); }
+    .map-cell { display: flex; flex-direction: column; }
+    .map-cell .pad { flex: 1; min-height: 0; }
+    svg.map { flex: 1; width: 100%; min-height: 300px; background: #10151c; border: 1px solid var(--line); border-radius: 12px; }
+    svg.map a:hover rect { stroke: #ff9a1f; stroke-width: 0.6; }
+    .scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); font-weight: 700; }
+    .scale i { width: 160px; height: 10px; border-radius: 99px; background: linear-gradient(90deg, rgba(61,220,132,0.6), rgba(255,176,32,0.8), rgba(255,93,93,0.95)); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">히트맵 설정</div>
+        <div class="field">기간
+          <div class="chips" data-single><span class="chip">오늘</span><span class="chip on">이번 주</span><span class="chip">이번 달</span></div>
+        </div>
+        <label class="field">이벤트 종류
+          <select class="input"><option>전체 종류</option><option>위험구역 침범</option><option>장비 근접</option><option>안전모 · 조끼 미착용</option></select>
+        </label>
+        <div class="field">시간대
+          <div class="chips" data-single><span class="chip on">전체</span><span class="chip">오전</span><span class="chip">오후</span></div>
+        </div>
+        <div class="hint"><b>빨갈수록</b> 이벤트가 많이 난 곳입니다. 구역을 누르면 그 구역의 이벤트 목록으로 이동합니다.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell map-cell">
+        <div class="pad">
+          <div class="row between">
+            <div class="label">OO단지 현장 배치도 <span>이번 주 168건</span></div>
+            <div class="scale">적음 <i></i> 많음</div>
+          </div>
+          <svg class="map" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="hot"><stop offset="0" stop-color="#ff5d5d" stop-opacity="0.95" /><stop offset="0.45" stop-color="#ffb020" stop-opacity="0.55" /><stop offset="1" stop-color="#ffb020" stop-opacity="0" /></radialGradient>
+              <radialGradient id="warm"><stop offset="0" stop-color="#ffb020" stop-opacity="0.8" /><stop offset="1" stop-color="#ffb020" stop-opacity="0" /></radialGradient>
+              <radialGradient id="cool"><stop offset="0" stop-color="#3ddc84" stop-opacity="0.6" /><stop offset="1" stop-color="#3ddc84" stop-opacity="0" /></radialGradient>
+              <pattern id="grid" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M5 0H0V5" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.2" /></pattern>
+            </defs>
+            <rect width="100" height="60" fill="url(#grid)" />
+            <rect x="2" y="2" width="96" height="56" rx="1.5" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.3" stroke-dasharray="1 1" />
+
+            <circle cx="72" cy="40" r="15" fill="url(#hot)" />
+            <circle cx="46" cy="20" r="12" fill="url(#hot)" opacity="0.8" />
+            <circle cx="18" cy="18" r="10" fill="url(#warm)" />
+            <circle cx="20" cy="48" r="8" fill="url(#cool)" />
+            <circle cx="50" cy="44" r="7" fill="url(#warm)" opacity="0.7" />
+
+            <a href="events.html"><rect x="8" y="8" width="18" height="16" rx="1" fill="rgba(142,160,181,0.35)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" /><text x="17" y="17" fill="#fff" font-size="2.6" font-weight="700" text-anchor="middle">101동 갱폼</text><text x="17" y="20.5" fill="#ffd28a" font-size="2.2" text-anchor="middle">31건</text></a>
+            <a href="events.html"><rect x="36" y="8" width="20" height="16" rx="1" fill="rgba(142,160,181,0.35)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" /><text x="46" y="17" fill="#fff" font-size="2.6" font-weight="700" text-anchor="middle">102동 거푸집</text><text x="46" y="20.5" fill="#ffb4b4" font-size="2.2" text-anchor="middle">42건</text></a>
+            <a href="events.html"><rect x="66" y="8" width="18" height="16" rx="1" fill="rgba(142,160,181,0.35)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" /><text x="75" y="17" fill="#fff" font-size="2.6" font-weight="700" text-anchor="middle">103동 외벽</text><text x="75" y="20.5" fill="#c5e4ff" font-size="2.2" text-anchor="middle">14건</text></a>
+            <a href="events.html"><rect x="60" y="32" width="26" height="18" rx="1" fill="rgba(200,140,60,0.25)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" /><text x="73" y="40.5" fill="#fff" font-size="2.6" font-weight="700" text-anchor="middle">Sector A 토공</text><text x="73" y="44" fill="#ffb4b4" font-size="2.2" text-anchor="middle">51건</text></a>
+            <a href="events.html"><rect x="40" y="37" width="16" height="12" rx="1" fill="rgba(108,182,255,0.18)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" /><text x="48" y="43" fill="#fff" font-size="2.4" font-weight="700" text-anchor="middle">자재하역장</text><text x="48" y="46.3" fill="#ffd28a" font-size="2.2" text-anchor="middle">12건</text></a>
+            <a href="events.html"><rect x="8" y="40" width="22" height="13" rx="1" fill="rgba(61,220,132,0.12)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" /><text x="19" y="46.5" fill="#fff" font-size="2.6" font-weight="700" text-anchor="middle">외곽 야적장</text><text x="19" y="50" fill="#b9f5d2" font-size="2.2" text-anchor="middle">18건</text></a>
+          </svg>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">구역 순위 <span>이번 주</span></div>
+        <a class="item stop" href="events.html"><div class="item-top"><b>1. Sector A 토공</b><span class="status stop">51건</span></div><div class="desc">굴착기 작업반경 접근이 대부분</div><div class="bar stop"><i style="width:100%"></i></div></a>
+        <a class="item stop" href="events.html"><div class="item-top"><b>2. 102동 대형거푸집</b><span class="status stop">42건</span></div><div class="desc">인양 중 신호수 미배치</div><div class="bar stop"><i style="width:82%"></i></div></a>
+        <a class="item warn" href="events.html"><div class="item-top"><b>3. 101동 갱폼</b><span class="status warn">31건</span></div><div class="desc">위험구역 침범</div><div class="bar warn"><i style="width:61%"></i></div></a>
+        <a class="item ok" href="events.html"><div class="item-top"><b>4. 외곽 야적장</b><span class="status ok">18건</span></div><div class="desc">안전모 미착용</div><div class="bar ok"><i style="width:35%"></i></div></a>
+        <a class="item ok" href="events.html"><div class="item-top"><b>5. 103동 외벽</b><span class="status ok">14건</span></div><div class="desc">이상 적음</div><div class="bar ok"><i style="width:27%"></i></div></a>
+        <a class="btn block" href="roi-list.html">위험구역 설정 다시 보기</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

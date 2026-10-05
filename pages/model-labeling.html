@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>9-1 라벨링 도구 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr) auto; }
+    .classes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .classes button { display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 9px; border: 1px solid var(--line); background: #121820; color: var(--ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; text-align: left; }
+    .classes button:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .cdot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+    .masks { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; }
+    .tools { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
+    .tools .field { grid-auto-flow: column; align-items: center; }
+    .tools .input { width: 86px; }
+    .obj { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
+    .obj.on { border-color: var(--orange); }
+    .obj small { color: var(--muted); font-weight: 600; margin-left: auto; }
+    .gal { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .gal div { position: relative; aspect-ratio: 16 / 10; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">영상 <span>sam2_labels 에 저장</span></div>
+        <select class="input"><option>Construction_B.mp4</option><option>pump_site_02.mp4</option><option>CCTV_Short3.mp4</option></select>
+        <div class="label">클래스를 눌러 객체 추가</div>
+        <div class="classes">
+          <button><span class="cdot" style="background:#e5484d"></span>boom</button>
+          <button><span class="cdot" style="background:#f5a524"></span>outtrigger</button>
+          <button><span class="cdot" style="background:#2fbf71"></span>safety railing</button>
+          <button><span class="cdot" style="background:#a78bfa"></span>truck</button>
+          <button><span class="cdot" style="background:#3e9cf0"></span>mixer drum</button>
+          <button><span class="cdot" style="background:#8b4513"></span>dump body</button>
+          <button><span class="cdot" style="background:#ff6b00"></span>excavator</button>
+          <button><span class="cdot" style="background:#00c4ff"></span>aerial lift</button>
+          <button><span class="cdot" style="background:#9acd32"></span>forklift</button>
+          <button><span class="cdot" style="background:#ffd700"></span>work platform</button>
+        </div>
+        <div class="hint">왼쪽 클릭 = 포함 · 오른쪽 클릭 = 제외<br>트럭은 차 전체를 <b>truck</b>, 뒤 드럼만 <b>mixer drum</b>으로 두 번 찍습니다.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell cam">
+        <div class="scene">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:6%; width:18%; height:50%;"></div>
+        </div>
+        <svg class="masks" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polygon points="34,50 46,42 58,42 60,52 86,52 88,80 34,80" fill="rgba(167,139,250,0.35)" stroke="#a78bfa" stroke-width="0.5" />
+          <polygon points="60,46 84,44 88,58 84,70 62,70 58,58" fill="rgba(62,156,240,0.5)" stroke="#3e9cf0" stroke-width="0.6" />
+          <circle cx="40" cy="62" r="1.1" fill="#a78bfa" stroke="#fff" stroke-width="0.4" />
+          <circle cx="54" cy="70" r="1.1" fill="#a78bfa" stroke="#fff" stroke-width="0.4" />
+          <circle cx="76" cy="74" r="1.1" fill="#a78bfa" stroke="#fff" stroke-width="0.4" />
+          <circle cx="72" cy="57" r="1.1" fill="#3e9cf0" stroke="#fff" stroke-width="0.4" />
+          <circle cx="44" cy="50" r="1.1" fill="#111" stroke="#3e9cf0" stroke-width="0.4" />
+        </svg>
+        <div class="cam-tag">Construction_B · 12.4초</div>
+        <div class="cam-zone">미리보기: truck #1 · mixer drum #2</div>
+      </section>
+      <section class="cell tools">
+        <button class="btn sm">◀ 1초</button>
+        <input type="range" min="0" max="100" value="18" style="width:220px" />
+        <button class="btn sm">1초 ▶</button>
+        <label class="field">추적 (장/초)<input class="input" type="number" value="5" /></label>
+        <label class="field">저장 간격 (초)<input class="input" type="number" value="1" /></label>
+        <span class="grow"></span>
+        <button class="btn primary" data-toast="실제 추적은 SAM2 도구(sam2_label.py)에서 실행합니다.">찍은 장면부터 추적 시작</button>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">찍은 객체 <span>2개</span></div>
+        <div class="obj"><span class="cdot" style="background:#a78bfa"></span>truck #1<small>포함 3 · 제외 0</small></div>
+        <div class="obj on"><span class="cdot" style="background:#3e9cf0"></span>mixer drum #2<small>포함 1 · 제외 1</small></div>
+        <a class="btn primary block" href="http://127.0.0.1:5010" target="_blank">SAM2 도구 열기 (127.0.0.1:5010)</a>
+        <div class="hint">진짜 라벨링은 <b>python pumpcar_seg/sam2_label.py</b> 를 실행한 뒤 위 버튼으로 엽니다. 이 화면은 관제 시스템 안에서의 자리 예시입니다.</div>
+        <div class="label" style="margin-top:6px">최근 저장 <span>48장</span></div>
+        <div class="gal">
+          <div><div class="scene"></div></div><div><div class="scene teal"></div></div>
+          <div><div class="scene green"></div></div><div><div class="scene"></div></div>
+        </div>
+        <a class="btn block" href="model-dataset.html">데이터셋 현황 (9-2)</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

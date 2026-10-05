@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>1-3 실시간 알림 패널 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .feed { display: grid; gap: 8px; }
+    .alert { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); border-left: 4px solid var(--green); }
+    .alert.stop { border-left-color: var(--red); }
+    .alert.warn { border-left-color: var(--amber); }
+    .alert.new { animation: flash 1s ease-in-out 3; }
+    @keyframes flash { 50% { background: rgba(255, 93, 93, 0.25); } }
+    .alert time { font-size: 18px; font-weight: 780; font-variant-numeric: tabular-nums; }
+    .alert b { display: block; font-size: 15px; }
+    .alert small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .alert .row { flex-wrap: nowrap; }
+    .done { opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">보여 줄 알림</div>
+        <div class="chips" data-single>
+          <span class="chip on">전체</span><span class="chip">높음</span><span class="chip">중간</span><span class="chip">낮음</span>
+        </div>
+        <div class="chips" data-single>
+          <span class="chip on">미처리만</span><span class="chip">처리한 것도</span>
+        </div>
+
+        <div class="label" style="margin-top:8px">경고음</div>
+        <div class="check"><div><b>경고음 켜기</b><small>새 알림이 오면 소리</small></div><span class="switch on"></span></div>
+        <div class="check stop"><div><b>높음</b><small>사이렌 · 확인할 때까지 반복</small></div><span class="switch on"></span></div>
+        <div class="check warn"><div><b>중간</b><small>짧은 알림음 2번</small></div><span class="switch on"></span></div>
+        <div class="check"><div><b>낮음</b><small>소리 없이 목록에만</small></div><span class="switch"></span></div>
+        <div class="hint"><b>이 패널은</b> 멀티뷰 화면 오른쪽에 붙거나, 상단 🔔 알림 버튼을 누르면 열립니다.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell">
+        <div class="pad">
+          <div class="row between">
+            <div class="label">새 알림 <span>새 것이 위로 쌓입니다</span></div>
+            <button class="btn sm" id="test">🔔 테스트 알림 만들기</button>
+          </div>
+          <div class="feed" id="feed">
+            <div class="alert stop">
+              <time>14:32</time>
+              <div><b>신호수 미배치 · CAM_0002</b><small>102동 대형거푸집구역 · 제38조 · 신뢰도 85%</small></div>
+              <div class="row"><span class="status stop">높음</span><button class="btn sm js-ok">확인</button><a class="btn sm primary" href="event-detail.html">상세</a></div>
+            </div>
+            <div class="alert warn">
+              <time>14:28</time>
+              <div><b>지반침하 의심 · CAM_0003</b><small>Sector A 토공 · 굴착기 EXC_01 주변 · 신뢰도 96%</small></div>
+              <div class="row"><span class="status warn">중간</span><button class="btn sm js-ok">확인</button><a class="btn sm primary" href="event-detail.html">상세</a></div>
+            </div>
+            <div class="alert stop done">
+              <time>14:15</time>
+              <div><b>TC 후크 근접 · 1호기 ↔ 3호기</b><small>후크 간격 12.4m · 정지 기준 진입</small></div>
+              <div class="row"><span class="status ok">처리완료</span><a class="btn sm" href="event-handle.html">기록</a></div>
+            </div>
+            <div class="alert warn done">
+              <time>13:58</time>
+              <div><b>위험구역 침범 · CAM_0001</b><small>101동 갱폼 인양구역 · 작업자 1명 · 신뢰도 78%</small></div>
+              <div class="row"><span class="status ok">처리완료</span><a class="btn sm" href="event-handle.html">기록</a></div>
+            </div>
+            <div class="alert done">
+              <time>13:41</time>
+              <div><b>안전모 미착용 · CAM_0004</b><small>외곽 야적장 · 신뢰도 91%</small></div>
+              <div class="row"><span class="status mute">오탐</span><a class="btn sm" href="event-handle.html">기록</a></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">오늘 알림 요약 <span>00시 이후</span></div>
+        <div class="kpis" style="grid-template-columns:1fr 1fr">
+          <div class="kpi-box"><span>전체</span><strong>24<i>건</i></strong></div>
+          <div class="kpi-box"><span>미처리</span><strong style="color:var(--red)">2<i>건</i></strong></div>
+        </div>
+        <div class="check stop"><div><b>높음</b><small>사람이 바로 확인해야 함</small></div><span class="status stop">5건</span></div>
+        <div class="check warn"><div><b>중간</b><small>현장 점검 필요</small></div><span class="status warn">9건</span></div>
+        <div class="check"><div><b>낮음</b><small>기록만</small></div><span class="status ok">10건</span></div>
+        <a class="btn block" href="events.html">지난 알림은 이벤트 로그에서</a>
+      </div>
+    </aside>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    const feed = document.getElementById("feed");
+    function wireOk(btn) {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".alert");
+        card.classList.add("done");
+        btn.outerHTML = '<span class="status ok">확인</span>';
+      });
+    }
+    document.querySelectorAll(".js-ok").forEach(wireOk);
+    document.getElementById("test").addEventListener("click", () => {
+      const now = new Date();
+      const t = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+      feed.insertAdjacentHTML("afterbegin",
+        '<div class="alert stop new"><time>' + t + '</time>' +
+        '<div><b>위험구역 침범 · CAM_0001</b><small>101동 갱폼 인양구역 · 테스트 알림</small></div>' +
+        '<div class="row"><span class="status stop">높음</span><button class="btn sm js-ok">확인</button>' +
+        '<a class="btn sm primary" href="event-detail.html">상세</a></div></div>');
+      wireOk(feed.querySelector(".js-ok"));
+    });
+  </script>
+</body>
+</html>

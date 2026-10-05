@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>6-2 등록 · 수정 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr); }
+    .form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form .wide { grid-column: 1 / -1; }
+    .help { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+    .test { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">카메라 <span>고르면 수정</span></div>
+        <button class="tc-card"><div class="code">새 카메라</div><strong>＋ 새로 등록</strong></button>
+        <button class="tc-card"><div class="code">CAM_0001</div><strong>101동 갱폼 인양구역</strong></button>
+        <button class="tc-card active"><div class="code">CAM_0002</div><strong>102동 대형거푸집구역</strong></button>
+        <button class="tc-card"><div class="code">CAM_0003</div><strong>Sector A 토공</strong></button>
+        <button class="tc-card"><div class="code">CAM_0004</div><strong>외곽 야적장</strong></button>
+        <button class="tc-card"><div class="code">CAM_0005</div><strong>지하주차장 입구 <span class="status stop">오프라인</span></strong></button>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell">
+        <div class="pad">
+          <div class="label">CAM_0002 정보 <span>* 는 꼭 입력</span></div>
+          <div class="form">
+            <label class="field">카메라 ID *<input class="input" value="CAM_0002" /></label>
+            <label class="field">이름 *<input class="input" value="102동 대형거푸집구역" /></label>
+            <label class="field wide">영상 주소 (RTSP) *
+              <input class="input" value="rtsp://192.168.0.32:554/stream1" />
+              <span class="help">카메라 제조사 설명서에 있는 주소. 보통 rtsp://아이피:554/... 모양입니다.</span>
+            </label>
+            <label class="field">아이디<input class="input" value="admin" /></label>
+            <label class="field">비밀번호<input class="input" type="password" value="password" /></label>
+            <label class="field">설치 위치<input class="input" value="102동 3층 외벽 남측" /></label>
+            <label class="field">소속 구역
+              <select class="input"><option>102동 대형거푸집구역</option><option>101동 갱폼 인양구역</option><option>Sector A 토공</option><option>외곽 야적장</option></select>
+            </label>
+            <label class="field">분석 해상도
+              <select class="input"><option>1920×1080 (정밀)</option><option>1280×720 (보통)</option><option>640×360 (빠름)</option></select>
+            </label>
+            <label class="field">초당 분석 장수 (FPS)<input class="input" type="number" value="15" /></label>
+          </div>
+          <div class="row">
+            <button class="btn" id="test-btn">🔌 연결 테스트</button>
+            <div class="test grow" id="test-out"><span class="muted">연결 테스트를 누르면 결과가 여기에 나옵니다.</span></div>
+          </div>
+          <div class="row between">
+            <button class="btn" style="color:var(--red)" data-toast="카메라 삭제는 데이터베이스 연결 후 동작합니다.">카메라 삭제</button>
+            <div class="row">
+              <a class="btn" href="cameras.html">취소</a>
+              <button class="btn primary" data-toast="카메라 정보를 저장했습니다. (예시)">저장</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">미리보기</div>
+        <div class="cell cam" style="height:180px; box-shadow:none">
+          <div class="scene red"><div class="ground-line"></div><div class="bld" style="left:10%; width:22%; height:52%;"></div><div class="mast" style="left:48%; height:64%;"></div><div class="jib" style="left:48%; top:18%; width:34%;"></div></div>
+          <div class="cam-tag">CAM_0002</div><div class="cam-time js-cam-time"></div>
+        </div>
+        <div class="check"><div><b>사용</b><small>끄면 탐지 · 녹화를 멈춤</small></div><span class="switch on"></span></div>
+        <div class="check"><div><b>녹화 보관</b><small>이벤트 앞뒤 영상 저장</small></div><span class="switch on"></span></div>
+        <a class="btn block" href="roi-draw.html">이 카메라에 위험구역 그리기</a>
+        <a class="btn block" href="camera-map.html">배치도에서 위치 정하기</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    document.getElementById("test-btn").addEventListener("click", () => {
+      const out = document.getElementById("test-out");
+      out.innerHTML = '<span class="muted">연결하는 중…</span>';
+      setTimeout(() => {
+        out.innerHTML = '<span class="status ok">성공</span> 1920×1080 · 15fps 영상을 받았습니다. (예시)';
+      }, 800);
+    });
+  </script>
+</body>
+</html>

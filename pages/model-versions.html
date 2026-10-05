@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>9-3 모델 버전 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .tbl td { vertical-align: middle; }
+    .tbl tr.using td { background: rgba(61, 220, 132, 0.07); }
+    .cmp { display: grid; grid-template-columns: 120px repeat(3, minmax(0, 1fr)); gap: 8px 12px; align-items: center; font-size: 12.5px; font-weight: 700; }
+    .cmp .h { color: var(--muted); font-size: 11.5px; }
+    .cmp .track { height: 10px; border-radius: 99px; background: #2a3342; overflow: hidden; }
+    .cmp .track i { display: block; height: 100%; border-radius: inherit; }
+  </style>
+</head>
+<body>
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell"><div class="pad">
+        <div class="row between">
+          <div class="label">학습한 모델 <span>runs/ 폴더의 best.pt</span></div>
+          <a class="btn" href="model-dataset.html">데이터셋 보기</a>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>이름</th><th>기반 모델</th><th>학습 날짜</th><th>이미지</th><th>mAP50</th><th>mAP50-95</th><th>속도</th><th>상태</th><th></th></tr></thead>
+          <tbody>
+            <tr class="using"><td><b>construction_seg_v3</b></td><td>yolov8s-seg</td><td>2026.09.29</td><td>412</td><td><b>0.812</b></td><td>0.574</td><td>38ms</td><td><span class="status ok">사용 중</span></td><td></td></tr>
+            <tr><td><b>construction_seg_v3_n</b></td><td>yolov8n-seg</td><td>2026.09.29</td><td>412</td><td>0.761</td><td>0.512</td><td>14ms</td><td><span class="status mute">대기</span></td><td><button class="btn sm" data-toast="이 모델로 바꿨습니다. (예시)">적용</button></td></tr>
+            <tr><td><b>construction_seg_coco80</b></td><td>yolov8n-seg</td><td>2026.09.24</td><td>186</td><td>0.702</td><td>0.455</td><td>14ms</td><td><span class="status mute">대기</span></td><td><button class="btn sm" data-toast="이 모델로 바꿨습니다. (예시)">적용</button></td></tr>
+            <tr><td><b>pumpcar_freeze10</b></td><td>yolov8n-seg</td><td>2026.09.23</td><td>2</td><td>0.395</td><td>0.210</td><td>14ms</td><td><span class="status stop">보관</span></td><td><button class="btn sm" data-toast="삭제는 데이터베이스 연결 후 동작합니다.">삭제</button></td></tr>
+          </tbody>
+        </table>
+      </div></section>
+
+      <section class="cell"><div class="pad">
+        <div class="label">클래스별 성능 비교 (mAP50) <span>막대가 길수록 잘 찾음</span></div>
+        <div class="cmp">
+          <span class="h">클래스</span><span class="h">v3 (사용 중)</span><span class="h">v3_n</span><span class="h">coco80</span>
+          <span>truck</span><div class="track"><i style="width:93%; background:var(--green)"></i></div><div class="track"><i style="width:90%; background:var(--blue)"></i></div><div class="track"><i style="width:88%; background:#8e9aab"></i></div>
+          <span>boom</span><div class="track"><i style="width:86%; background:var(--green)"></i></div><div class="track"><i style="width:80%; background:var(--blue)"></i></div><div class="track"><i style="width:71%; background:#8e9aab"></i></div>
+          <span>outtrigger</span><div class="track"><i style="width:79%; background:var(--green)"></i></div><div class="track"><i style="width:72%; background:var(--blue)"></i></div><div class="track"><i style="width:66%; background:#8e9aab"></i></div>
+          <span>mixer drum</span><div class="track"><i style="width:84%; background:var(--green)"></i></div><div class="track"><i style="width:78%; background:var(--blue)"></i></div><div class="track"><i style="width:0%"></i></div>
+          <span>excavator</span><div class="track"><i style="width:81%; background:var(--green)"></i></div><div class="track"><i style="width:76%; background:var(--blue)"></i></div><div class="track"><i style="width:0%"></i></div>
+          <span>dump body</span><div class="track"><i style="width:62%; background:var(--green)"></i></div><div class="track"><i style="width:55%; background:var(--blue)"></i></div><div class="track"><i style="width:0%"></i></div>
+          <span>person</span><div class="track"><i style="width:88%; background:var(--green)"></i></div><div class="track"><i style="width:84%; background:var(--blue)"></i></div><div class="track"><i style="width:86%; background:#8e9aab"></i></div>
+        </div>
+      </div></section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">용어 풀이</div>
+        <div class="check info"><div><b>mAP50</b><small>정답과 절반 이상 겹치게 찾은 정도. 1에 가까울수록 좋음</small></div></div>
+        <div class="check info"><div><b>mAP50-95</b><small>더 깐깐하게 잰 점수. 테두리까지 정확한지</small></div></div>
+        <div class="check info"><div><b>속도</b><small>한 장 분석 시간. CCTV 4대 · 15fps 면 16ms 이하가 좋음</small></div></div>
+        <div class="label" style="margin-top:6px">추천</div>
+        <div class="check warn"><div><b>v3 는 정확하지만 느림</b><small>카메라가 늘면 v3_n 으로 바꾸는 것도 방법</small></div></div>
+        <a class="btn block" href="alert-threshold.html">판정 기준 조정 (7-1)</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

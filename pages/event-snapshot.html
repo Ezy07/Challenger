@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2-2 스냅샷 미리보기 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr); }
+    .left .tc-card { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick id="list">
+        <div class="label">이벤트 <span>눌러서 미리보기</span></div>
+        <button class="tc-card active" data-ev="0"><div class="code">EV-1042 · 14:32:10</div><strong>신호수 미배치 <span class="status stop">높음</span></strong><p>CAM_0002 · 102동 대형거푸집구역</p></button>
+        <button class="tc-card" data-ev="1"><div class="code">EV-1041 · 14:28:44</div><strong>지반침하 의심 <span class="status warn">중간</span></strong><p>CAM_0003 · Sector A 토공</p></button>
+        <button class="tc-card" data-ev="2"><div class="code">EV-1039 · 13:58:31</div><strong>위험구역 침범 <span class="status warn">중간</span></strong><p>CAM_0001 · 101동 갱폼 인양구역</p></button>
+        <button class="tc-card" data-ev="3"><div class="code">EV-1038 · 13:41:09</div><strong>안전모 미착용 <span class="status ok">낮음</span></strong><p>CAM_0004 · 외곽 야적장</p></button>
+        <button class="tc-card" data-ev="4"><div class="code">EV-1036 · 12:57:13</div><strong>굴착기 작업반경 접근 <span class="status stop">높음</span></strong><p>CAM_0003 · Sector A 토공</p></button>
+        <a class="btn block" href="events.html">← 표로 보기</a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell cam">
+        <div class="scene red" id="scene">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
+          <div class="box stop" id="box" style="left:58%; top:34%; width:16%; height:36%;"><em id="box-em">신호수 없음 85%</em></div>
+        </div>
+        <div class="cam-tag" id="tag">CAM_0002 · 탐지 순간</div>
+        <div class="cam-time" id="time">2026.10.01 14:32:10</div>
+        <div class="cam-zone" id="zone">102동 대형거푸집구역</div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">탐지 정보</div>
+        <div class="check stop" id="c-kind"><div><b>종류</b><small id="kind">신호수 미배치 (제38조)</small></div><span class="status stop" id="sev">높음</span></div>
+        <div class="check info"><div><b>신뢰도</b><small>모델이 얼마나 확신하는지</small></div><span class="status info" id="conf">85%</span></div>
+        <div class="check info"><div><b>카메라</b><small id="zone2">102동 대형거푸집구역</small></div><span class="status info" id="cam">CAM_0002</span></div>
+        <div class="check info"><div><b>처리 상태</b><small>담당자 확인 여부</small></div><span class="status stop" id="state">미처리</span></div>
+        <a class="btn primary block" href="event-detail.html">상세 화면으로 (앞뒤 영상 보기)</a>
+        <button class="btn block" data-toast="이미지를 저장했습니다. (예시)">이미지 저장</button>
+      </div>
+    </aside>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    // 고른 이벤트에 맞게 글자만 바꾼다 (그림은 예시)
+    const EV = [
+      ["CAM_0002", "102동 대형거푸집구역", "14:32:10", "신호수 미배치 (제38조)", "높음", "stop", "85%", "미처리", "red", "신호수 없음 85%"],
+      ["CAM_0003", "Sector A 토공", "14:28:44", "지반침하 의심", "중간", "warn", "96%", "확인중", "green", "지반침하 96%"],
+      ["CAM_0001", "101동 갱폼 인양구역", "13:58:31", "위험구역 침범", "중간", "warn", "78%", "처리완료", "", "작업자 침범 78%"],
+      ["CAM_0004", "외곽 야적장", "13:41:09", "안전모 미착용", "낮음", "ok", "91%", "오탐", "teal", "안전모 없음 91%"],
+      ["CAM_0003", "Sector A 토공", "12:57:13", "굴착기 작업반경 접근", "높음", "stop", "82%", "처리완료", "green", "굴착기 근접 82%"],
+    ];
+    const $ = (id) => document.getElementById(id);
+    document.querySelectorAll("[data-ev]").forEach((btn) => btn.addEventListener("click", () => {
+      const e = EV[btn.dataset.ev];
+      $("tag").textContent = e[0] + " · 탐지 순간";
+      $("cam").textContent = e[0];
+      $("zone").textContent = $("zone2").textContent = e[1];
+      $("time").textContent = "2026.10.01 " + e[2];
+      $("kind").textContent = e[3];
+      $("sev").textContent = e[4];
+      $("sev").className = "status " + e[5];
+      $("c-kind").className = "check " + e[5];
+      $("box").className = "box " + e[5];
+      $("conf").textContent = e[6];
+      $("state").textContent = e[7];
+      $("state").className = "status " + (e[7] === "미처리" ? "stop" : e[7] === "확인중" ? "warn" : e[7] === "오탐" ? "mute" : "ok");
+      $("scene").className = "scene " + e[8];
+      $("box-em").textContent = e[9];
+    }));
+  </script>
+</body>
+</html>

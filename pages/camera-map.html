@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>6-3 배치도 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr); }
+    .map-cell { display: flex; flex-direction: column; }
+    .map-cell .pad { flex: 1; min-height: 0; }
+    svg.map { flex: 1; width: 100%; min-height: 300px; background: #10151c; border: 1px solid var(--line); border-radius: 12px; }
+    svg.map a:hover circle { stroke: #ff9a1f; stroke-width: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell map-cell">
+        <div class="pad">
+          <div class="row between">
+            <div class="label">OO단지 현장 배치도 <span>카메라를 누르면 그 화면으로 이동</span></div>
+            <div class="row">
+              <button class="btn sm" data-toast="도면 이미지 올리기는 서버 연결 후 동작합니다.">🖼 도면 바꾸기</button>
+              <button class="btn sm" data-toast="카메라 아이콘을 끌어서 옮길 수 있게 만들 예정입니다. (예시)">✥ 위치 옮기기</button>
+            </div>
+          </div>
+          <svg class="map" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">
+            <defs><pattern id="grid" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M5 0H0V5" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.2" /></pattern></defs>
+            <rect width="100" height="60" fill="url(#grid)" />
+            <rect x="2" y="2" width="96" height="56" rx="1.5" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.3" stroke-dasharray="1 1" />
+            <g fill="rgba(142,160,181,0.3)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3">
+              <rect x="8" y="8" width="18" height="16" rx="1" /><rect x="36" y="8" width="20" height="16" rx="1" /><rect x="66" y="8" width="18" height="16" rx="1" />
+            </g>
+            <rect x="60" y="32" width="26" height="18" rx="1" fill="rgba(200,140,60,0.2)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" />
+            <rect x="40" y="37" width="16" height="12" rx="1" fill="rgba(108,182,255,0.12)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" />
+            <rect x="8" y="40" width="22" height="13" rx="1" fill="rgba(61,220,132,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="0.3" />
+            <g fill="#c5d0dc" font-size="2.4" font-weight="700" text-anchor="middle">
+              <text x="17" y="16.5">101동</text><text x="46" y="16.5">102동</text><text x="75" y="16.5">103동</text>
+              <text x="73" y="42">Sector A 토공</text><text x="48" y="44">자재하역장</text><text x="19" y="47.5">외곽 야적장</text>
+            </g>
+
+            <a href="monitor-camera.html?cam=1"><polygon points="28,28 12,14 24,9" fill="rgba(255,154,31,0.18)" /><circle cx="28" cy="28" r="1.8" fill="#ff9a1f" stroke="#0c1016" stroke-width="0.5" /><text x="28" y="32.5" fill="#fff" font-size="2.3" font-weight="800" text-anchor="middle">CAM_0001</text></a>
+            <a href="monitor-camera.html?cam=2"><polygon points="58,28 40,13 54,9" fill="rgba(255,93,93,0.2)" /><circle cx="58" cy="28" r="1.8" fill="#ff5d5d" stroke="#0c1016" stroke-width="0.5" /><text x="58" y="32.5" fill="#fff" font-size="2.3" font-weight="800" text-anchor="middle">CAM_0002</text></a>
+            <a href="monitor-camera.html?cam=3"><polygon points="92,54 63,33 63,50" fill="rgba(255,176,32,0.18)" /><circle cx="92" cy="54" r="1.8" fill="#ffb020" stroke="#0c1016" stroke-width="0.5" /><text x="90" y="58" fill="#fff" font-size="2.3" font-weight="800" text-anchor="middle">CAM_0003</text></a>
+            <a href="monitor-camera.html?cam=4"><polygon points="36,56 8,45 19,38" fill="rgba(61,220,132,0.18)" /><circle cx="36" cy="56" r="1.8" fill="#3ddc84" stroke="#0c1016" stroke-width="0.5" /><text x="41" y="57" fill="#fff" font-size="2.3" font-weight="800" text-anchor="start">CAM_0004</text></a>
+            <a href="cameras.html"><polygon points="93,6 86,22 97,22" fill="rgba(142,154,171,0.12)" /><circle cx="93" cy="6" r="1.8" fill="#3a4554" stroke="#ff5d5d" stroke-width="0.5" /><text x="88" y="6.8" fill="#ff9b9b" font-size="2.3" font-weight="800" text-anchor="end">CAM_0005 오프라인</text></a>
+          </svg>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">카메라 위치 <span>5대</span></div>
+        <a class="item ok" href="monitor-camera.html?cam=1"><div class="item-top"><b>CAM_0001</b><span class="status ok">온라인</span></div><div class="desc">101동 남측 가설울타리 · 북서쪽을 봄</div></a>
+        <a class="item stop" href="monitor-camera.html?cam=2"><div class="item-top"><b>CAM_0002</b><span class="status ok">온라인</span></div><div class="desc">102동 3층 외벽 남측 · 북서쪽을 봄</div></a>
+        <a class="item ok" href="monitor-camera.html?cam=3"><div class="item-top"><b>CAM_0003</b><span class="status ok">온라인</span></div><div class="desc">동측 경계 철탑 · 서쪽 토공 구간</div></a>
+        <a class="item ok" href="monitor-camera.html?cam=4"><div class="item-top"><b>CAM_0004</b><span class="status ok">온라인</span></div><div class="desc">야적장 입구 기둥 · 서쪽을 봄</div></a>
+        <a class="item" href="camera-edit.html"><div class="item-top"><b>CAM_0005</b><span class="status stop">오프라인</span></div><div class="desc">지하주차장 입구 · 13:05부터 신호 없음</div></a>
+        <div class="hint"><b>부채꼴</b>은 카메라가 보는 범위입니다. 비어 있는 곳(예: 103동 외벽)은 카메라를 더 달아야 할 곳입니다.</div>
+        <a class="btn primary block" href="camera-edit.html">＋ 카메라 추가</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

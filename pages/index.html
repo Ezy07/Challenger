@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>페이지 지도 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto; align-content: start; overflow: auto; }
+    .intro { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 10px; }
+    .intro p { font-size: 13.5px; line-height: 1.7; color: #c5d0dc; }
+    .intro code { font-family: Consolas, monospace; font-size: 12.5px; background: #121820; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; color: var(--ink); }
+    .sec { display: flex; align-items: baseline; gap: 10px; margin: 6px 2px -2px; font-size: 17px; font-weight: 800; }
+    .sec span { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 6px; }
+    .sec .mvp { background: rgba(255, 93, 93, 0.16); color: #ff9b9b; }
+    .sec .ext { background: rgba(108, 182, 255, 0.14); color: #c5e4ff; }
+    .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+    .grp { border-top: 4px solid var(--c); }
+    .grp h3 { display: flex; align-items: center; gap: 9px; font-size: 16px; }
+    .grp h3 i { width: 26px; height: 26px; border-radius: 50%; background: var(--c); color: #0c1016; font-style: normal; font-size: 13px; display: grid; place-items: center; }
+    .grp a { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 2px 8px; padding: 9px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+    .grp a:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .grp a b { grid-row: span 2; color: var(--orange); font-size: 12px; padding-top: 1px; }
+    .grp a strong { font-size: 14px; }
+    .grp a small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .grp a em { grid-column: 2; font-style: normal; font-family: Consolas, monospace; font-size: 11px; color: #6b7889; }
+  </style>
+</head>
+<body>
+  <div class="page full">
+    <header class="cell head"></header>
+    <main class="main scroll">
+      <div class="intro">
+        <section class="cell"><div class="pad">
+          <div class="label">이 폴더는?</div>
+          <p>관제 시스템에 필요한 화면을 <b>기능별로 하나씩 나눠 만든 예시</b>입니다. 디자인은 <code>dashboard.html</code> 을 그대로 따랐고, 숫자와 이름은 모두 가짜 예시입니다.
+          아직 데이터베이스가 없어서 <b>저장 · 삭제 버튼은 안내 문구만</b> 뜹니다. 대신 버튼 · 표의 줄 · 카메라 화면을 누르면 실제로 다음 화면으로 넘어갑니다.</p>
+        </div></section>
+        <section class="cell"><div class="pad">
+          <div class="label">화면 번호 읽는 법</div>
+          <p><code>2-1</code> = 2번 기능(이벤트 로그)의 1번째 화면. 모든 화면 위쪽 제목 칸 왼쪽에 이 번호가 있고, 오른쪽 탭으로 같은 기능의 다른 화면으로 옮겨 갑니다.
+          회의할 때 "2-1 화면의 검색 조건에 담당자도 넣자"처럼 번호로 말하면 됩니다.</p>
+        </div></section>
+      </div>
+      <div class="sec">필수 기능 <span class="mvp">MVP · 먼저 만들 것</span></div>
+      <div class="groups" id="must"></div>
+      <div class="sec">확장 기능 <span class="ext">나중에</span></div>
+      <div class="groups" id="ext"></div>
+    </main>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    // 화면 목록은 common.js 의 MENU 하나에서 가져온다 (여기에 따로 적지 않음)
+    const COLORS = { "1": "#e5484d", "2": "#f5a524", "3": "#2fbf71", "4": "#3e9cf0", "5": "#a78bfa" };
+    const card = (g) => `
+      <section class="cell grp" style="--c:${COLORS[g.no] || "#7f95b2"}"><div class="pad">
+        <h3><i>${g.no}</i>${g.name}</h3>
+        ${g.pages.map((p, i) => `<a href="${p[0]}"><b>${g.no}-${i + 1}</b><strong>${p[1]}</strong><small>${p[2]}</small><em>${p[0]}</em></a>`).join("")}
+      </div></section>`;
+    const must = MENU.filter((g) => Number(g.no) <= 5);
+    const ext = MENU.filter((g) => Number(g.no) > 5).sort((a, b) => a.no - b.no);
+    document.getElementById("must").innerHTML = must.map(card).join("");
+    document.getElementById("ext").innerHTML = ext.map(card).join("") + `
+      <section class="cell grp" style="--c:#c5d0dc"><div class="pad">
+        <h3><i>C</i>공통</h3>
+        <a href="monitor.html"><b>C-1</b><strong>메인 레이아웃</strong><small>모든 화면 위의 상단 메뉴 · 🔔 실시간 알림 배지 (common.js)</small><em>common.js · common.css</em></a>
+        <a href="settings.html"><b>C-2</b><strong>설정 홈</strong><small>6 · 7 · 9 · 10번으로 들어가는 입구</small><em>settings.html</em></a>
+      </div></section>`;
+  </script>
+</body>
+</html>

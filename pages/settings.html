@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>설정 홈 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; align-content: start; overflow: auto; }
+    .group-head { display: flex; align-items: center; gap: 12px; }
+    .group-head .ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; background: var(--panel-2); flex: none; }
+    .group-head b { font-size: 18px; }
+    .group-head small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .links { display: grid; gap: 6px; }
+    .links a { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13.5px; font-weight: 700; }
+    .links a:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .links a b { color: var(--orange); width: 34px; font-size: 12px; }
+    .links a span { color: var(--muted); font-weight: 600; font-size: 12px; margin-left: auto; text-align: right; }
+  </style>
+</head>
+<body>
+  <div class="page full">
+    <header class="cell head"></header>
+    <main class="main scroll" id="groups"></main>
+  </div>
+  <script src="common.js"></script>
+  <script>
+    // common.js 의 MENU 에서 설정 묶음(6 · 7 · 9 · 10)만 골라 카드로 그린다
+    const ICONS = { "6": "📹", "7": "🔔", "9": "🧠", "10": "👤" };
+    const SUMMARY = {
+      "6": "카메라 5대 · 오프라인 1대",
+      "7": "판정 기준 10개 클래스 · 받는 사람 7명",
+      "9": "라벨 412장 · 사용 중 모델 v3",
+      "10": "사용자 7명 · 관리자 2명",
+    };
+    document.getElementById("groups").innerHTML = MENU.filter((g) => g.settings).map((g) => `
+      <section class="cell"><div class="pad">
+        <div class="group-head"><span class="ico">${ICONS[g.no]}</span><div><b>${g.no}. ${g.name}</b><small>${SUMMARY[g.no]}</small></div></div>
+        <div class="links">${g.pages.map((p, i) =>
+          `<a href="${p[0]}"><b>${g.no}-${i + 1}</b>${p[1]}<span>${p[2]}</span></a>`).join("")}</div>
+      </div></section>`).join("");
+  </script>
+</body>
+</html>

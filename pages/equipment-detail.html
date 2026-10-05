@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>8-2 장비 상세 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr) auto; }
+    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .info-row > span { color: var(--muted); font-weight: 700; }
+    .run { position: relative; height: 34px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+    .run i { position: absolute; top: 6px; bottom: 6px; border-radius: 6px; background: var(--green); }
+    .run i.stop { background: var(--red); }
+    .run i.idle { background: #3a4554; }
+    .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">장비 정보 <span>2호기</span></div>
+        <div style="font-size:22px; font-weight:800">🏗 T-CRN-02</div>
+        <div>
+          <div class="info-row"><span>종류</span><b>타워크레인 러핑</b></div>
+          <div class="info-row"><span>지브 길이</span><b>50m</b></div>
+          <div class="info-row"><span>위치</span><b>102동 대형거푸집구역</b></div>
+          <div class="info-row"><span>보는 카메라</span><b>CAM_0002</b></div>
+          <div class="info-row"><span>조종</span><b>이상훈 기사</b></div>
+          <div class="info-row"><span>감독</span><b>박진우 차장 (양중)</b></div>
+          <div class="info-row"><span>지금 상태</span><b><span class="status stop">작업중지</span></b></div>
+        </div>
+        <div class="label" style="margin-top:6px">오늘 점검</div>
+        <div class="check"><div><b>운전 전 점검</b><small>07:10 완료</small></div><span class="status ok">완료</span></div>
+        <div class="check stop"><div><b>신호수 배치</b><small>14:32 미배치 탐지</small></div><span class="status stop">불일치</span></div>
+        <a class="btn block" href="equipment.html">← 장비 목록</a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <a class="cell cam" href="monitor-camera.html?cam=2">
+        <div class="scene red">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
+          <div class="box info" style="left:44%; top:14%; width:40%; height:68%;"><em>T-CRN-02</em></div>
+        </div>
+        <div class="cam-tag">CAM_0002 · 현재 위치</div>
+        <div class="cam-time js-cam-time"></div>
+        <div class="cam-zone">누르면 단일 카메라 화면으로</div>
+      </a>
+      <section class="cell"><div class="pad">
+        <div class="row between"><div class="label">오늘 가동 시간 <span>4시간 32분</span></div>
+          <div class="row" style="font-size:12px; color:var(--muted); font-weight:700">
+            <span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--green)"></i> 가동</span>
+            <span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#3a4554"></i> 대기</span>
+            <span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--red)"></i> 중지</span>
+          </div>
+        </div>
+        <div>
+          <div class="run">
+            <i style="left:9%; width:21%"></i>
+            <i class="idle" style="left:30%; width:6%"></i>
+            <i style="left:36%; width:9%"></i>
+            <i class="idle" style="left:45%; width:10%"></i>
+            <i style="left:55%; width:15%"></i>
+            <i class="stop" style="left:70%; width:3%"></i>
+          </div>
+          <div class="axis"><span>06</span><span>08</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span></div>
+        </div>
+      </div></section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">관련 이벤트 <span>오늘 2건</span></div>
+        <a class="item stop" href="event-detail.html"><div class="item-top"><b>신호수 미배치</b><span class="status stop">높음</span></div><div class="desc">14:32:10 · CAM_0002 · 미처리</div></a>
+        <a class="item ok" href="event-detail.html"><div class="item-top"><b>지브 간격 주의 (1호기)</b><span class="status warn">중간</span></div><div class="desc">11:02:40 · TC · 처리완료</div></a>
+        <div class="label" style="margin-top:6px">이번 주</div>
+        <div class="check info"><div><b>가동 시간</b><small>하루 평균</small></div><span class="status info">5.1시간</span></div>
+        <div class="check warn"><div><b>이벤트</b><small>지난주 7건</small></div><span class="status warn">9건</span></div>
+        <a class="btn block" href="events.html">이 장비 이벤트 전체</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

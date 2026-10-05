@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2-1 이벤트 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .bar-top { padding: 12px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; overflow: hidden; }
+    .tbl-wrap { padding: 0 6px 6px; }
+  </style>
+</head>
+<body>
+  <div class="page no-right">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">검색 조건</div>
+        <label class="field">날짜<input class="input" type="date" value="2026-10-01" /></label>
+        <label class="field">구역
+          <select class="input"><option>전체 구역</option><option>101동 갱폼 인양구역</option><option>102동 대형거푸집구역</option><option>Sector A 토공</option><option>외곽 야적장</option></select>
+        </label>
+        <div class="field">이벤트 종류
+          <div class="chips">
+            <span class="chip on">위험구역 침범</span><span class="chip on">신호수 미배치</span><span class="chip on">안전모 미착용</span>
+            <span class="chip on">장비 근접</span><span class="chip on">TC 후크 근접</span><span class="chip on">기상</span>
+          </div>
+        </div>
+        <div class="field">심각도
+          <div class="chips"><span class="chip on">높음</span><span class="chip on">중간</span><span class="chip on">낮음</span></div>
+        </div>
+        <div class="field">처리 상태
+          <div class="chips"><span class="chip on">미처리</span><span class="chip on">확인중</span><span class="chip on">처리완료</span><span class="chip">오탐</span></div>
+        </div>
+        <div class="row">
+          <button class="btn primary grow" data-toast="검색 조건은 데이터베이스 연결 후 적용됩니다.">검색</button>
+          <button class="btn">초기화</button>
+        </div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell bar-top">
+        <b>검색 결과 24건</b><span class="muted">2026.10.01 · 전체 구역 · 줄을 누르면 상세 화면으로 이동</span>
+        <span class="grow"></span>
+        <select class="input" style="width:150px"><option>최신순</option><option>심각도 높은 순</option><option>신뢰도 높은 순</option></select>
+        <a class="btn" href="event-snapshot.html">🖼 스냅샷으로 보기</a>
+        <a class="btn primary" href="event-export.html">⬇ 내보내기</a>
+      </section>
+      <section class="cell tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>번호</th><th>시각</th><th>카메라</th><th>구역</th><th>종류</th><th>심각도</th><th>신뢰도</th><th>처리 상태</th></tr></thead>
+          <tbody>
+            <tr data-href="event-detail.html"><td class="num">EV-1042</td><td class="num">14:32:10</td><td>CAM_0002</td><td>102동 대형거푸집구역</td><td>신호수 미배치</td><td><span class="status stop">높음</span></td><td class="num">85%</td><td><span class="status stop">미처리</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1041</td><td class="num">14:28:44</td><td>CAM_0003</td><td>Sector A 토공</td><td>지반침하 의심</td><td><span class="status warn">중간</span></td><td class="num">96%</td><td><span class="status warn">확인중</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1040</td><td class="num">14:15:02</td><td>TC 1·3호기</td><td>중앙 자재하역장</td><td>TC 후크 근접</td><td><span class="status stop">높음</span></td><td class="num">-</td><td><span class="status ok">처리완료</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1039</td><td class="num">13:58:31</td><td>CAM_0001</td><td>101동 갱폼 인양구역</td><td>위험구역 침범</td><td><span class="status warn">중간</span></td><td class="num">78%</td><td><span class="status ok">처리완료</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1038</td><td class="num">13:41:09</td><td>CAM_0004</td><td>외곽 야적장</td><td>안전모 미착용</td><td><span class="status ok">낮음</span></td><td class="num">91%</td><td><span class="status mute">오탐</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1037</td><td class="num">13:22:50</td><td>CAM_0001</td><td>101동 갱폼 인양구역</td><td>안전조끼 미착용</td><td><span class="status ok">낮음</span></td><td class="num">88%</td><td><span class="status ok">처리완료</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1036</td><td class="num">12:57:13</td><td>CAM_0003</td><td>Sector A 토공</td><td>굴착기 작업반경 접근</td><td><span class="status stop">높음</span></td><td class="num">82%</td><td><span class="status ok">처리완료</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1035</td><td class="num">11:40:05</td><td>기상</td><td>현장 전체</td><td>강풍 10m/s</td><td><span class="status warn">중간</span></td><td class="num">-</td><td><span class="status ok">처리완료</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1034</td><td class="num">10:12:47</td><td>CAM_0002</td><td>102동 대형거푸집구역</td><td>펌프카 붐 하부 출입</td><td><span class="status stop">높음</span></td><td class="num">87%</td><td><span class="status ok">처리완료</span></td></tr>
+            <tr data-href="event-detail.html"><td class="num">EV-1033</td><td class="num">09:05:30</td><td>CAM_0004</td><td>외곽 야적장</td><td>위험구역 체류 5분 초과</td><td><span class="status warn">중간</span></td><td class="num">74%</td><td><span class="status ok">처리완료</span></td></tr>
+          </tbody>
+        </table>
+        <div class="pagers" data-pick><span class="pager on">1</span><span class="pager">2</span><span class="pager">3</span></div>
+      </section>
+    </main>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>

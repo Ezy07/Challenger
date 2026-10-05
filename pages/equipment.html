@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>8-1 장비 목록 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; align-content: start; overflow: auto; }
+    .eq { display: grid; gap: 10px; padding: 14px; }
+    .eq:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .eq-top { display: flex; align-items: center; gap: 10px; }
+    .eq-ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--panel-2); flex: none; }
+    .eq-top b { display: block; font-size: 15px; }
+    .eq-top small { color: var(--muted); font-size: 12px; }
+    .eq-top .status { margin-left: auto; }
+    .eq dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 12.5px; }
+    .eq dt { color: var(--muted); font-weight: 700; }
+    .eq dd { text-align: right; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">장비 종류 <span>9대</span></div>
+        <button class="tc-card active"><strong>전체 <span class="muted">9</span></strong></button>
+        <button class="tc-card"><strong>🏗 타워크레인 <span class="muted">4</span></strong></button>
+        <button class="tc-card"><strong>🚒 펌프카 <span class="muted">1</span></strong></button>
+        <button class="tc-card"><strong>🚛 믹서트럭 <span class="muted">2</span></strong></button>
+        <button class="tc-card"><strong>🚜 굴착기 <span class="muted">1</span></strong></button>
+        <button class="tc-card"><strong>🚚 덤프트럭 <span class="muted">1</span></strong></button>
+        <div class="hint">장비는 CCTV 탐지 결과(truck · mixer drum · dump body · boom · excavator)와 장비 등록 정보를 합쳐서 보여 줍니다.</div>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main scroll">
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🏗</span><div><b>T-CRN-01 · 1호기</b><small>타워크레인 T형 · 지브 55m</small></div><span class="status ok">작업중</span></div>
+        <dl><dt>위치</dt><dd>101동 갱폼 인양구역</dd><dt>조종</dt><dd>김창식 기사</dd><dt>오늘 가동</dt><dd>5시간 10분</dd><dt>오늘 이벤트</dt><dd>1건</dd></dl>
+      </a>
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🏗</span><div><b>T-CRN-02 · 2호기</b><small>타워크레인 러핑 · 지브 50m</small></div><span class="status stop">작업중지</span></div>
+        <dl><dt>위치</dt><dd>102동 대형거푸집구역</dd><dt>조종</dt><dd>이상훈 기사</dd><dt>오늘 가동</dt><dd>4시간 32분</dd><dt>오늘 이벤트</dt><dd style="color:var(--red)">2건</dd></dl>
+      </a>
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🏗</span><div><b>M-CRN-01 · 3호기</b><small>타워크레인 T형 · 지브 48m</small></div><span class="status ok">작업중</span></div>
+        <dl><dt>위치</dt><dd>중앙 자재하역장</dd><dt>조종</dt><dd>박성민 기사</dd><dt>오늘 가동</dt><dd>3시간 48분</dd><dt>오늘 이벤트</dt><dd>1건</dd></dl>
+      </a>
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🏗</span><div><b>T-CRN-03 · 4호기</b><small>타워크레인 러핑 · 지브 46m</small></div><span class="status mute">대기</span></div>
+        <dl><dt>위치</dt><dd>103동 외벽 인양구역</dd><dt>조종</dt><dd>-</dd><dt>오늘 가동</dt><dd>0시간</dd><dt>오늘 이벤트</dt><dd>0건</dd></dl>
+      </a>
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🚒</span><div><b>PUMP-01</b><small>콘크리트 펌프카 · 붐 42m</small></div><span class="status ok">작업중</span></div>
+        <dl><dt>위치</dt><dd>101동 (CAM_0001)</dd><dt>담당</dt><dd>김철수 과장 (타설)</dd><dt>오늘 가동</dt><dd>2시간 05분</dd><dt>오늘 이벤트</dt><dd>1건</dd></dl>
+      </a>
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🚛</span><div><b>MIX-07 · MIX-12</b><small>믹서트럭 2대 (mixer drum 탐지)</small></div><span class="status info">대기 1 · 진입 1</span></div>
+        <dl><dt>위치</dt><dd>101동 진입로</dd><dt>소속</dt><dd>OO레미콘</dd><dt>오늘 진입</dt><dd>6회</dd><dt>오늘 이벤트</dt><dd>0건</dd></dl>
+      </a>
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🚜</span><div><b>EXC_01</b><small>굴착기 0.8㎥</small></div><span class="status warn">현장점검</span></div>
+        <dl><dt>위치</dt><dd>Sector A 토공 (CAM_0003)</dd><dt>담당</dt><dd>정민수 부장 (토공)</dd><dt>오늘 가동</dt><dd>6시간 20분</dd><dt>오늘 이벤트</dt><dd style="color:var(--amber)">3건</dd></dl>
+      </a>
+      <a class="cell eq" href="equipment-detail.html">
+        <div class="eq-top"><span class="eq-ico">🚚</span><div><b>DUMP-03</b><small>덤프트럭 15t (dump body 탐지)</small></div><span class="status ok">운행중</span></div>
+        <dl><dt>위치</dt><dd>Sector A ↔ 외곽 야적장</dd><dt>소속</dt><dd>OO운수</dd><dt>오늘 운행</dt><dd>11회</dd><dt>오늘 이벤트</dt><dd>0건</dd></dl>
+      </a>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">오늘 장비 요약</div>
+        <div class="kpis" style="grid-template-columns:1fr 1fr">
+          <div class="kpi-box"><span>작업 · 운행 중</span><strong style="color:var(--green)">6<i>대</i></strong></div>
+          <div class="kpi-box"><span>멈춤 · 점검</span><strong style="color:var(--red)">2<i>대</i></strong></div>
+        </div>
+        <div class="check stop"><div><b>T-CRN-02 작업중지</b><small>신호수 미배치 · 14:32</small></div><a class="btn sm" href="event-detail.html">보기</a></div>
+        <div class="check warn"><div><b>EXC_01 현장점검</b><small>지반침하 의심 · 14:28</small></div><a class="btn sm" href="event-detail.html">보기</a></div>
+        <a class="btn block" href="monitor.html">실시간 화면에서 보기</a>
+      </div>
+    </aside>
+  </div>
+  <script src="common.js"></script>
+</body>
+</html>
