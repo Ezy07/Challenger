@@ -47,9 +47,10 @@ async function api(path, { method = "GET", body, query } = {}) {
   const headers = {};
   const auth = getAuth();
   if (auth) headers.Authorization = "Bearer " + auth.access_token;
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const raw = body instanceof Blob; // 파일(도면 그림 등)은 그대로 보낸다
+  if (body !== undefined) headers["Content-Type"] = raw ? body.type || "application/octet-stream" : "application/json";
 
-  const res = await fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const res = await fetch(url, { method, headers, body: body === undefined ? undefined : raw ? body : JSON.stringify(body) });
   if (res.status === 401 && auth) {
     clearAuth();
     goLogin();
@@ -58,6 +59,22 @@ async function api(path, { method = "GET", body, query } = {}) {
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) throw new Error(errorText(data && data.detail, res.status));
   return data;
+}
+
+/* ---------------------------------------------------------------- 현장 도면
+   전체 구역 표시 · 카메라 배치도가 같은 도면 한 장을 배경으로 쓴다 (관리는 카메라 배치도에서).
+   구역 · 카메라 위치는 도면 크기 기준 비율(0~1)이라, 칸이 도면과 같은 가로세로 비율이어야 맞는다. */
+const PLAN_RATIO = 5 / 3; // 도면이 없을 때 격자 배경의 비율
+
+function loadSitePlan() {
+  return api("/api/site-plan");
+}
+
+// .plan 칸에 도면을 깔고 비율을 맞춘다 (plan 이 null 이면 격자 배경)
+function paintPlan(el, plan) {
+  el.style.setProperty("--ratio", plan ? plan.width / plan.height : PLAN_RATIO);
+  el.style.backgroundImage = plan ? `url("${plan.url}")` : "";
+  el.classList.toggle("has-image", Boolean(plan));
 }
 
 /* ---------------------------------------------------------------- 화면 표시 도우미 */

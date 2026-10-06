@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     frontend_dir: Path = ROOT_DIR / "frontend"
     weather_dir: Path = ROOT_DIR / "tools" / "weather"
     snapshot_dir: Path = ROOT_DIR / "storage" / "snapshots"
+    plan_dir: Path = ROOT_DIR / "storage" / "plans"  # 현장 도면 그림 (site_plan.image_path 는 "plans/...")
+    max_plan_mb: int = 15
     video_dir: Path = ROOT_DIR / "storage" / "videos"  # 시연 · 개발용 영상 (카메라 대신)  # event_snapshot.image_path 는 이 폴더 기준 "snapshots/..." 경로
 
 

@@ -142,6 +142,9 @@ class CameraIn(BaseModel):
     stream_url: str | None = Field(default=None, max_length=500)
     location_desc: str | None = Field(default=None, max_length=255)
     is_active: bool = True
+    plan_x: float | None = Field(default=None, ge=0, le=1)
+    plan_y: float | None = Field(default=None, ge=0, le=1)
+    plan_dir: int | None = Field(default=None, ge=0, le=359)
 
 
 class CameraUpdate(BaseModel):
@@ -154,6 +157,9 @@ class CameraUpdate(BaseModel):
     stream_url: str | None = Field(default=None, max_length=500)
     location_desc: str | None = Field(default=None, max_length=255)
     is_active: bool | None = None
+    plan_x: float | None = Field(default=None, ge=0, le=1)  # 셋 다 null 로 보내면 배치도에서 뺀다
+    plan_y: float | None = Field(default=None, ge=0, le=1)
+    plan_dir: int | None = Field(default=None, ge=0, le=359)
 
 
 class CameraOut(Out):
@@ -168,6 +174,25 @@ class CameraOut(Out):
     stream_url: str | None
     location_desc: str | None
     is_active: bool
+    plan_x: float | None = None
+    plan_y: float | None = None
+    plan_dir: int | None = None
+
+
+# ---------------------------------------------------------------- 현장 도면
+class SitePlanOut(Out):
+    title: str
+    url: str  # 브라우저에서 여는 주소 (/plans/파일이름?v=올린시각)
+    original_name: str | None
+    width: int
+    height: int
+    size_bytes: int
+    uploaded_by_name: str | None = None
+    uploaded_at: datetime
+
+
+class SitePlanUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
 
 
 # ---------------------------------------------------------------- 감지 유형

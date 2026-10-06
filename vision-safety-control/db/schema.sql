@@ -53,8 +53,23 @@ CREATE TABLE users (
 CREATE TABLE work_zone (
   id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   name          VARCHAR(100) NOT NULL,                        -- 101동 갱폼 인양구역 등
-  plan_polygon  JSON         NULL,                            -- 배치도 위 영역 [[x,y], ...]
+  plan_polygon  JSON         NULL,                            -- 배치도 위 영역 [[x,y], ...] (도면 크기 기준 0~1)
   PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+-- 현장 도면 (한 장). 전체 구역 표시 · 카메라 배치도의 배경. 그림 파일은 storage/plans
+CREATE TABLE site_plan (
+  id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title          VARCHAR(100) NOT NULL DEFAULT '현장 배치도',
+  image_path     VARCHAR(500) NOT NULL,                       -- plans/site-plan-....png
+  original_name  VARCHAR(255) NULL,                           -- 올린 파일 이름
+  width          INT UNSIGNED NOT NULL,                       -- 그림 크기(px) · 화면 비율 맞추기
+  height         INT UNSIGNED NOT NULL,
+  size_bytes     INT UNSIGNED NOT NULL,
+  uploaded_by    BIGINT UNSIGNED NULL,
+  uploaded_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_site_plan_user FOREIGN KEY (uploaded_by) REFERENCES users (id)
 ) ENGINE=InnoDB;
 
 -- 작업자 · 작업 · 장비 (안전관리자가 매일 관리)
@@ -128,6 +143,9 @@ CREATE TABLE camera (
   stream_url     VARCHAR(500) NULL,                           -- RTSP 주소 등
   location_desc  VARCHAR(255) NULL,
   is_active      TINYINT(1)   NOT NULL DEFAULT 1,
+  plan_x         DECIMAL(5,4) NULL,                           -- 도면 위 위치 (왼쪽 0 ~ 오른쪽 1)
+  plan_y         DECIMAL(5,4) NULL,                           -- (위 0 ~ 아래 1)
+  plan_dir       SMALLINT UNSIGNED NULL,                      -- 보는 방향 (0 = 위쪽, 시계 방향 도)
   PRIMARY KEY (id),
   UNIQUE KEY uk_camera_slot (view_page, view_slot),           -- 한 칸에 카메라 하나
   CONSTRAINT fk_camera_zone      FOREIGN KEY (work_zone_id) REFERENCES work_zone (id),

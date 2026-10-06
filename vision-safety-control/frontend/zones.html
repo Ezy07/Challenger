@@ -9,14 +9,6 @@
   <style>
     .main { grid-template-rows: minmax(0, 1fr); }
     .plan-wrap { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-    .plan {
-      position: relative; flex: 1; min-height: 360px; border-radius: 12px; overflow: hidden;
-      background:
-        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 5% 6.25%,
-        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px) 0 0 / 5% 6.25%,
-        #10151c;
-      border: 1px solid var(--line);
-    }
     .road { position: absolute; background: #1a212b; }
     .road.h { left: 0; right: 0; top: 52%; height: 7%; }
     .road.v { top: 0; bottom: 0; left: 46%; width: 5%; }
@@ -27,6 +19,9 @@
     }
     .zone-box:hover, .zone-box.on { background: color-mix(in srgb, var(--c) 28%, transparent); }
     .zone-box.on { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
+    /* 밝은 도면 위에서도 글자가 읽히게 구역 칸을 어둡게 깐다 */
+    .plan.has-image .zone-box { background: color-mix(in srgb, var(--c) 22%, rgba(10, 14, 20, 0.62)); }
+    .plan.has-image .zone-box:hover, .plan.has-image .zone-box.on { background: color-mix(in srgb, var(--c) 34%, rgba(10, 14, 20, 0.7)); }
     .zone-box:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
     .zone-box b { font-size: 13px; letter-spacing: -0.02em; }
     .zone-box small { font-size: 11px; color: #c5d0dc; font-weight: 600; }
@@ -53,9 +48,10 @@
       <section class="cell plan-wrap">
         <div class="row between">
           <div class="label">현장 배치도 <span>구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
-          <div class="legend"><span><i style="background:#3ddc84"></i>정상</span><span><i style="background:#ffb020"></i>점검 필요</span><span><i style="background:#ff5d5d"></i>작업중지 · 높음 경보</span><span><i style="background:#8e9aab"></i>오늘 작업 없음</span></div>
+          <div class="row"><a class="btn sm" href="camera-map.html" data-need="ADMIN" title="도면은 카메라 배치도와 같이 씁니다">🖼 도면 관리</a>
+          <div class="legend"><span><i style="background:#3ddc84"></i>정상</span><span><i style="background:#ffb020"></i>점검 필요</span><span><i style="background:#ff5d5d"></i>작업중지 · 높음 경보</span><span><i style="background:#8e9aab"></i>오늘 작업 없음</span></div></div>
         </div>
-        <div class="plan" id="plan"><div class="road h"></div><div class="road v"></div></div>
+        <div class="plan-area"><div class="plan" id="plan"><div class="road h"></div><div class="road v"></div></div></div>
       </section>
     </main>
 
@@ -163,7 +159,9 @@
     }
 
     async function load(id) {
-      zones = await api("/api/work-zones/summary");
+      const [list, plan] = await Promise.all([api("/api/work-zones/summary"), loadSitePlan()]);
+      zones = list;
+      paintPlan($("plan"), plan);
       drawPlan();
       show(id);
     }

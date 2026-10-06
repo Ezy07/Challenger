@@ -162,6 +162,24 @@ class WorkZone(Base):
     plan_polygon: Mapped[list | None] = mapped_column(JSON)
 
 
+class SitePlan(Base):
+    """현장 도면 (한 장). 전체 구역 표시 · 카메라 배치도가 같이 쓰고, 구역 · 카메라 위치는 이 그림 위의 비율(0~1)"""
+
+    __tablename__ = "site_plan"
+
+    id: Mapped[int] = mapped_column(Id, primary_key=True)
+    title: Mapped[str] = mapped_column(String(100), default="현장 배치도")
+    image_path: Mapped[str] = mapped_column(String(500))  # "plans/파일이름" (storage 기준)
+    original_name: Mapped[str | None] = mapped_column(String(255))
+    width: Mapped[int] = mapped_column(Integer)  # 그림 크기(px). 화면에서 가로세로 비율을 맞추는 데 씀
+    height: Mapped[int] = mapped_column(Integer)
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    uploaded_by: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    uploader: Mapped[User | None] = relationship()
+
+
 class Camera(Base):
     __tablename__ = "camera"
     __table_args__ = (
@@ -179,6 +197,9 @@ class Camera(Base):
     stream_url: Mapped[str | None] = mapped_column(String(500))
     location_desc: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    plan_x: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # 도면 위 위치 (왼쪽 0 ~ 오른쪽 1)
+    plan_y: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # (위 0 ~ 아래 1)
+    plan_dir: Mapped[int | None] = mapped_column(SmallInteger)     # 보는 방향 (0 = 위쪽, 시계 방향 도)
 
     work_zone: Mapped[WorkZone | None] = relationship()
     equipment: Mapped["Equipment | None"] = relationship()

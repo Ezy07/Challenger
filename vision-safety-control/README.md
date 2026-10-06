@@ -74,7 +74,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `67 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `72 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -87,6 +87,28 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 날짜 | 바뀐 것 | 실행할 SQL |
 |---|---|---|
 | 2026-10-05 | 비밀번호 5번 틀리면 15분 잠금 (`users.locked_until`) | `ALTER TABLE users ADD COLUMN locked_until DATETIME NULL AFTER failed_login_count;` |
+| 2026-10-06 | 현장 도면(`site_plan` 새 테이블) · 카메라 배치도 위치(`camera.plan_x` · `plan_y` · `plan_dir`) | 아래 SQL |
+
+```sql
+-- 2026-10-06 현장 도면 · 카메라 배치도 위치
+CREATE TABLE site_plan (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(100) NOT NULL DEFAULT '현장 배치도',
+  image_path VARCHAR(500) NOT NULL,
+  original_name VARCHAR(255) NULL,
+  width INT UNSIGNED NOT NULL,
+  height INT UNSIGNED NOT NULL,
+  size_bytes INT UNSIGNED NOT NULL,
+  uploaded_by BIGINT UNSIGNED NULL,
+  uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_site_plan_user FOREIGN KEY (uploaded_by) REFERENCES users (id)
+) ENGINE=InnoDB;
+ALTER TABLE camera
+  ADD COLUMN plan_x DECIMAL(5,4) NULL AFTER is_active,
+  ADD COLUMN plan_y DECIMAL(5,4) NULL AFTER plan_x,
+  ADD COLUMN plan_dir SMALLINT UNSIGNED NULL AFTER plan_y;
+```
 
 앞으로 DB 구조를 바꾸면 이 표에 한 줄씩 더하고, `python tools/erd.py` 로 ERD 그림도 다시 만들어 주세요.
 
@@ -106,7 +128,8 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 작업 · 배정 | `GET/POST /api/works` (`?on=날짜`, `?upcoming=true`) · `GET/PATCH/DELETE /api/works/{id}` · `PUT /api/works/{id}/workers` · `GET /api/users/staff` | `works.html` · `zone-works.html` · `work-workers.html` |
 | 장비 · 일일 기록 | `GET/POST /api/equipment` · `GET/PATCH/DELETE /api/equipment/{id}` · `PUT /api/equipment/{id}/logs/{날짜}` · `POST /api/equipment/daily` | `equipment.html` · `equipment-detail.html` · `equipment-assign.html` · `zone-equipment.html` |
 | 판정 · 심각도 기준 | `GET /api/detection-types` · `PATCH /api/detection-types/{id}/rule` · `POST /api/detection-types/reset-rules` | `alert-threshold.html` · `alert-severity.html` |
-| 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` | `cameras.html` · `camera-edit.html` |
+| 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` (배치도 위치 `plan_x` · `plan_y` · `plan_dir` 포함) | `cameras.html` · `camera-edit.html` · `camera-map.html` |
+| 현장 도면 | `GET /api/site-plan` · `PUT /api/site-plan` (본문 = 그림 파일, PNG · JPG · WebP 15MB) · `PATCH` (이름) · `DELETE` — 관리자만 바꿈, 그림은 `storage/plans` · `/plans/…` | `camera-map.html`(관리 · 카메라 위치 옮기기) · `zones.html`(배경) |
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
 | 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` | `events.html` · `event-detail.html` · `event-snapshot.html` |
 | 이벤트 내보내기 | `GET /api/events/export?format=csv\|xlsx\|zip&columns=…` (목록과 같은 조건) · `GET /api/events/export/preview` | `event-export.html` |

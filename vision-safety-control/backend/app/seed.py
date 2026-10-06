@@ -320,11 +320,13 @@ def seed_demo(db: Session, password: str, snapshot_dir: Path | None = None) -> N
                 db.add(WorkAssignment(work_id=work.id, worker_id=workers[wname].id, assigned_date=work.start_date))
 
     # ---------------- 카메라 (1페이지 현장 4대 · 2페이지 TC 4대)
+    # 배치도 위치: 구역 아래쪽 가운데에서 구역(위쪽)을 바라본다. TC CAM 은 크레인에 달려 있어 위치를 두지 않는다
     cams = []
-    for i, (zone, _) in enumerate(ZONES[:4], start=1):
+    for i, (zone, (x, y, w, h)) in enumerate(ZONES[:4], start=1):
         cams.append(get_or_create(db, Camera, {"name": f"CAM_000{i}"}, work_zone_id=zones[zone].id,
                                   camera_type=CameraType.FIXED, view_page=1, view_slot=i,
-                                  stream_url=f"rtsp://192.168.0.{30 + i}:554/stream1", location_desc=f"{zone} 가설울타리 위"))
+                                  stream_url=f"rtsp://192.168.0.{30 + i}:554/stream1", location_desc=f"{zone} 가설울타리 위",
+                                  plan_x=Decimal(str(round(x + w / 2, 3))), plan_y=Decimal(str(round(min(y + h + 0.03, 0.97), 3))), plan_dir=0))
     tcs = [e for e in equipment.values() if e.equip_type == EquipType.TC]
     for i, tc in enumerate(tcs, start=1):
         get_or_create(db, Camera, {"name": f"TC{i}_CAM"}, equipment_id=tc.id, work_zone_id=tc.work_zone_id,
