@@ -44,9 +44,11 @@
         <div class="cam-zone" id="count">점 0개 · 화면을 클릭하세요</div>
       </section>
       <section class="cell tools">
+        <span data-need="MANAGER" style="display:contents">
         <button class="btn" id="undo">↶ 마지막 점 지우기</button>
         <button class="btn" id="clear">처음부터</button>
         <button class="btn" id="sample">예시 구역 불러오기</button>
+        </span>
         <span class="grow"></span>
         <span class="muted">기존 구역</span>
         <span class="chips"><span class="chip on">겹쳐 보기</span></span>
@@ -56,6 +58,8 @@
     <aside class="cell right">
       <div class="pad">
         <div class="label">구역 정보</div>
+        <div class="hint" data-lacks="MANAGER">조회 전용 계정은 구역을 그리거나 바꿀 수 없습니다.</div>
+        <div data-lock="MANAGER" style="display:contents">
         <label class="field">구역 이름<input class="input" value="102동 인양 하부" /></label>
         <label class="field">구역 종류
           <select class="input" id="kind"><option>침범 감지 (들어가면 경보)</option><option>출입금지 (항상 경보)</option><option>장비 작업반경</option><option>안전 통로 (벗어나면 경보)</option></select>
@@ -64,8 +68,9 @@
           <div class="colors" id="colors"><i class="on" style="background:#ff5d5d" data-c="#ff5d5d"></i><i style="background:#ffb020" data-c="#ffb020"></i><i style="background:#6cb6ff" data-c="#6cb6ff"></i><i style="background:#3ddc84" data-c="#3ddc84"></i></div>
         </div>
         <div class="check"><div><b>바로 사용</b><small>저장하면 탐지에 바로 반영</small></div><span class="switch on"></span></div>
-        <button class="btn primary block" data-toast="구역을 저장했습니다. (예시) 규칙은 ROI별 규칙에서 정하세요.">저장</button>
-        <a class="btn block" href="roi-rules.html">저장하고 규칙 정하기 →</a>
+        </div>
+        <button class="btn primary block" data-need="MANAGER" data-toast="구역을 저장했습니다. (예시) 규칙은 ROI별 규칙에서 정하세요.">저장</button>
+        <a class="btn block" href="roi-rules.html" data-need="MANAGER">저장하고 규칙 정하기 →</a>
         <a class="btn block" href="roi-list.html">구역 목록</a>
       </div>
     </aside>

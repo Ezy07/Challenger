@@ -1073,7 +1073,7 @@
       <div class="pop-actions">
         <button type="button" class="pop-act" id="tc3-cancel">취소</button>
         <a class="pop-act" href="event-detail.html">상세 보기</a>
-        <button type="button" class="pop-act go" id="tc3-clear" disabled>경보 해제</button>
+        <button type="button" class="pop-act go" id="tc3-clear" data-need="MANAGER" disabled>경보 해제</button>
       </div>
     </div>
   </div>
@@ -1095,7 +1095,7 @@
       <div class="pop-actions">
         <button type="button" class="pop-act" id="cam-cancel">취소</button>
         <a class="pop-act" href="event-detail.html">상세 보기</a>
-        <button type="button" class="pop-act stop" id="cam-clear">오버랩 해제</button>
+        <button type="button" class="pop-act stop" id="cam-clear" data-need="MANAGER">오버랩 해제</button>
       </div>
     </div>
   </div>
@@ -1436,7 +1436,7 @@
       document.getElementById("tc3-list").innerHTML = TC3_ITEMS.map((it) => {
         const ok = !!tc3Permit[it.id];
         return '<div class="permit-row' + (ok ? " ok" : "") + '"><div><b>' + it.title + "</b><small>" + it.detail + "</small></div>" +
-          '<button type="button" class="permit-btn' + (ok ? " back" : "") + '" data-tc3="' + it.id + '">' + (ok ? "작업 중지로" : "작업 허가") + "</button></div>";
+          '<button type="button" class="permit-btn' + (ok ? " back" : "") + '" data-need="MANAGER" data-tc3="' + it.id + '">' + (ok ? "작업 중지로" : "작업 허가") + "</button></div>";
       }).join("");
       tc3Clear.disabled = !ready;
     }

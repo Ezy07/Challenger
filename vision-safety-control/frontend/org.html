@@ -30,7 +30,7 @@
       <div class="pad">
         <div class="label">조직도 <span>organization</span></div>
         <div class="tree" id="tree"></div>
-        <div class="row">
+        <div class="row" data-need="ADMIN">
           <button class="btn sm" id="add-dept">＋ 하위 부서</button>
           <button class="btn sm" id="add-co">＋ 협력사</button>
         </div>
@@ -48,10 +48,10 @@
           <div><span>소속 회원</span><b id="i-count">0명</b></div>
         </div>
       </section>
-      <section class="cell"><form class="pad" id="form">
+      <section class="cell"><form class="pad" id="form" data-lock="ADMIN">
         <div class="row between">
           <div class="label">이 조직 정보 바꾸기</div>
-          <div class="row"><button class="btn sm" type="button" id="del">삭제</button><button class="btn sm primary">저장</button></div>
+          <div class="row" data-need="ADMIN"><button class="btn sm" type="button" id="del">삭제</button><button class="btn sm primary">저장</button></div>
         </div>
         <div class="two">
           <label class="field">이름<input class="input" id="f-name" required maxlength="100" /></label>

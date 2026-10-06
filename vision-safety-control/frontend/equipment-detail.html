@@ -26,7 +26,7 @@
         <div id="e-info"></div>
         <div class="label" style="margin-top:6px">오늘 점검</div>
         <div id="e-check"></div>
-        <div class="row">
+        <div class="row" data-need="MANAGER">
           <button class="btn grow" id="edit">정보 수정</button>
           <button class="btn" id="del" style="color:var(--red)">삭제</button>
         </div>
@@ -50,7 +50,7 @@
       </a>
       <section class="cell"><div class="pad">
         <div class="label">일일 기록 <span>최근 14일 · 아침 조회 때 한 번</span></div>
-        <form class="row" id="log-form" style="align-items:flex-end; flex-wrap:wrap">
+        <form class="row" id="log-form" style="align-items:flex-end; flex-wrap:wrap" data-need="MANAGER">
           <label class="field">날짜<input class="input" type="date" id="l-date" style="width:150px" /></label>
           <label class="field">상태<select class="input" id="l-status" style="width:110px"><option value="RUNNING">가동</option><option value="IDLE">대기</option><option value="MAINTENANCE">점검</option><option value="BROKEN">고장</option></select></label>
           <label class="field">운전 전 점검<input class="input" type="time" id="l-time" style="width:120px" /></label>

@@ -23,10 +23,10 @@
         <div class="searchbar-row">
           <input class="input" id="q" style="width:220px" placeholder="장비명 · 등록번호로 찾기" />
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
-          <span class="muted" id="changed">바뀐 항목 없음</span>
+          <span class="muted" id="changed" data-need="MANAGER">바뀐 항목 없음</span><span class="muted" data-lacks="MANAGER">조회 전용 · 바꿀 수 없음</span>
           <span class="grow"></span>
-          <button class="btn" id="add">＋ 장비 등록</button>
-          <button class="btn primary" id="save">오늘 기록 저장</button>
+          <button class="btn" id="add" data-need="MANAGER">＋ 장비 등록</button>
+          <button class="btn primary" id="save" data-need="MANAGER">오늘 기록 저장</button>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -37,7 +37,7 @@
         </div>
       </section>
       <section class="cell" style="padding:0 6px 6px; overflow:auto">
-        <table class="tbl">
+        <table class="tbl" data-lock="MANAGER">
           <thead><tr><th>장비</th><th>종류</th><th>등록번호</th><th>투입 구역</th><th>운전원</th><th>상태</th><th>오늘 기록</th><th></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
@@ -116,6 +116,7 @@
           <td>${e.today_log ? '<span class="status ok">기록됨</span>' : '<span class="status mute">없음</span>'}</td>
           <td><a class="btn sm" href="equipment-detail.html?id=${e.id}">상세</a></td></tr>`;
       }).join("") || '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 장비가 없습니다</td></tr>';
+      applyRoleLocks(); // 조회 전용이면 방금 그린 선택 칸도 잠금
       $("changed").textContent = draft.size ? `${draft.size}대 바뀜 · 저장 전` : "바뀐 항목 없음";
       $("changed").style.color = draft.size ? "var(--orange)" : "";
 

@@ -51,14 +51,16 @@
       </div>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
-          <thead><tr><th>이름</th><th>협력사 · 직종</th><th>사유</th><th>메모</th><th>지정일</th><th>지정한 사람</th><th>오늘 위치</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>협력사 · 직종</th><th>사유</th><th>메모</th><th>지정일</th><th>지정한 사람</th><th>오늘 위치</th><th data-need="MANAGER"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
     </main>
 
     <aside class="cell right">
-      <form class="pad" id="form">
+      <div class="pad" data-lacks="MANAGER"><div class="label">특별관리 지정</div>
+        <div class="hint">조회 전용 계정은 특별관리 지정 · 해제를 할 수 없습니다. 바꿔야 하면 안전관리자에게 요청하세요.</div></div>
+      <form class="pad" id="form" data-need="MANAGER">
         <div class="label" id="form-title">특별관리 지정하기</div>
         <label class="field">작업자<select class="input" id="sp-who"></select></label>
         <div class="field">사유 <span class="muted" style="font-weight:600">(여러 개 고를 수 있음)</span>
@@ -113,7 +115,7 @@
           <td class="muted" style="max-width:220px">${esc(w.special_memo || "-")}</td>
           <td class="num">${w.special_since ? w.special_since.replaceAll("-", ".") : "-"}</td><td>${esc(w.special_by_name || "-")}</td>
           <td>${w.today_work ? esc(w.today_work.work_zone_name) : '<span class="muted">배정 없음</span>'}</td>
-          <td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-off>해제</button></div></td></tr>`).join("")
+          <td data-need="MANAGER"><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-off>해제</button></div></td></tr>`).join("")
         : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 작업자가 없습니다</td></tr>';
     }
 

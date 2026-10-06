@@ -24,8 +24,8 @@
           <div class="row between">
             <div class="label">OO단지 현장 배치도 <span>카메라를 누르면 그 화면으로 이동</span></div>
             <div class="row">
-              <button class="btn sm" data-toast="도면 이미지 올리기는 서버 연결 후 동작합니다.">🖼 도면 바꾸기</button>
-              <button class="btn sm" data-toast="카메라 아이콘을 끌어서 옮길 수 있게 만들 예정입니다. (예시)">✥ 위치 옮기기</button>
+              <button class="btn sm" data-need="ADMIN" data-toast="도면 이미지 올리기는 서버 연결 후 동작합니다.">🖼 도면 바꾸기</button>
+              <button class="btn sm" data-need="ADMIN" data-toast="카메라 아이콘을 끌어서 옮길 수 있게 만들 예정입니다. (예시)">✥ 위치 옮기기</button>
             </div>
           </div>
           <svg class="map" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">
@@ -62,7 +62,7 @@
         <a class="item ok" href="monitor-camera.html?cam=4"><div class="item-top"><b>CAM_0004</b><span class="status ok">온라인</span></div><div class="desc">야적장 입구 기둥 · 서쪽을 봄</div></a>
         <a class="item" href="camera-edit.html"><div class="item-top"><b>CAM_0005</b><span class="status stop">오프라인</span></div><div class="desc">지하주차장 입구 · 13:05부터 신호 없음</div></a>
         <div class="hint"><b>부채꼴</b>은 카메라가 보는 범위입니다. 비어 있는 곳(예: 103동 외벽)은 카메라를 더 달아야 할 곳입니다.</div>
-        <a class="btn primary block" href="camera-edit.html">＋ 카메라 추가</a>
+        <a class="btn primary block" href="camera-edit.html" data-need="ADMIN">＋ 카메라 추가</a>
       </div>
     </aside>
   </div>

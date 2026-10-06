@@ -36,7 +36,7 @@
 
     <header class="cell head"></header>
 
-    <main class="main scroll">
+    <main class="main scroll" data-lock="MANAGER">
       <section class="cell"><div class="pad rule">
         <div class="rule-head"><span class="ico">🚷</span><div class="grow"><b>침범</b><small>대상이 구역 안에 들어오면 경보</small></div><span class="switch on"></span></div>
         <div class="inline">심각도 <select class="input" style="width:110px"><option>높음</option><option>중간</option><option>낮음</option></select></div>
@@ -82,8 +82,8 @@
         </div>
         <div class="check stop"><div><b>지금 켜진 규칙</b><small>침범 · 장비 근접 5m</small></div><span class="status stop">2개</span></div>
         <div class="check info"><div><b>이번 주 이벤트</b><small>이 구역에서 생긴 경보</small></div><span class="status info">42건</span></div>
-        <button class="btn primary block" data-toast="규칙을 저장했습니다. (예시)">규칙 저장</button>
-        <a class="btn block" href="roi-draw.html">구역 모양 고치기</a>
+        <button class="btn primary block" data-need="MANAGER" data-toast="규칙을 저장했습니다. (예시)">규칙 저장</button>
+        <a class="btn block" href="roi-draw.html" data-need="MANAGER">구역 모양 고치기</a>
         <a class="btn block" href="alert-severity.html">기본값 보기 (심각도 기준)</a>
       </div>
     </aside>

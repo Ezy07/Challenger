@@ -27,7 +27,7 @@
 
     <main class="main">
       <section class="cell">
-        <form class="pad" id="form">
+        <form class="pad" id="form" data-lock="ADMIN">
           <div class="label"><span id="form-title" style="all:unset">새 카메라</span> <span>* 는 꼭 입력</span></div>
           <div class="form">
             <label class="field">카메라 이름 *<input class="input" id="ce-name" placeholder="예: CAM_0005" required /></label>
@@ -56,7 +56,8 @@
               <span class="help" id="slot-help">같은 페이지의 같은 칸에는 카메라 1대만 둘 수 있습니다.</span>
             </label>
           </div>
-          <div class="row between">
+          <div class="hint" data-lacks="ADMIN">카메라 등록 · 수정은 관리자만 할 수 있습니다. 여기서는 설정을 보기만 합니다.</div>
+          <div class="row between" data-need="ADMIN">
             <button class="btn" type="button" id="del" style="color:var(--red)">카메라 삭제</button>
             <div class="row">
               <a class="btn" href="cameras.html">취소</a>
@@ -75,9 +76,9 @@
           <video class="cam-video" id="pv-video" muted loop playsinline autoplay hidden></video>
           <div class="cam-tag" id="pv-name">새 카메라</div><div class="cam-time js-cam-time"></div>
         </div>
-        <div class="check"><div><b>사용</b><small>끄면 탐지를 멈춤 (관제화면에서도 빠짐)</small></div><span class="switch on" id="ce-active"></span></div>
-        <a class="btn block" id="roi-link" href="roi-draw.html">이 카메라에 ROI 그리기</a>
-        <a class="btn block" href="camera-map.html">배치도에서 위치 정하기</a>
+        <div class="check" data-lock="ADMIN"><div><b>사용</b><small>끄면 탐지를 멈춤 (관제화면에서도 빠짐)</small></div><span class="switch on" id="ce-active"></span></div>
+        <a class="btn block" id="roi-link" href="roi-draw.html" data-need="MANAGER">이 카메라에 ROI 그리기</a>
+        <a class="btn block" href="camera-map.html" data-need="ADMIN">배치도에서 위치 정하기</a>
       </div>
     </aside>
   </div>
@@ -95,7 +96,8 @@
       $("ce-zone").innerHTML = '<option value="">구역 없음</option>' + zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join("");
       $("ce-eq").innerHTML = '<option value="">없음</option>' + eq.filter((e) => e.equip_type === "TC")
         .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`).join("");
-      show(cams.find((c) => c.id === id) || null);
+      // 새로 등록은 관리자만. 아니면 번호가 없을 때 첫 카메라를 보여 준다
+      show(cams.find((c) => c.id === id) || (can("ADMIN") ? null : cams[0] || null));
     }
 
     function show(c) {
@@ -103,7 +105,7 @@
       history.replaceState(null, "", c ? "?id=" + c.id : location.pathname);
       const item = (x) => `<button class="tc-card${cam && x.id === cam.id ? " active" : ""}" data-id="${x.id}">
         <div class="code">${esc(x.name)}${x.is_active ? "" : " · 사용 안 함"}</div><strong>${esc(x.work_zone_name || x.location_desc || "-")}</strong></button>`;
-      $("pick").innerHTML = `<button class="tc-card${cam ? "" : " active"}" data-id=""><div class="code">새 카메라</div><strong>＋ 새로 등록</strong></button>`
+      $("pick").innerHTML = `<button class="tc-card${cam ? "" : " active"}" data-id="" data-need="ADMIN"><div class="code">새 카메라</div><strong>＋ 새로 등록</strong></button>`
         + cams.filter((x) => x.camera_type === "FIXED").map(item).join("")
         + '<div class="label" style="margin-top:6px">TC CAM</div>'
         + cams.filter((x) => x.camera_type === "TC").map(item).join("");
@@ -122,6 +124,7 @@
       $("ce-slot").value = c ? c.view_slot || "" : "";
       $("ce-active").classList.toggle("on", c ? c.is_active : true);
       $("ce-eq").disabled = $("ce-type").value !== "TC";
+      applyRoleLocks(); // 관리자가 아니면 다시 잠금
       $("del").hidden = !c;
       $("pv-name").textContent = c ? c.name : "새 카메라";
       $("roi-link").hidden = !c;

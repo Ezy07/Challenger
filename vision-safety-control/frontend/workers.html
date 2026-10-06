@@ -24,7 +24,7 @@
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <b id="n-shown"></b>
           <span class="grow"></span>
-          <button class="btn primary" id="add">＋ 작업자 등록</button>
+          <button class="btn primary" id="add" data-need="MANAGER">＋ 작업자 등록</button>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -40,7 +40,7 @@
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
-          <thead><tr><th>이름</th><th>협력사</th><th>직종</th><th>연락처</th><th>특별관리</th><th>기초교육</th><th>오늘 배정 작업</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>협력사</th><th>직종</th><th>연락처</th><th>특별관리</th><th>기초교육</th><th>오늘 배정 작업</th><th data-need="MANAGER"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
@@ -54,8 +54,8 @@
           <div class="kpi-box"><span>특별관리</span><strong style="color:var(--orange)" id="k-sp">0<i>명</i></strong></div>
         </div>
         <div id="idle"></div>
-        <a class="btn block" href="worker-special.html">특별관리 지정으로 →</a>
-        <a class="btn block" href="works.html">작업 등록 및 배정으로 →</a>
+        <a class="btn block" href="worker-special.html">특별관리 작업자 보기 →</a>
+        <a class="btn block" href="works.html" data-need="MANAGER">작업 등록 및 배정으로 →</a>
       </div>
     </aside>
   </div>
@@ -136,14 +136,14 @@
           <td class="num">${esc(w.phone || "-")}</td><td>${spTags(w)}</td>
           <td>${w.general_edu ? '<span class="status ok">이수</span>' : '<span class="status stop">미이수</span>'}</td>
           <td>${w.today_work ? esc(w.today_work.name) : '<span class="muted">배정 없음</span>'}</td>
-          <td><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>`).join("")
+          <td data-need="MANAGER"><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>`).join("")
         : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 작업자가 없습니다</td></tr>';
 
       $("k-all").innerHTML = `${workers.length}<i>명</i>`;
       $("k-sp").innerHTML = `${workers.filter((w) => w.special_tags.length).length}<i>명</i>`;
       const idle = workers.filter((w) => !w.today_work);
       $("idle").innerHTML = idle.length
-        ? `<div class="check warn"><div><b>오늘 배정 없는 작업자 ${idle.length}명</b><small>${idle.slice(0, 4).map((w) => esc(w.name)).join(", ")}${idle.length > 4 ? " 외" : ""}</small></div><a class="btn sm" href="works.html">배정</a></div>`
+        ? `<div class="check warn"><div><b>오늘 배정 없는 작업자 ${idle.length}명</b><small>${idle.slice(0, 4).map((w) => esc(w.name)).join(", ")}${idle.length > 4 ? " 외" : ""}</small></div><a class="btn sm" href="works.html" data-need="MANAGER">배정</a></div>`
         : '<div class="check"><div><b>모든 작업자 배정됨</b><small>오늘 배정 없는 작업자가 없습니다</small></div></div>';
     }
 

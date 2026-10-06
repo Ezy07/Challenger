@@ -61,7 +61,7 @@
 
     <aside class="cell right">
       <div class="pad">
-        <div class="row between"><div class="label" id="z-code">-</div><button class="btn sm" id="new">＋ 새 구역</button></div>
+        <div class="row between"><div class="label" id="z-code">-</div><button class="btn sm" id="new" data-need="MANAGER">＋ 새 구역</button></div>
         <h2 id="z-name" style="font-size:20px; letter-spacing:-0.03em">-</h2>
         <div id="z-state"></div>
         <div class="stat4">
@@ -75,7 +75,7 @@
         <a class="btn primary block" id="z-go-works" href="zone-works.html">구역별 작업 목록 →</a>
         <a class="btn block" id="z-go-eq" href="zone-equipment.html">구역별 투입장비 목록 →</a>
 
-        <details id="edit-box" style="margin-top:6px">
+        <details id="edit-box" style="margin-top:6px" data-need="MANAGER">
           <summary class="label" style="cursor:pointer">구역 이름 · 배치도 위치 바꾸기</summary>
           <form id="form" style="display:grid; gap:8px; margin-top:8px">
             <label class="field">구역 이름<input class="input" id="e-name" required maxlength="100" /></label>

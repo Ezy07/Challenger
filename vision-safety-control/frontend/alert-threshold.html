@@ -26,13 +26,13 @@
       <section class="cell">
         <div class="pad">
           <div class="row between">
-            <div class="label">감지 유형별 판정 기준 <span id="changed">바뀐 항목 없음</span></div>
-            <div class="row">
+            <div class="label">감지 유형별 판정 기준 <span id="changed" data-need="ADMIN">바뀐 항목 없음</span><span data-lacks="ADMIN">관리자만 바꿀 수 있습니다</span></div>
+            <div class="row" data-need="ADMIN">
               <button class="btn" id="reset">기본값으로</button>
               <button class="btn primary" id="save">저장</button>
             </div>
           </div>
-          <table class="tbl">
+          <table class="tbl" data-lock="ADMIN">
             <thead><tr><th>감지 유형 (코드)</th><th>판정 기준 confidence</th><th>쿨다운</th><th>사용</th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
@@ -80,6 +80,7 @@
           <td><select class="input" style="width:110px" data-f="cooldown_sec">${cds.map(([s, txt]) => `<option value="${s}"${s === v.cooldown_sec ? " selected" : ""}>${txt}</option>`).join("")}</select></td>
           <td><span class="switch${v.is_active ? " on" : ""}" data-f="is_active" role="switch" aria-checked="${v.is_active}" tabindex="0"></span></td></tr>`;
       }).join("");
+      applyRoleLocks(); // 관리자가 아니면 방금 그린 칸도 잠금
       $("changed").textContent = draft.size ? `${draft.size}개 바뀜 · 저장 전` : "바뀐 항목 없음";
       $("changed").style.color = draft.size ? "var(--orange)" : "";
     }

@@ -22,7 +22,7 @@
   <div class="page no-right">
     <aside class="cell left">
       <div class="pad">
-        <div class="row between"><div class="label">작업 <span id="n-works">0건</span></div><button class="btn sm primary" id="new">＋ 새 작업</button></div>
+        <div class="row between"><div class="label">작업 <span id="n-works">0건</span></div><button class="btn sm primary" id="new" data-need="MANAGER">＋ 새 작업</button></div>
         <div class="chips" id="scope" data-single><span class="chip on" data-v="today">오늘</span><span class="chip" data-v="upcoming">진행 · 예정 전체</span></div>
         <div id="list" style="display:grid; gap:8px"></div>
       </div>
@@ -31,7 +31,7 @@
     <header class="cell head"></header>
 
     <main class="main scroll">
-      <section class="cell"><form class="pad" id="form">
+      <section class="cell"><form class="pad" id="form" data-lock="MANAGER">
         <div class="label">작업 정보 <span id="work-no">새 작업</span></div>
         <label class="field">작업 이름<input class="input" id="f-name" required maxlength="100" placeholder="예: 102동 대형거푸집 설치" /></label>
         <div class="two">
@@ -44,7 +44,7 @@
         </div>
         <label class="field">상태<select class="input" id="f-status"><option value="PLANNED">예정</option><option value="IN_PROGRESS">진행중</option><option value="STOPPED">작업중지</option><option value="DONE">완료</option></select></label>
         <label class="field">작업 내용 · 주의사항<textarea class="input" id="f-desc" maxlength="1000"></textarea></label>
-        <div class="row end">
+        <div class="row end" data-need="MANAGER">
           <button class="btn" type="button" id="del">삭제</button>
           <button class="btn primary">저장</button>
         </div>
@@ -53,11 +53,14 @@
       <section class="cell"><div class="pad" id="assign-box">
         <div class="label">작업자 배정 <span id="cnt">0명 배정</span></div>
         <div class="pick" id="assigned"></div>
-        <div class="label" style="margin-top:8px">배정할 수 있는 작업자 <span>오늘 다른 작업이 없는 사람</span></div>
-        <input class="input" id="find" placeholder="이름 · 직종으로 찾기" />
-        <label class="row muted" style="gap:6px; font-size:12px"><input type="checkbox" id="show-busy" /> 다른 작업에 배정된 사람도 보기 (겸직)</label>
-        <div class="pick" id="pool"></div>
-        <div class="hint" id="assign-hint">배정을 바꾸면 바로 저장됩니다. 특별관리 · 교육 미이수 작업자에는 표시가 붙습니다.</div>
+        <div data-need="MANAGER" style="display:grid; gap:inherit">
+          <div class="label" style="margin-top:8px">배정할 수 있는 작업자 <span>오늘 다른 작업이 없는 사람</span></div>
+          <input class="input" id="find" placeholder="이름 · 직종으로 찾기" />
+          <label class="row muted" style="gap:6px; font-size:12px"><input type="checkbox" id="show-busy" /> 다른 작업에 배정된 사람도 보기 (겸직)</label>
+          <div class="pick" id="pool"></div>
+          <div class="hint" id="assign-hint">배정을 바꾸면 바로 저장됩니다. 특별관리 · 교육 미이수 작업자에는 표시가 붙습니다.</div>
+        </div>
+        <div class="hint" data-lacks="MANAGER">조회 전용 계정은 작업 등록 · 수정과 작업자 배정을 할 수 없습니다.</div>
         <a class="btn block" id="to-workers" href="work-workers.html">작업별 작업자 목록에서 보기 →</a>
       </div></section>
     </main>
@@ -104,7 +107,7 @@
         .map((t) => `<span class="sp">${esc(t)}</span>`).join("");
       const busy = !assigned && w.today_work ? ` · ${esc(w.today_work.name)}에 배정됨` : "";
       return `<div class="person"><div><b>${esc(w.name)}${marks}</b><small>${esc([w.company, w.job_type].filter(Boolean).join(" · "))}${busy}</small></div>
-        <button class="btn sm${assigned ? "" : " primary"}" data-move="${w.id}">${assigned ? "빼기" : "배정"}</button></div>`;
+        <button class="btn sm${assigned ? "" : " primary"}" data-move="${w.id}" data-need="MANAGER">${assigned ? "빼기" : "배정"}</button></div>`;
     }
 
     function renderAssign() {

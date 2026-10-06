@@ -79,6 +79,27 @@ const USER = (() => {
 })();
 const NAV_KEY = "safety.nav-open";
 
+// ---------------------------------------------------------------- 역할별로 화면 가리기
+// 권한이 모자란 사람에게는 쓰기 버튼을 아예 보이지 않게 한다. 서버도 따로 막으므로 화면만 정리하는 것.
+//   data-need="MANAGER" | "ADMIN"  → 그 역할 미만이면 숨김 (common.css). 나중에 그리는 버튼에 붙여도 된다
+//   data-lock="MANAGER" | "ADMIN"  → 그 안의 입력 칸을 보기 전용으로 (applyRoleLocks. 나중에 그린 칸은 그린 뒤 한 번 더 부른다)
+//   data-lacks="MANAGER" | "ADMIN" → 반대로 그 역할 미만에게만 보임 ("조회 전용이라 바꿀 수 없습니다" 같은 안내)
+const ROLE_RANK = { VIEWER: 1, MANAGER: 2, ADMIN: 3 };
+document.documentElement.dataset.role = USER.code;
+
+function can(need) {
+  return (ROLE_RANK[USER.code] || 0) >= ROLE_RANK[need];
+}
+
+function applyRoleLocks(root = document) {
+  root.querySelectorAll("[data-lock]").forEach((box) => {
+    if (can(box.dataset.lock)) return;
+    box.dataset.locked = "";
+    box.querySelectorAll("input, select, textarea").forEach((el) => { el.disabled = true; });
+  });
+}
+document.addEventListener("DOMContentLoaded", () => applyRoleLocks());
+
 function currentFile() {
   return decodeURIComponent(location.pathname.split("/").pop()) || "index.html";
 }
@@ -269,7 +290,7 @@ function alertPopHtml() {
 
 // items 는 최근 30건만, 숫자는 전체 건수(total)로 센다
 function renderAlerts(items, newTotal, openTotal) {
-  const canHandle = (() => { try { return JSON.parse(localStorage.getItem("safety.auth")).user.role !== "VIEWER"; } catch (e) { return false; } })();
+  const canHandle = can("MANAGER");
   const fresh = items.filter((e) => e.status === "NEW");
   const badge = document.getElementById("alert-badge");
   badge.textContent = newTotal;
