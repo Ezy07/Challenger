@@ -7,17 +7,26 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .main { grid-template-rows: auto auto minmax(0, 1fr); }
     .tbl td { vertical-align: middle; }
     .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page full">
 
     <header class="cell head"></header>
 
     <main class="main">
+      <section class="cell sum-strip" aria-label="오늘 현황">
+        <div class="kpi-box"><span>등록 작업자</span><strong id="k-all">0<i>명</i></strong></div>
+        <div class="kpi-box"><span>특별관리</span><strong style="color:var(--orange)" id="k-sp">0<i>명</i></strong></div>
+        <div class="sum-list" id="idle"></div>
+        <div class="sum-acts">
+          <a class="btn" href="worker-special.html">특별관리 작업자 보기 →</a>
+          <a class="btn" href="works.html" data-need="MANAGER">작업 등록 및 배정으로 →</a>
+        </div>
+      </section>
       <section class="cell searchbar">
         <div class="searchbar-row">
           <input class="input" id="q" style="width:220px" placeholder="이름 · 직종으로 찾기" />
@@ -45,19 +54,6 @@
         </table>
       </section>
     </main>
-
-    <aside class="cell right">
-      <div class="pad">
-        <div class="label">오늘 현황</div>
-        <div class="kpis" style="grid-template-columns:1fr 1fr">
-          <div class="kpi-box"><span>등록 작업자</span><strong id="k-all">0<i>명</i></strong></div>
-          <div class="kpi-box"><span>특별관리</span><strong style="color:var(--orange)" id="k-sp">0<i>명</i></strong></div>
-        </div>
-        <div id="idle"></div>
-        <a class="btn block" href="worker-special.html">특별관리 작업자 보기 →</a>
-        <a class="btn block" href="works.html" data-need="MANAGER">작업 등록 및 배정으로 →</a>
-      </div>
-    </aside>
   </div>
 
   <div class="pop" id="pop" hidden>

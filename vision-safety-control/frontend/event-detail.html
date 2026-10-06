@@ -7,10 +7,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: minmax(0, 1fr) auto; }
-    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
-    .info-row > span { color: var(--muted); font-weight: 700; }
-    .info-row b { text-align: right; }
+    .main { grid-template-rows: auto minmax(0, 1fr) auto; }
+    .info-bar { padding: 12px 16px; display: flex; align-items: center; gap: 14px 22px; flex-wrap: wrap; overflow: hidden; }
+    .info-grid { flex: 1; display: flex; flex-wrap: wrap; gap: 8px 22px; min-width: 0; }
+    .info-item > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .info-item > b { font-size: 14px; white-space: nowrap; }
+    .info-acts { display: flex; gap: 8px; flex-wrap: wrap; }
     .clip { padding: 12px 14px; display: grid; gap: 10px; overflow: hidden; }
     .scrub { position: relative; height: 6px; border-radius: 99px; background: #2a3342; }
     .scrub i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: inherit; background: var(--orange); }
@@ -18,20 +20,18 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad">
-        <div class="label">이벤트 정보 <span id="no-label"></span></div>
-        <div id="info"></div>
-        <a class="btn primary block" id="handle-link" href="event-handle.html" data-need="MANAGER">처리 기록 쓰기</a>
-        <a class="btn block" id="snap-link" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a>
-        <a class="btn block" href="events.html">← 이벤트 목록</a>
-      </div>
-    </aside>
-
+  <div class="page no-left">
     <header class="cell head"></header>
 
     <main class="main">
+      <section class="cell info-bar">
+        <div class="info-grid" id="info"></div>
+        <div class="info-acts">
+          <a class="btn" href="events.html">← 이벤트 목록</a>
+          <a class="btn" id="snap-link" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a>
+          <a class="btn primary" id="handle-link" href="event-handle.html" data-need="MANAGER">처리 기록 쓰기</a>
+        </div>
+      </section>
       <section class="cell cam">
         <div class="scene" id="scene">
           <div class="ground-line"></div>
@@ -89,9 +89,8 @@
       }
       const e = await api(`/api/events/${id}`);
       const conf = e.confidence == null ? "-" : Math.round(e.confidence * 100) + "%";
-      const row = (k, v) => `<div class="info-row"><span>${k}</span><b>${v}</b></div>`;
+      const row = (k, v) => `<div class="info-item"><span>${k}</span><b>${v}</b></div>`;
 
-      $("no-label").textContent = "EV-" + e.id;
       $("info").innerHTML = row("번호", "EV-" + e.id) + row("발생 시각", fmtTime(e.detected_at))
         + row("카메라", esc(e.camera_name || "없음")) + row("구역", esc(e.work_zone_name || "-"))
         + (e.roi_name ? row("ROI", esc(e.roi_name)) : "")

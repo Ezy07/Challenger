@@ -18,10 +18,11 @@
     .eq dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 12.5px; }
     .eq dt { color: var(--muted); font-weight: 700; }
     .eq dd { text-align: right; font-weight: 700; }
+    .sum-strip { grid-column: 1 / -1; }
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page full">
     <header class="cell head"></header>
 
     <main class="main scroll" id="main">
@@ -43,19 +44,13 @@
           <div class="row end"><button class="btn" type="button" id="reset">초기화</button><button class="btn primary" type="button" data-search-close>닫기</button></div>
         </div>
       </section>
+      <section class="cell sum-strip" aria-label="오늘 장비 요약">
+        <div class="kpi-box"><span>오늘 가동 중</span><strong style="color:var(--green)" id="k-run">0<i>대</i></strong></div>
+        <div class="kpi-box"><span>점검 · 고장</span><strong style="color:var(--red)" id="k-bad">0<i>대</i></strong></div>
+        <div class="sum-list" id="alerts"></div>
+        <div class="sum-acts"><a class="btn" href="monitor.html">실시간 화면에서 보기</a></div>
+      </section>
     </main>
-
-    <aside class="cell right">
-      <div class="pad">
-        <div class="label">오늘 장비 요약</div>
-        <div class="kpis" style="grid-template-columns:1fr 1fr">
-          <div class="kpi-box"><span>가동 중</span><strong style="color:var(--green)" id="k-run">0<i>대</i></strong></div>
-          <div class="kpi-box"><span>점검 · 고장</span><strong style="color:var(--red)" id="k-bad">0<i>대</i></strong></div>
-        </div>
-        <div id="alerts"></div>
-        <a class="btn block" href="monitor.html">실시간 화면에서 보기</a>
-      </div>
-    </aside>
   </div>
   <script src="api.js"></script>
   <script src="common.js"></script>

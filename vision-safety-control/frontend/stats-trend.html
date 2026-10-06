@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr); }
-    .main .cell { display: flex; flex-direction: column; }
+    .main { grid-template-rows: auto minmax(0, 1.2fr) minmax(0, 1fr); }
+    .main .cell:not(.searchbar) { display: flex; flex-direction: column; }
     .main .pad { flex: 1; min-height: 0; }
     /* 꺾은선: 칸 크기 그대로 그린다 (늘이면 글자 · 점이 찌그러짐). x축 글자 칸까지 높이에 포함 */
     .plot { flex: 1; min-height: 180px; position: relative; }
@@ -24,25 +24,29 @@
   </style>
 </head>
 <body>
-  <div class="page no-right">
-    <aside class="cell left">
-      <div class="pad" id="filters">
-        <div class="label">차트 설정</div>
-        <div class="field">기간
-          <div class="chips" id="f-days" data-single><span class="chip" data-v="7">7일</span><span class="chip on" data-v="14">14일</span><span class="chip" data-v="30">30일</span></div>
-        </div>
-        <label class="field">이벤트 종류<select class="input" id="f-type"><option value="">전체 종류</option></select></label>
-        <label class="field">구역<select class="input" id="f-zone"><option value="">전체 구역</option></select></label>
-        <div class="field">심각도
-          <div class="chips" id="f-sev"><span class="chip on" data-v="HIGH">높음</span><span class="chip on" data-v="MEDIUM">중간</span><span class="chip on" data-v="LOW">낮음</span></div>
-        </div>
-        <div class="hint"><b>선이 내려가면</b> 안전 조치가 효과가 있다는 뜻입니다. 갑자기 오르는 날은 그날 작업 내용과 함께 확인하세요.</div>
-      </div>
-    </aside>
-
+  <div class="page full">
     <header class="cell head"></header>
 
     <main class="main" id="trend-main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filters">차트 설정 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="muted"><b style="color:var(--ink)">선이 내려가면</b> 안전 조치가 효과가 있다는 뜻입니다. 갑자기 오르는 날은 그날 작업 내용과 함께 확인하세요.</span>
+        </div>
+        <div class="search-panel" id="filters" hidden>
+          <div class="search-fields">
+            <div class="field">기간
+              <div class="chips" id="f-days" data-single><span class="chip" data-v="7">7일</span><span class="chip on" data-v="14">14일</span><span class="chip" data-v="30">30일</span></div>
+            </div>
+            <label class="field">이벤트 종류<select class="input" id="f-type"><option value="">전체 종류</option></select></label>
+            <label class="field">구역<select class="input" id="f-zone"><option value="">전체 구역</option></select></label>
+            <div class="field">심각도
+              <div class="chips" id="f-sev"><span class="chip on" data-v="HIGH">높음</span><span class="chip on" data-v="MEDIUM">중간</span><span class="chip on" data-v="LOW">낮음</span></div>
+            </div>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
+      </section>
       <section class="cell">
         <div class="pad">
           <div class="row between">
@@ -168,6 +172,8 @@
       $("trend-main").style.opacity = 1;
       const md = (s) => s.slice(5).replace("-", ".");
       $("range").textContent = `${md(data.date_from)} ~ ${md(data.date_to)}`;
+      const sel = (id) => ($(id).value ? $(id).selectedOptions[0].textContent : "");
+      searchSummary([document.querySelector("#f-days .chip.on").textContent, sel("f-type"), sel("f-zone")].filter(Boolean).join(" · "));
       $("avg").innerHTML = `하루 평균 <b style="color:var(--ink)">${data.avg_per_day}건</b> · 최근 7일 평균 <b style="color:var(--ink)">${data.avg_last7}건</b>`;
       $("hour-sub").textContent = `${md(data.date_from)} ~ ${md(data.date_to)} 합계 · 가장 많은 시간대만 숫자 표시`;
       $("t-daily").innerHTML = "<thead><tr><th>날짜</th><th>건수</th></tr></thead><tbody>"

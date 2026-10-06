@@ -7,7 +7,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: auto minmax(0, 1fr); }
+    .main { grid-template-rows: auto auto minmax(0, 1fr); }
+    #periods { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: none; }
     .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
     .keys { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }
     .keys div { display: flex; align-items: center; gap: 8px; }
@@ -21,27 +22,28 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad">
-        <div class="label">기간</div>
-        <div id="periods" style="display:grid; gap:8px">
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main" id="stats-main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="period-panel">기간 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+        </div>
+        <div class="search-panel" id="period-panel" hidden>
+        <div class="search-cards" id="periods">
           <button class="tc-card active" data-p="today"><div class="code" id="d-today"></div><strong>오늘</strong><p>어제와 비교</p></button>
           <button class="tc-card" data-p="week"><div class="code" id="d-week"></div><strong>최근 7일</strong><p>그 앞 7일과 비교</p></button>
           <button class="tc-card" data-p="month"><div class="code" id="d-month"></div><strong>이번 달</strong><p>1일부터 오늘까지</p></button>
           <button class="tc-card" data-p="custom"><div class="code">직접 고르기</div><strong>기간 선택</strong><p>시작 · 끝 날짜</p></button>
         </div>
-        <div id="custom" hidden style="display:grid; gap:8px">
+        <div class="search-fields" id="custom" hidden style="align-items:flex-end">
           <label class="field">시작 날짜<input class="input" type="date" id="c-from" /></label>
           <label class="field">끝 날짜<input class="input" type="date" id="c-to" /></label>
           <button class="btn primary" id="c-apply">보기</button>
         </div>
-      </div>
-    </aside>
-
-    <header class="cell head"></header>
-
-    <main class="main" id="stats-main">
+        </div>
+      </section>
       <div class="kpis">
         <div class="kpi-box"><span>이벤트</span><strong id="k-total">-</strong><em id="d-total"></em></div>
         <div class="kpi-box"><span>높음 (즉시 조치)</span><strong id="k-high" style="color:var(--red)">-</strong><em id="d-high"></em></div>
@@ -129,6 +131,7 @@
       $("k-time").innerHTML = c.avg_handle_min == null ? "-" : `${Math.round(c.avg_handle_min)}<i>분</i>`;
       $("d-time").innerHTML = delta(c.avg_handle_min == null ? null : Math.round(c.avg_handle_min), p.avg_handle_min == null ? null : Math.round(p.avg_handle_min), "분");
       $("type-sub").textContent = `${single ? dot(from) : `${dot(from)} ~ ${dot(to)}`} · ${c.total}건`;
+      searchSummary(single ? dot(from) : `${dot(from)} ~ ${dot(to)}`);
       bars("by-type", s.by_type, c.total);
       bars("by-zone", s.by_zone, c.total);
       table("t-type", "종류", s.by_type, c.total);
@@ -152,10 +155,11 @@
       if (!b) return;
       document.querySelectorAll("#periods .tc-card").forEach((x) => x.classList.toggle("active", x === b));
       $("custom").hidden = b.dataset.p !== "custom";
-      if (b.dataset.p !== "custom") load(...RANGES[b.dataset.p]).catch((err) => toast(err.message));
+      if (b.dataset.p !== "custom") { closeSearch(); load(...RANGES[b.dataset.p]).catch((err) => toast(err.message)); }
     });
     $("c-apply").addEventListener("click", () => {
       if (!$("c-from").value || !$("c-to").value) return toast("시작 · 끝 날짜를 고르세요.");
+      closeSearch();
       load($("c-from").value, $("c-to").value).catch((err) => toast(err.message));
     });
     [$("c-from").value, $("c-to").value] = RANGES.week;

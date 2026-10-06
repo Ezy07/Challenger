@@ -18,21 +18,29 @@
     .log time { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
     .log i { width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; background: var(--blue); }
     .log small { display: block; color: var(--muted); margin-top: 2px; }
+    .sum-bar { display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; }
+    .sum-bar .cam { height: 124px; display: block; }
+    #summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .sum-acts { display: grid; gap: 8px; }
+    @media (max-width: 1100px) { .sum-bar { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad">
-        <div class="label">처리할 이벤트 <span>미처리 · 확인중</span></div>
-        <div id="queue" style="display:grid; gap:8px"></div>
-        <div class="hint">처리를 마친 이벤트는 이 목록에서 빠지고, <b>이벤트 목록</b>에서 처리완료로 보입니다.</div>
-      </div>
-    </aside>
-
+  <div class="page full">
     <header class="cell head"></header>
 
     <main class="main scroll">
+      <section class="cell sum-bar">
+        <a class="cell cam" id="summary-cam" href="event-detail.html">
+          <div class="scene" id="summary-scene"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="jib" style="left:48%; top:18%; width:34%;"></div><div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em id="summary-box"></em></div></div>
+          <div class="cam-tag" id="summary-tag"></div>
+        </a>
+        <div id="summary"></div>
+        <div class="sum-acts">
+          <a class="btn" href="events.html">← 목록</a>
+          <a class="btn" id="detail-link" href="event-detail.html">상세 화면 다시 보기</a>
+        </div>
+      </section>
       <section class="cell">
         <div class="pad" id="work">
           <div class="row between"><div class="label" id="work-title">이벤트를 고르세요</div><div id="work-status"></div></div>
@@ -68,25 +76,13 @@
         </div>
       </section>
     </main>
-
-    <aside class="cell right">
-      <div class="pad">
-        <div class="label">이벤트 요약</div>
-        <a class="cell cam" id="summary-cam" href="event-detail.html" style="height:170px; display:block">
-          <div class="scene" id="summary-scene"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="jib" style="left:48%; top:18%; width:34%;"></div><div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em id="summary-box"></em></div></div>
-          <div class="cam-tag" id="summary-tag"></div>
-        </a>
-        <div id="summary"></div>
-        <a class="btn block" id="detail-link" href="event-detail.html">상세 화면 다시 보기</a>
-      </div>
-    </aside>
   </div>
   <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
     requireLogin();
     const $ = (id) => document.getElementById(id);
-    const canHandle = getAuth() && getAuth().user.role !== "VIEWER";
+    const canHandle = can("MANAGER");
     const ACTION = {
       ACK: ["", "확인 시작", "상태: 미처리 → 확인중"],
       NOTE: ["", "메모", ""],
@@ -98,15 +94,10 @@
     };
     let ev = null, pick = null;
 
-    async function loadQueue() {
-      const open = await api("/api/events", { query: { status: ["NEW", "ACK"], size: 50 } });
-      $("queue").innerHTML = open.items.length ? open.items.map((x) => `
-        <button class="tc-card${ev && x.id === ev.id ? " active" : ""}" data-id="${x.id}">
-          <div class="code">EV-${x.id} · ${fmtTime(x.detected_at, { date: false }).slice(0, 5)}</div>
-          <strong>${esc(x.detection_label)} ${badge("eventStatus", x.status)}</strong>
-          <p>${esc(x.camera_name || "-")} · ${esc(x.work_zone_name || "-")}</p></button>`).join("")
-        : '<p class="muted">처리할 이벤트가 없습니다 👍</p>';
-      return open.items;
+    // 번호 없이 들어오면 가장 최근의 처리 안 된 이벤트를 연다
+    async function firstOpen() {
+      const open = await api("/api/events", { query: { status: ["NEW", "ACK"], size: 1 } });
+      return open.items[0];
     }
 
     async function openEvent(id) {
@@ -114,7 +105,6 @@
       pick = null;
       history.replaceState(null, "", "?id=" + id);
       render();
-      await loadQueue();
     }
 
     function render() {
@@ -158,7 +148,7 @@
           return `<div><time>${fmtTime(a.created_at, { date: false })}</time><i${color ? ` style="background:${color}"` : ""}></i><span>${esc(a.user_name)} ${label}${detail ? `<small>${detail}</small>` : ""}</span></div>`;
         }).join("");
 
-      // 오른쪽 요약
+      // 맨 위 요약
       const [cls, sev] = LABEL.severity[ev.severity];
       $("summary-scene").className = "scene " + { HIGH: "red", MEDIUM: "", LOW: "green" }[ev.severity];
       $("summary-box").textContent = ev.detection_label;
@@ -177,16 +167,12 @@
       }
     }
 
-    $("queue").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-id]");
-      if (b) openEvent(Number(b.dataset.id)).catch((err) => toast(err.message));
-    });
     $("ack").addEventListener("click", async () => {
-      if (await act("ACK")) { render(); loadQueue(); }
+      if (await act("ACK")) render();
     });
     $("checks").addEventListener("click", async (e) => {
       const b = e.target.closest("[data-item]");
-      if (b && await act(b.dataset.act, { check_item_id: Number(b.dataset.item) })) { render(); loadQueue(); }
+      if (b && await act(b.dataset.act, { check_item_id: Number(b.dataset.item) })) render();
     });
     $("results").addEventListener("click", (e) => {
       const b = e.target.closest("[data-action]");
@@ -202,14 +188,13 @@
         pick = null;
         toast(type === "RESOLVE" ? "처리완료했습니다." : type === "FALSE_ALARM" ? "오탐으로 처리했습니다." : "처리 기록을 저장했습니다.");
         render();
-        loadQueue();
       }
     });
 
     (async () => {
       const id = Number(new URLSearchParams(location.search).get("id"));
-      const queue = await loadQueue();
-      if (id || queue.length) await openEvent(id || queue[0].id);
+      const first = id ? null : await firstOpen();
+      if (id || first) await openEvent(id || first.id);
       else $("work").innerHTML = '<p class="muted">처리할 이벤트가 없습니다. <a href="events.html">이벤트 목록</a>에서 지난 이벤트를 볼 수 있습니다.</p>';
     })().catch((err) => toast(err.message));
   </script>

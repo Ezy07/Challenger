@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page full">
     <header class="cell head"></header>
 
     <main class="main">
@@ -27,9 +27,12 @@
         <div class="pad">
           <div class="row between">
             <div class="label">감지 유형별 판정 기준 <span id="changed" data-need="ADMIN">바뀐 항목 없음</span><span data-lacks="ADMIN">관리자만 바꿀 수 있습니다</span></div>
-            <div class="row" data-need="ADMIN">
-              <button class="btn" id="reset">기본값으로</button>
-              <button class="btn primary" id="save">저장</button>
+            <div class="row">
+              <button class="btn sm" type="button" data-open="guide-pop">ⓘ 설정 기준</button>
+              <span class="row" data-need="ADMIN">
+                <button class="btn" id="reset">기본값으로</button>
+                <button class="btn primary" id="save">저장</button>
+              </span>
             </div>
           </div>
           <table class="tbl" data-lock="ADMIN">
@@ -39,10 +42,15 @@
         </div>
       </section>
     </main>
+  </div>
 
-    <aside class="cell right">
-      <div class="pad">
-        <div class="label">이 화면의 세 가지 설정</div>
+  <div class="pop" id="guide-pop" hidden>
+    <div class="pop-card" style="width:min(560px, 100%)">
+      <div class="pop-head">
+        <div><span class="role">판정 기준</span><h2>설정 기준</h2><p>이 화면의 세 가지 설정</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="pop-body">
         <div class="check info"><div><b>판정 기준 (confidence)</b><small>모델이 "이건 OO이다"라고 얼마나 확신해야 경보로 볼지. 높이면 경보가 줄고, 낮추면 놓치는 게 줄어요.</small></div></div>
         <div class="check info"><div><b>쿨다운</b><small>같은 카메라 · 같은 ROI 에서 같은 경보를 다시 울리기까지 기다리는 시간. 짧으면 알림이 너무 자주 와요.</small></div></div>
         <div class="check info"><div><b>사용</b><small>끄면 이 유형은 탐지돼도 이벤트를 만들지 않아요.</small></div></div>
@@ -55,7 +63,7 @@
         <div class="hint">YOLO 모델의 클래스 이름(person, helmet …)과 감지 유형을 잇는 표는 탐지 프로그램 작업 때 정합니다.</div>
         <a class="btn block" href="roi-rules.html">ROI별로 다르게 하려면 ROI별 규칙</a>
       </div>
-    </aside>
+    </div>
   </div>
   <script src="api.js"></script>
   <script src="common.js"></script>

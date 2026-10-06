@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: minmax(0, 1fr); }
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    #quick { display: flex; flex-wrap: wrap; gap: 8px; }
+    .opts { display: flex; flex-wrap: wrap; gap: 6px 14px; }
     .paper-wrap { padding: 18px; display: grid; justify-items: center; }
     .paper { width: min(720px, 100%); background: #f6f7f9; color: #1c2430; border-radius: 6px; padding: 34px 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.45); display: grid; gap: 18px; }
     .paper h2 { font-size: 22px; letter-spacing: -0.03em; }
@@ -32,14 +34,15 @@
     #p-note:focus { border-color: #e8810a; background: #fff; }
     .paper [data-part] { display: grid; gap: 10px; }
     .paper [data-part][hidden] { display: none; }
-    #quick .item { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+    #quick .item { width: auto; min-width: 190px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+    #quick .item-top { gap: 12px; }
 
     /* 인쇄 · PDF: 보고서 종이만 A4 에 (메뉴 · 패널 · 배경은 빼고, 의견 칸 점선도 뺀다) */
     @page { size: A4; margin: 14mm; }
     @media print {
       html, body { height: auto !important; background: #fff !important; overflow: visible !important; }
       body { padding: 0 !important; }
-      body > *:not(.page), .gnb, .drawer, .scrim, .toast, .viz-tip, .pop, .page > .left, .page > .right, .page > .head { display: none !important; }
+      body > *:not(.page), .gnb, .drawer, .scrim, .toast, .viz-tip, .pop, .page > .left, .page > .right, .page > .head, .searchbar { display: none !important; }
       .page, .main, .paper-wrap { display: block !important; padding: 0 !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; background: none !important; overflow: visible !important; }
       .paper { width: 100% !important; box-shadow: none !important; border-radius: 0; padding: 0; background: #fff; }
       .paper .edit-hint { display: none; }
@@ -51,29 +54,39 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <form class="pad" id="setup">
-        <div class="label">보고서 설정</div>
-        <div class="field">종류
-          <div class="chips" id="kind" data-single><span class="chip" data-v="day">일간</span><span class="chip on" data-v="week">주간</span><span class="chip" data-v="month">월간</span></div>
-        </div>
-        <label class="field">시작 날짜<input class="input" type="date" id="f-from" required /></label>
-        <label class="field">끝 날짜<input class="input" type="date" id="f-to" required /></label>
-        <div class="field">넣을 내용
-          <label class="opt"><input type="checkbox" data-part="sum" checked /> 요약 숫자</label>
-          <label class="opt"><input type="checkbox" data-part="type" checked /> 종류별 건수</label>
-          <label class="opt"><input type="checkbox" data-part="zone" checked /> 구역별 건수</label>
-          <label class="opt"><input type="checkbox" data-part="high" checked /> 높음 이벤트 목록</label>
-          <label class="opt"><input type="checkbox" data-part="note" checked /> 의견</label>
-        </div>
-        <button class="btn primary block">미리보기 새로 만들기</button>
-      </form>
-    </aside>
-
+  <div class="page full">
     <header class="cell head"></header>
 
     <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="setup">보고서 설정 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="grow"></span>
+          <span class="muted" title="인쇄 창이 열리면 대상(프린터)을 'PDF로 저장'으로 고르세요. 보고서 종이 부분만 A4 로 나옵니다.">내려받기</span>
+          <button class="btn" type="button" id="print">🖨 인쇄</button>
+          <button class="btn primary" type="button" id="pdf">⬇ PDF로 저장</button>
+        </div>
+        <form class="search-panel" id="setup" hidden>
+          <div class="field">빠른 기간<div id="quick"></div></div>
+          <div class="search-fields">
+            <div class="field">종류
+              <div class="chips" id="kind" data-single><span class="chip" data-v="day">일간</span><span class="chip on" data-v="week">주간</span><span class="chip" data-v="month">월간</span></div>
+            </div>
+            <label class="field">시작 날짜<input class="input" type="date" id="f-from" required /></label>
+            <label class="field">끝 날짜<input class="input" type="date" id="f-to" required /></label>
+            <div class="field wide">넣을 내용
+              <div class="opts">
+                <label class="opt"><input type="checkbox" data-part="sum" checked /> 요약 숫자</label>
+                <label class="opt"><input type="checkbox" data-part="type" checked /> 종류별 건수</label>
+                <label class="opt"><input type="checkbox" data-part="zone" checked /> 구역별 건수</label>
+                <label class="opt"><input type="checkbox" data-part="high" checked /> 높음 이벤트 목록</label>
+                <label class="opt"><input type="checkbox" data-part="note" checked /> 의견</label>
+              </div>
+            </div>
+          </div>
+          <div class="row end"><button class="btn primary">미리보기 새로 만들기</button></div>
+        </form>
+      </section>
       <section class="cell paper-wrap">
         <article class="paper" id="paper">
           <div>
@@ -102,17 +115,6 @@
         </article>
       </section>
     </main>
-
-    <aside class="cell right">
-      <div class="pad">
-        <div class="label">내려받기</div>
-        <button class="btn primary block" id="pdf">⬇ PDF로 저장</button>
-        <button class="btn block" id="print">🖨 인쇄</button>
-        <div class="hint">[PDF로 저장]을 누르면 인쇄 창이 열립니다. <b>대상</b>(프린터)을 <b>PDF로 저장</b>으로 고르고 저장하세요. 보고서 종이 부분만 A4 로 나옵니다.</div>
-        <div class="label" style="margin-top:8px">빠른 기간</div>
-        <div id="quick" style="display:grid; gap:8px"></div>
-      </div>
-    </aside>
   </div>
   <script src="api.js"></script>
   <script src="common.js"></script>
@@ -175,6 +177,8 @@
       if (c.open) lines.push(`아직 처리하지 않은 이벤트 ${c.open}건은 마무리가 필요합니다.`);
       $("p-note").textContent = lines.join(" ") || "이 기간 이벤트가 없습니다.";
       document.title = `${KIND[kind]} 안전관제 보고서 ${from}~${to}`; // PDF 파일 이름으로 쓰인다
+      searchSummary(`${KIND[kind]} · ${from === to ? dotted(from) : `${dotted(from)} ~ ${dotted(to).slice(5)}`}`);
+      closeSearch();
       parts();
     }
 

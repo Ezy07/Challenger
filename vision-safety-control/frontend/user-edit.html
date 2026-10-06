@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .main { grid-template-columns: minmax(0, 1fr); }
+    .main > .cell { width: min(960px, 100%); justify-self: center; }
+    .roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .roles { display: grid; gap: 8px; }
     .roles label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: start; padding: 11px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); cursor: pointer; }
@@ -25,17 +27,11 @@
     .who .av { width: 46px; height: 46px; border-radius: 50%; background: #243044; display: grid; place-items: center; font-weight: 800; font-size: 18px; }
     .who b { font-size: 17px; }
     .who small { display: block; color: var(--muted); font-size: 12px; }
-    @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .roles { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <div class="page no-right">
-    <aside class="cell left">
-      <div class="pad">
-        <div class="label">회원 고르기 <span id="n-users">0명</span></div>
-        <div id="pick" style="display:grid; gap:8px"></div>
-      </div>
-    </aside>
+  <div class="page full">
 
     <header class="cell head"></header>
 
@@ -57,10 +53,8 @@
           <button class="btn sm" id="reset-pw">비밀번호 초기화</button>
           <span class="muted" id="ue-login"></span>
         </div>
-      </div></section>
 
-      <section class="cell"><div class="pad">
-        <div class="label">역할 (권한) <span>role</span></div>
+        <div class="label" style="margin-top:10px">역할 (권한) <span>role</span></div>
         <div class="roles" id="roles">
           <label><input type="radio" name="role" value="ADMIN" /><b>관리자 (ADMIN)</b><small>모든 화면 + 관리자 메뉴(회원 · 카메라 · 알림 규칙)</small></label>
           <label><input type="radio" name="role" value="MANAGER" /><b>안전관리자 (MANAGER)</b><small>관제 · 이벤트 처리 · ROI · 안전관리 업무</small></label>
@@ -83,7 +77,7 @@
           </table>
         </div>
         <div class="row end" style="margin-top:4px">
-          <a class="btn" href="users.html">취소</a>
+          <a class="btn" href="users.html">← 회원 목록</a>
           <button class="btn primary" id="save">저장</button>
         </div>
       </div></section>
@@ -116,7 +110,6 @@
       orgs = orgNames(orgList);
       $("ue-org").innerHTML = '<option value="">소속 없음</option>' +
         orgList.map((o) => `<option value="${o.id}">${esc(orgs[o.id])}</option>`).join("");
-      $("n-users").textContent = users.length + "명";
       show(users.find((u) => u.id === id) || users[0]);
     }
 
@@ -124,11 +117,6 @@
       user = u;
       if (!u) return;
       history.replaceState(null, "", "?id=" + u.id);
-      $("pick").innerHTML = users.map((x) => `
-        <button class="tc-card${x.id === u.id ? " active" : ""}" data-id="${x.id}">
-          <div class="code">${LABEL.role[x.role][1]}${x.status === "LOCKED" ? " · 잠금" : ""}</div>
-          <strong>${esc(x.name)} ${esc(x.position || "")}</strong><p>${esc(orgs[x.org_id] || "소속 없음")}</p></button>`).join("");
-
       const by = users.find((x) => x.id === u.approved_by);
       $("ue-av").textContent = u.name[0];
       $("ue-title").textContent = `${u.name} ${u.position || ""}`;
@@ -161,10 +149,6 @@
     $("ue-status").addEventListener("click", (e) => {
       if (!e.target.dataset.v) return;
       document.querySelectorAll("#ue-status .chip").forEach((c) => c.classList.toggle("on", c === e.target));
-    });
-    $("pick").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-id]");
-      if (b) show(users.find((u) => u.id === Number(b.dataset.id)));
     });
 
     $("save").addEventListener("click", async () => {

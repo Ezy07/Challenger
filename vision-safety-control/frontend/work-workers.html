@@ -25,9 +25,7 @@
       <div class="pad" id="side">
         <div class="label" id="same-label">같은 구역 작업</div>
         <div id="same" style="display:grid; gap:8px"></div>
-        <div class="label" style="margin-top:8px">다른 구역 작업</div>
-        <div id="other" style="display:grid; gap:8px"></div>
-        <a class="btn block" id="back" href="zone-works.html">← 구역별 작업 목록</a>
+        <a class="btn block" id="back" href="zone-works.html">← 목록</a>
       </div>
     </aside>
 
@@ -76,7 +74,6 @@
       history.replaceState(null, "", "?id=" + w.id);
       $("same-label").textContent = `${w.work_zone_name} 작업`;
       $("same").innerHTML = works.filter((x) => x.work_zone_id === w.work_zone_id).map((x) => card(x, w.id)).join("");
-      $("other").innerHTML = works.filter((x) => x.work_zone_id !== w.work_zone_id).map((x) => card(x, w.id)).join("") || '<p class="muted">없음</p>';
       $("back").href = "zone-works.html?zone=" + w.work_zone_id;
       $("to-assign").href = "works.html?id=" + w.id;
 
