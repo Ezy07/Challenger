@@ -4,7 +4,7 @@
 
 - **백엔드**: FastAPI · SQLAlchemy 2 · MySQL 8
 - **프론트엔드**: 빌드 없는 HTML / CSS / JS (`frontend/`). 백엔드가 같은 주소로 함께 내려줍니다
-- **데이터 구조**: [ERD 2차](docs/erd-v2.png) · [`db/schema.sql`](db/schema.sql)
+- **데이터 구조**: [ERD 3차](docs/erd-v3.png) · [`db/schema.sql`](db/schema.sql) (이전: [ERD 2차](docs/erd-v2.png))
 - **화면 구성**: [페이지 구성 1차](docs/page-structure.md) · 서버 실행 후 `/index.html`(페이지 지도)
 
 ## 폴더 구조
@@ -16,7 +16,7 @@ vision-safety-control/
 │  │  ├─ main.py        FastAPI 앱 · 화면(frontend/) 내려주기
 │  │  ├─ config.py      설정 (.env)
 │  │  ├─ database.py    DB 연결
-│  │  ├─ models.py      테이블 (ERD 2차)
+│  │  ├─ models.py      테이블 (ERD 3차)
 │  │  ├─ schemas.py     API 요청 · 응답 형식
 │  │  ├─ deps.py        로그인 · 권한 확인
 │  │  ├─ security.py    비밀번호 해시 · JWT
@@ -26,9 +26,10 @@ vision-safety-control/
 │  └─ requirements.txt
 ├─ frontend/            화면 33개 + common.css / common.js / api.js
 ├─ db/schema.sql        MySQL 스키마 (기준)
-├─ docs/                ERD · 페이지 구성 · 원본 대시보드
+├─ docs/                ERD(erd-v3.png · .html) · 페이지 구성 · 원본 대시보드
 └─ tools/
    ├─ weather/          기상청 날씨 수집 (weather.json → 관제화면 날씨 패널)
+   ├─ erd.py            db/schema.sql → docs/erd-v3.png (ERD 그림 다시 만들기)
    └─ tc_simulation.py  TC 선회 반경 시뮬레이션
 ```
 
@@ -73,7 +74,25 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `21 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `67 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+
+> 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
+> `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
+
+### 4. 이미 DB 를 만들어 둔 경우 (구조가 바뀌었을 때)
+
+`db/schema.sql` 이 바뀌면 처음부터 만든 DB 에는 새 칸이 없어서 오류가 납니다. 아래를 순서대로 한 번씩 실행하세요.
+(MySQL 없이 SQLite `dev.db` 로 쓰는 경우는 파일을 지우고 `--create-tables` 로 다시 만들면 됩니다)
+
+| 날짜 | 바뀐 것 | 실행할 SQL |
+|---|---|---|
+| 2026-10-05 | 비밀번호 5번 틀리면 15분 잠금 (`users.locked_until`) | `ALTER TABLE users ADD COLUMN locked_until DATETIME NULL AFTER failed_login_count;` |
+
+앞으로 DB 구조를 바꾸면 이 표에 한 줄씩 더하고, `python tools/erd.py` 로 ERD 그림도 다시 만들어 주세요.
+
+> **2026-10-05 `web` 브랜치 히스토리를 다시 썼습니다** (커밋 작성자 수정, force push).
+> 그 전에 `web` 을 받아 둔 사람은 `git fetch origin` 후 `git reset --hard origin/web` 으로 맞추세요.
+> 로컬에서 따로 만든 커밋이 있으면 reset 대신 `git rebase --onto origin/web dd2640f` 로 옮기면 됩니다.
 
 ## 지금 되는 것
 

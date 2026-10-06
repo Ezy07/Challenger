@@ -1,4 +1,4 @@
-"""ERD 2차 테이블 (db/schema.sql 과 같은 구조). 그림: docs/erd-v2.png"""
+"""ERD 3차 테이블 (db/schema.sql 과 같은 구조). 그림: docs/erd-v3.png"""
 
 from datetime import date, datetime
 from decimal import Decimal
