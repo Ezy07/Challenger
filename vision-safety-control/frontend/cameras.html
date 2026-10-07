@@ -17,6 +17,8 @@
     .camcard dd { text-align: right; font-weight: 700; }
     .grid-sep { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin-top: 6px; font-size: 15px; font-weight: 800; }
     .grid-sep span { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .camcard .cam-video { object-fit: cover; }
+    .camcard .src-tag { position: absolute; left: 10px; bottom: 9px; z-index: 3; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(8, 12, 18, 0.8); color: #c5d0dc; }
     .offline { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(8,12,18,0.82); font-weight: 800; color: var(--red); }
   </style>
 </head>
@@ -77,9 +79,13 @@
         ? '<div class="scene" style="background:linear-gradient(180deg,#1a2c40 0%,#14202e 42%,#101820 42%,#0c1218 100%)"><div class="ground-line"></div><div class="mast" style="left:50%; height:62%; background:#6cb6ff"></div><div class="jib" style="left:50%; top:20%; width:32%; background:#6cb6ff"></div></div>'
         : `<div class="scene ${SCENES[i % SCENES.length]}"><div class="ground-line"></div><div class="bld" style="left:10%; width:20%; height:46%;"></div></div>`;
       const slot = c.view_slot ? `${c.view_page}페이지 · ${c.view_slot}번 칸` : "표시 안 함";
+      // 영상 파일이 연결된 사용 중 카메라는 실제 화면을 보여 준다. RTSP 는 브라우저에서 바로 못 열어 그림 그대로
+      const src = c.is_active && videoSrc(c.stream_url);
+      const live = src ? `<video class="cam-video" muted loop playsinline preload="metadata" data-src="${esc(src)}"></video>` : "";
+      const tag = !src && c.is_active ? `<span class="src-tag">${c.stream_url ? "RTSP · 미리보기 없음" : "영상 소스 없음"}</span>` : "";
       return `
         <a class="cell camcard" href="camera-edit.html?id=${c.id}">
-          <div class="cam">${scene}${c.is_active ? "" : '<div class="offline">⏸ 사용 안 함</div>'}
+          <div class="cam">${scene}${live}${tag}${c.is_active ? "" : '<div class="offline">⏸ 사용 안 함</div>'}
             <div class="cam-tag">${esc(c.name)}</div>
             <div class="cam-time">${c.is_active ? '<span class="status ok">사용</span>' : '<span class="status mute">꺼짐</span>'}</div></div>
           <dl><dt>설치 위치</dt><dd>${esc([c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "-")}</dd>
@@ -106,6 +112,28 @@
         ? '<div class="grid-sep muted">조건에 맞는 카메라가 없습니다</div>'
         : fixed.map(card).join("")
           + (tc.length ? '<div class="grid-sep">2페이지 · TC 관제 CAM <span>크레인마다 1대, 장비(타워크레인)와 연결</span></div>' + tc.map(card).join("") : "");
+      startVideos();
+    }
+
+    // 카드 영상: 화면에 보이는 카드만 재생하고 스크롤해서 가려지면 멈춘다 (카메라가 많아도 가볍게)
+    const watcher = new IntersectionObserver((entries) => entries.forEach(({ target: v, isIntersecting }) => {
+      if (isIntersecting) {
+        if (!v.src) v.src = v.dataset.src;
+        v.play().catch(() => document.addEventListener("pointerdown", () => v.play().catch(() => {}), { once: true }));
+      } else v.pause();
+    }), { threshold: 0.1 });
+    function startVideos() {
+      watcher.disconnect();
+      document.querySelectorAll("#grid video.cam-video").forEach((v) => {
+        const scene = v.parentElement.querySelector(".scene");
+        v.addEventListener("playing", () => { scene.style.visibility = "hidden"; }); // 첫 화면이 나오면 예시 그림을 숨김
+        const box = v.parentElement;
+        v.addEventListener("error", () => {
+          v.remove();
+          box.insertAdjacentHTML("beforeend", '<span class="src-tag">영상을 재생할 수 없음</span>');
+        }, { once: true });
+        watcher.observe(v);
+      });
     }
 
     // 칩은 common.js 가 켜고 끈 뒤(같은 클릭이 위로 올라옴) 바로 다시 그린다
