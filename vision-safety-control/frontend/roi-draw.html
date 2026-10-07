@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: minmax(0, 1fr) auto; }
+    .left { display: flex; flex-direction: column; }
+    .left > .pad { flex: none; }
+    .draw-set { border-top: 1px solid var(--line); }
+    .cam-stage { position: absolute; z-index: 2; }
     #draw { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; cursor: crosshair; }
     .tools { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; overflow: hidden; }
     .tools-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -15,7 +19,7 @@
     .frame-bar span { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .frame-bar input[type="range"] { width: 100%; height: 22px; margin: 0; accent-color: var(--orange); cursor: pointer; }
     .frame-bar input[type="range"]:disabled { cursor: default; opacity: 0.4; }
-    #frame-video { z-index: 0; object-fit: contain; background: #000; }
+    #frame-video { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: fill; background: #000; }
     section.cam.alarm-danger { box-shadow: inset 0 0 0 3px #ff5d5d, 0 0 28px rgba(255, 93, 93, 0.45); }
     section.cam.alarm-control { box-shadow: inset 0 0 0 3px #ff9a1f, 0 0 28px rgba(255, 154, 31, 0.4); }
     .roi-alarm {
@@ -45,7 +49,7 @@
   </style>
 </head>
 <body>
-  <div class="page">
+  <div class="page no-right">
     <aside class="cell left">
       <div class="pad" data-pick>
         <div class="label">어느 카메라에 그릴까요?</div>
@@ -54,6 +58,23 @@
         <button class="tc-card" type="button" data-video="Construction_C.mp4"><div class="code">CAM_0003</div><strong>Sector A 토공</strong><p>구역 0개</p></button>
         <button class="tc-card" type="button" data-video="Construction_D.mp4"><div class="code">CAM_0004</div><strong>외곽 야적장</strong><p>구역 0개</p></button>
         <div class="hint"><b>그리는 방법</b><br>① 카메라를 고르고 프레임을 맞춥니다<br>② 화면을 클릭해 구역을 그립니다<br>③ 번호와 종류를 정하고 저장하면 그 프레임부터 적용됩니다<br>④ 위험구역 · 통제구역에 작업자가 들어오면 바로 경보가 납니다</div>
+      </div>
+      <div class="pad draw-set">
+        <div class="label">구역 정보 <span id="roi-frame-note"></span></div>
+        <label class="field">구역 번호<input class="input" id="roi-no" type="number" min="1" step="1" value="1" /></label>
+        <label class="field">구역 종류
+          <select class="input" id="kind">
+            <option value="danger">위험구역</option>
+            <option value="control">통제구역</option>
+            <option value="manage">관리구역</option>
+            <option value="safe">안전구역</option>
+          </select>
+        </label>
+        <div class="roi-list" id="roi-list"></div>
+        <button class="btn block" id="roi-new" type="button">새 구역</button>
+        <button class="btn primary block" id="roi-save" type="button">이 프레임부터 저장</button>
+        <button class="btn block" id="roi-rules" type="button">저장하고 규칙 정하기 →</button>
+        <a class="btn block" href="roi-list.html">구역 목록</a>
       </div>
     </aside>
 
@@ -68,8 +89,10 @@
           <div class="jib" style="left:48%; top:18%; width:34%;"></div>
           <div class="cable" style="left:76%; top:18%; height:36%;"></div>
         </div>
-        <video id="frame-video" class="cam-video" muted playsinline preload="auto" hidden></video>
-        <svg id="draw" viewBox="0 0 1000 600" preserveAspectRatio="none"></svg>
+        <div class="cam-stage" id="cam-stage">
+          <video id="frame-video" muted playsinline preload="auto" hidden></video>
+          <svg id="draw" viewBox="0 0 1000 600" preserveAspectRatio="none"></svg>
+        </div>
         <div class="roi-alarm" id="roi-alarm" hidden><b>경보</b><span id="roi-alarm-text"></span></div>
         <div class="cam-tag">CAM_0002 · 그리기 모드</div>
         <div class="cam-zone" id="count">점 0개 · 화면을 클릭하세요</div>
@@ -89,26 +112,6 @@
         </label>
       </section>
     </main>
-
-    <aside class="cell right">
-      <div class="pad">
-        <div class="label">구역 정보 <span id="roi-frame-note"></span></div>
-        <label class="field">구역 번호<input class="input" id="roi-no" type="number" min="1" step="1" value="1" /></label>
-        <label class="field">구역 종류
-          <select class="input" id="kind">
-            <option value="danger">위험구역</option>
-            <option value="control">통제구역</option>
-            <option value="manage">관리구역</option>
-            <option value="safe">안전구역</option>
-          </select>
-        </label>
-        <div class="roi-list" id="roi-list"></div>
-        <button class="btn block" id="roi-new" type="button">새 구역</button>
-        <button class="btn primary block" id="roi-save" type="button">이 프레임부터 저장</button>
-        <a class="btn block" href="roi-rules.html">저장하고 규칙 정하기 →</a>
-        <a class="btn block" href="roi-list.html">구역 목록</a>
-      </div>
-    </aside>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
@@ -127,6 +130,7 @@
     let uidSeq = 1;
     let videoFile = null;
     let selected = null;
+    let pendingUid = null;
     let pts = [];
     let peopleHits = [];
     let alarmToken = 0;
@@ -158,8 +162,46 @@
       roi.keys.forEach((key) => { if (key.frame <= frame) found = key; });
       return found;
     }
+    function cameraOf(file) {
+      const btn = document.querySelector(`[data-video="${CSS.escape(file)}"]`);
+      if (!btn) return { camera: file, cameraName: file };
+      return {
+        camera: btn.querySelector(".code").textContent.trim(),
+        cameraName: btn.querySelector("strong").textContent.trim(),
+      };
+    }
+    function exportZones() {
+      const rows = [];
+      Object.keys(books).forEach((file) => {
+        const cam = cameraOf(file);
+        (books[file] || []).forEach((roi) => {
+          const kind = KINDS[roi.kind];
+          if (!kind) return;
+          (roi.keys || []).forEach((key) => {
+            if (!key.pts || key.pts.length < 3) return;
+            const row = {
+              camera: cam.camera,
+              cameraName: cam.cameraName,
+              no: roi.no,
+              kind: kind.label,
+              frame: key.frame + 1,
+              points: key.pts,
+            };
+            if (roi.schedule) row.schedule = roi.schedule;
+            rows.push(row);
+          });
+        });
+      });
+      rows.sort((a, b) => a.camera.localeCompare(b.camera) || a.no - b.no || a.frame - b.frame);
+      return rows;
+    }
     function persist() {
-      try { sessionStorage.setItem(STORE_KEY, JSON.stringify(books)); } catch (e) { /* 저장 실패는 화면 동작과 무관 */ }
+      try { sessionStorage.setItem(STORE_KEY, JSON.stringify(books)); } catch (e) { /* 화면 저장이 실패해도 파일 기록은 시도한다 */ }
+      return fetch("/api/roi-zones", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(exportZones()),
+      }).then((res) => res.ok).catch(() => false);
     }
     function updateCounts() {
       document.querySelectorAll("[data-video]").forEach((btn) => {
@@ -231,23 +273,39 @@
       return hit;
     }
     function videoPointToView(px, py) {
-      const cell = video.getBoundingClientRect();
-      const scale = Math.min(cell.width / video.videoWidth, cell.height / video.videoHeight);
-      const ox = (cell.width - video.videoWidth * scale) / 2;
-      const oy = (cell.height - video.videoHeight * scale) / 2;
-      return [(ox + px * scale) / cell.width * 1000, (oy + py * scale) / cell.height * 600];
+      return [px / video.videoWidth * 1000, py / video.videoHeight * 600];
+    }
+    function scheduleActive(roi, now) {
+      const plan = roi && roi.schedule;
+      if (!plan || plan.on === false) return true;
+      const names = ["일", "월", "화", "수", "목", "금", "토"];
+      if (!(plan.days || []).includes(names[now.getDay()])) return false;
+      const mins = (value) => {
+        const parts = String(value || "").split(":");
+        const hour = Number(parts[0]);
+        const minute = Number(parts[1]);
+        return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : null;
+      };
+      const start = mins(plan.start);
+      const end = mins(plan.end);
+      if (start == null || end == null) return true;
+      const cur = now.getHours() * 60 + now.getMinutes();
+      return start <= end ? cur >= start && cur <= end : cur >= start || cur <= end;
     }
     function alertZones() {
       const frame = currentFrame();
+      const now = new Date();
       const zones = [];
       const draftKind = kindNow();
       currentRois().forEach((roi) => {
         if (roi.uid === selected) return;
         if (roi.kind !== "danger" && roi.kind !== "control") return;
+        if (!scheduleActive(roi, now)) return;
         const key = shapeAt(roi, frame);
         if (key && key.pts.length >= 3) zones.push({ no: roi.no, kind: roi.kind, pts: key.pts });
       });
-      if (pts.length >= 3 && (draftKind === "danger" || draftKind === "control")) {
+      const editing = currentRois().find((roi) => roi.uid === selected);
+      if (pts.length >= 3 && (draftKind === "danger" || draftKind === "control") && (!editing || scheduleActive(editing, now))) {
         const no = Number(document.getElementById("roi-no").value);
         zones.push({ no: Number.isInteger(no) ? no : "?", kind: draftKind, pts });
       }
@@ -387,17 +445,18 @@
       render();
       scheduleCheck();
     };
-    document.getElementById("roi-save").onclick = () => {
-      if (!videoFile || !track) { toast("먼저 카메라를 고르세요."); return; }
-      if (pts.length < 3) { toast("점을 3개 이상 찍으세요."); return; }
+    function saveCurrent() {
+      if (!videoFile || !track) { toast("먼저 카메라를 고르세요."); return null; }
+      if (pts.length < 3) { toast("점을 3개 이상 찍으세요."); return null; }
       const no = Number(document.getElementById("roi-no").value);
-      if (!Number.isInteger(no) || no < 1) { toast("구역 번호는 1 이상의 정수로 지정하세요."); return; }
+      if (!Number.isInteger(no) || no < 1) { toast("구역 번호는 1 이상의 정수로 지정하세요."); return null; }
       const list = books[videoFile] || (books[videoFile] = []);
-      if (list.some((roi) => roi.no === no && roi.uid !== selected)) { toast("이 영상에서 이미 쓰는 번호입니다."); return; }
+      if (list.some((roi) => roi.no === no && roi.uid !== selected)) { toast("이 영상에서 이미 쓰는 번호입니다."); return null; }
       const kind = kindNow();
+      const isNew = !findRoi(selected);
       let roi = findRoi(selected);
       if (!roi) {
-        roi = { uid: uidSeq++, no, kind, keys: [] };
+        roi = { uid: uidSeq++, no, kind, enabled: true, listed: false, keys: [] };
         list.push(roi);
         selected = roi.uid;
       }
@@ -405,20 +464,48 @@
       roi.kind = kind;
       const frame = currentFrame();
       const copy = pts.map((p) => p.slice());
+      const time = frameInstant(frame);
       const key = roi.keys.find((item) => item.frame === frame);
-      if (key) key.pts = copy;
+      if (key) { key.pts = copy; key.time = time; }
       else {
-        roi.keys.push({ frame, pts: copy });
+        roi.keys.push({ frame, pts: copy, time });
         roi.keys.sort((a, b) => a.frame - b.frame);
       }
-      persist();
       updateCounts();
       onFrameShown();
       scheduleCheck();
-      toast(`${no}번 ${KINDS[kind].label}을 프레임 ${frame + 1}부터 저장했습니다.`);
+      return { roi, isNew, no, kind, frame };
+    }
+    document.getElementById("roi-save").onclick = () => {
+      const saved = saveCurrent();
+      if (!saved) return;
+      const savedText = `${saved.no}번 ${KINDS[saved.kind].label}을 프레임 ${saved.frame + 1}부터 저장했습니다.`;
+      persist().then((ok) => toast(ok ? `${savedText} roi-zones.json 에 기록했습니다.` : `${savedText} roi-zones.json 은 서버를 켠 뒤에 다시 저장하면 같은 폴더에 생깁니다.`));
+    };
+    document.getElementById("roi-rules").onclick = () => {
+      const saved = saveCurrent();
+      if (!saved) return;
+      const next = saved.isNew ? `roi-list.html?new=${saved.roi.uid}` : "roi-list.html";
+      persist().then(() => { location.href = next; });
     };
     const scene = document.getElementById("scene");
     const video = document.getElementById("frame-video");
+    const stage = document.getElementById("cam-stage");
+    function fitStage() {
+      const rect = stage.parentElement.getBoundingClientRect();
+      const vw = video.videoWidth || 16;
+      const vh = video.videoHeight || 9;
+      if (!rect.width || !rect.height) return;
+      const scale = Math.min(rect.width / vw, rect.height / vh);
+      const w = vw * scale;
+      const h = vh * scale;
+      stage.style.width = w + "px";
+      stage.style.height = h + "px";
+      stage.style.left = ((rect.width - w) / 2) + "px";
+      stage.style.top = ((rect.height - h) / 2) + "px";
+    }
+    new ResizeObserver(() => fitStage()).observe(stage.parentElement);
+    fitStage();
     const camTag = document.querySelector(".cam-tag");
     const range = document.getElementById("frame-range");
     const readout = document.getElementById("frame-readout");
@@ -539,7 +626,7 @@
           video.removeEventListener("loadeddata", ok);
           video.removeEventListener("error", bad);
         };
-        const ok = () => { if (settled) return; settled = true; cleanup(); resolve(); };
+        const ok = () => { if (settled) return; settled = true; cleanup(); fitStage(); resolve(); };
         const bad = () => { if (settled) return; settled = true; cleanup(); reject(new Error("영상")); };
         const timer = setTimeout(bad, 12000);
         video.hidden = false;
@@ -679,9 +766,18 @@
         range.max = String(parsed.frames - 1);
         range.value = "0";
         range.disabled = false;
-        paintLabel(0);
+        if (pendingUid != null) {
+          const roi = (books[file] || []).find((item) => item.uid === pendingUid);
+          if (roi) {
+            pendingUid = null;
+            selected = roi.uid;
+            const key = roi.keys[roi.keys.length - 1];
+            if (key) range.value = String(Math.min(key.frame, parsed.frames - 1));
+          }
+        }
+        paintLabel(Number(range.value));
         onFrameShown();
-        queueFrame(0);
+        queueFrame(Number(range.value));
         break;
       }
       if (!shown && my === seq) fail("영상 파일을 열지 못했습니다");
@@ -696,6 +792,14 @@
     document.querySelectorAll("[data-video]").forEach((btn) => btn.addEventListener("click", () => {
       openVideo(btn.dataset.video, btn.querySelector(".code").textContent);
     }));
+    const params = new URLSearchParams(location.search);
+    const cam = params.get("cam");
+    const uidParam = Number(params.get("uid"));
+    if (Number.isInteger(uidParam) && uidParam > 0) pendingUid = uidParam;
+    if (cam) {
+      const btn = [...document.querySelectorAll("[data-video]")].find((item) => item.querySelector(".code").textContent === cam);
+      if (btn) btn.click();
+    }
   </script>
 </body>
 </html>
