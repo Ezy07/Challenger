@@ -52,8 +52,10 @@
   <div class="page no-right">
     <aside class="cell left">
       <div class="pad" data-pick>
-        <div class="label">어느 카메라에 그릴까요? <span id="n-cams"></span></div>
-        <div id="cam-pick" style="display:grid; gap:8px"><p class="muted">카메라 목록을 불러오는 중…</p></div>
+        <label class="field">어느 카메라에 그릴까요? <span class="muted" id="n-cams" style="font-weight:600"></span>
+          <select class="input" id="cam-pick" aria-label="카메라 고르기"><option value="">카메라 목록을 불러오는 중…</option></select>
+        </label>
+        <div class="muted" id="cam-desc" style="font-size:12px"></div>
         <div class="hint"><b>그리는 방법</b><br>① 카메라를 고르고 프레임을 맞춥니다<br>② 화면을 클릭해 구역을 그립니다<br>③ 번호와 종류를 정하고 저장하면 그 프레임부터 적용됩니다<br>④ 위험구역 · 통제구역에 작업자가 들어오면 바로 경보가 납니다</div>
       </div>
       <div class="pad draw-set">
@@ -158,13 +160,19 @@
     function persist() {
       return saveRoiBooks(books, cams).then(() => true).catch((err) => { toast(err.message); return false; });
     }
+    // 드롭다운 글자: 카메라 · 구역 · 그린 구역 수 (영상 없는 카메라는 그릴 수 없음 표시)
+    function camLabel(c) {
+      const file = fileOf(c);
+      const state = !file ? "영상 없음" : `구역 ${(books[file] || []).length}개`;
+      return `${c.name} · ${state}${c.is_active ? "" : " · 사용 안 함"} · ${c.work_zone_name || "구역 없음"}`; // 칸이 좁아 잘려도 구역 수는 보이게
+    }
     function updateCounts() {
-      document.querySelectorAll("[data-video]").forEach((btn) => {
-        const n = (books[btn.dataset.video] || []).length;
-        const line = btn.querySelector(".roi-n") || btn.querySelector("p"); // 상세 위치 줄은 두고 구역 수만 바꾼다
-        const off = cams.some((c) => !c.is_active && fileOf(c) === btn.dataset.video);
-        if (line) line.textContent = off ? `사용 안 함 · 구역 ${n}개` : `구역 ${n}개`;
+      document.querySelectorAll("#cam-pick option[data-id]").forEach((o) => {
+        const c = cams.find((x) => x.id === Number(o.dataset.id));
+        if (c) o.textContent = camLabel(c);
       });
+      const c = currentCam;
+      document.getElementById("cam-desc").textContent = !c ? "" : [c.location_desc, fileOf(c) ? `영상 ${fileOf(c)}` : "영상 파일이 연결되지 않아 그릴 수 없습니다"].filter(Boolean).join(" · ");
     }
     function mark(points, color, no, handles) {
       const p = points.map((q) => q.join(",")).join(" ");
@@ -361,6 +369,7 @@
       if (index < 0) return;
       const [gone] = list.splice(index, 1);
       if (selected === gone.uid) selected = null;
+      if (selected == null) document.getElementById("roi-no").value = nextNumber();
       pts = [];
       persist();
       updateCounts();
@@ -731,6 +740,8 @@
             if (key) range.value = String(Math.min(key.frame, parsed.frames - 1));
           }
         }
+        // 이 카메라에 이미 있는 구역 번호는 건너뛴다 (1번이 있으면 2번부터)
+        if (selected == null) document.getElementById("roi-no").value = nextNumber();
         paintLabel(Number(range.value));
         onFrameShown();
         queueFrame(Number(range.value));
@@ -746,24 +757,20 @@
       queueFrame(index);
     });
     // ---------------- 카메라 목록 (DB)
-    function camCard(c) {
-      const file = fileOf(c);
-      const state = !c.is_active ? "사용 안 함" : file ? `구역 ${(books[file] || []).length}개` : "영상 파일 없음 · 그릴 수 없음";
-      return `<button class="tc-card" type="button" data-id="${c.id}"${file ? ` data-video="${esc(file)}"` : ""}${file ? "" : ' style="opacity:0.55"'}>
-        <div class="code">${esc(c.name)}</div><strong>${esc(c.work_zone_name || "구역 없음")}</strong>
-        <p>${c.location_desc ? esc(c.location_desc) + "<br>" : ""}<span class="roi-n">${esc(state)}</span></p></button>`;
-    }
     function drawCams() {
       const fixed = cams.filter((c) => c.camera_type !== "TC"), tc = cams.filter((c) => c.camera_type === "TC");
-      document.getElementById("n-cams").textContent = `${cams.length}대`;
+      const opts = (list) => list.map((c) => `<option value="${c.id}" data-id="${c.id}">${esc(camLabel(c))}</option>`).join("");
+      document.getElementById("n-cams").textContent = `${cams.length}대 · 영상 있는 카메라 ${cams.filter((c) => fileOf(c)).length}대`;
       document.getElementById("cam-pick").innerHTML = cams.length
-        ? fixed.map(camCard).join("") + (tc.length ? '<div class="label" style="margin-top:4px">TC CAM</div>' + tc.map(camCard).join("") : "")
-        : '<p class="muted">등록된 카메라가 없습니다. <a href="camera-edit.html" style="color:var(--orange)">카메라 등록 →</a></p>';
+        ? '<option value="">카메라를 고르세요</option>' + (fixed.length ? `<optgroup label="현장 CAM">${opts(fixed)}</optgroup>` : "")
+          + (tc.length ? `<optgroup label="TC CAM">${opts(tc)}</optgroup>` : "")
+        : '<option value="">등록된 카메라가 없습니다 (카메라 등록에서 추가)</option>';
       updateCounts();
     }
     function pickCam(c) {
       currentCam = c;
-      document.querySelectorAll("#cam-pick .tc-card").forEach((b) => b.classList.toggle("active", Number(b.dataset.id) === c.id));
+      document.getElementById("cam-pick").value = c.id;
+      updateCounts();
       const file = fileOf(c);
       history.replaceState(null, "", "?camera=" + c.id);
       if (!file) {
@@ -781,9 +788,9 @@
       }
       openVideo(file, c.name);
     }
-    document.getElementById("cam-pick").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-id]");
-      if (b) pickCam(cams.find((c) => c.id === Number(b.dataset.id)));
+    document.getElementById("cam-pick").addEventListener("change", (e) => {
+      const c = cams.find((x) => x.id === Number(e.target.value));
+      if (c) pickCam(c);
     });
 
     const params = new URLSearchParams(location.search);
