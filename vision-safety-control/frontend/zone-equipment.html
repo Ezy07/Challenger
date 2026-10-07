@@ -2,74 +2,14 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>구역별 투입장비 목록 · 안전관제</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  <link rel="stylesheet" href="common.css" />
-  <style>
-    .main { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; align-content: start; overflow: auto; }
-    .zcard { display: grid; gap: 8px; padding: 14px; }
-    .zcard.on { border-color: rgba(255, 154, 31, 0.8); box-shadow: 0 0 0 1px rgba(255, 154, 31, 0.5), 0 10px 30px rgba(0, 0, 0, 0.22); }
-    .zcard h3 { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
-    .eq-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
-    .eq-row:hover { border-color: rgba(255, 154, 31, 0.7); }
-    .eq-row .ico { font-size: 20px; text-align: center; }
-    .eq-row b { font-size: 13px; }
-    .eq-row small { display: block; color: var(--muted); font-size: 11.5px; }
-    .none { padding: 10px; text-align: center; color: var(--muted); font-size: 12.5px; border: 1px dashed var(--line); border-radius: 10px; }
-    @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } }
-  </style>
+  <title>작업별 장비 · 작업자 목록 · 안전관제</title>
+  <script>
+    // 구역별 투입장비 목록은 작업별 장비 · 작업자 목록(work-workers.html)으로 합쳤다. 예전 주소 · 즐겨찾기는 그쪽으로 보낸다
+    const zone = new URLSearchParams(location.search).get("zone");
+    location.replace("work-workers.html" + (zone ? "?zone=" + encodeURIComponent(zone) : ""));
+  </script>
 </head>
 <body>
-  <div class="page no-left">
-    <header class="cell head"></header>
-
-    <main class="main scroll" id="cards"></main>
-
-    <aside class="cell right">
-      <div class="pad">
-        <div class="label">오늘 투입 요약 <span id="sum-date"></span></div>
-        <div class="kpis" style="grid-template-columns:1fr 1fr">
-          <div class="kpi-box"><span>투입</span><strong id="k-in">0<i>대</i></strong></div>
-          <div class="kpi-box"><span>대기 · 점검 · 고장</span><strong style="color:var(--amber)" id="k-stop">0<i>대</i></strong></div>
-        </div>
-        <div id="idle"></div>
-        <div class="hint">투입 구역은 <b>장비 등록 및 배정</b>에서 하루 한 번 바꿉니다. 장비를 누르면 장비 상세로 이동합니다.</div>
-        <a class="btn primary block" href="equipment-assign.html" data-need="MANAGER">장비 등록 및 배정 →</a>
-        <a class="btn block" href="zones.html">← 전체 구역 표시</a>
-      </div>
-    </aside>
-  </div>
-  <script src="api.js"></script>
-  <script src="common.js"></script>
-  <script>
-    requireLogin();
-    const $ = (id) => document.getElementById(id);
-
-    function row(e) {
-      const who = e.operator_name ? `운전원 ${e.operator_name}${e.operator_company ? ` (${e.operator_company})` : ""}` : e.company || "운전원 미지정";
-      return `<a class="eq-row" href="equipment-detail.html?id=${e.id}"><span class="ico">${EQUIP_ICON[e.equip_type]}</span>
-        <div><b>${esc(e.name)}</b><small>${esc(labelOf("equipType", e.equip_type))} · ${esc(who)}</small></div>${badge("equipStatus", e.status)}</a>`;
-    }
-
-    (async () => {
-      const [zones, items] = await Promise.all([api("/api/work-zones"), api("/api/equipment")]);
-      const focus = Number(new URLSearchParams(location.search).get("zone"));
-      $("cards").innerHTML = zones.map((z) => {
-        const list = items.filter((e) => e.work_zone_id === z.id);
-        const bad = list.some((e) => e.status === "BROKEN" || e.status === "MAINTENANCE");
-        return `<section class="cell zcard${z.id === focus ? " on" : ""}" data-z="${z.id}"><h3>${esc(z.name)} <span class="status ${list.length ? (bad ? "warn" : "ok") : "mute"}">${list.length}대</span></h3>
-          ${list.length ? list.map(row).join("") : '<div class="none">투입된 장비가 없습니다</div>'}</section>`;
-      }).join("");
-      const placed = items.filter((e) => e.work_zone_id);
-      $("sum-date").textContent = todayStr().slice(5).replace("-", ".") + " 기준";
-      $("k-in").innerHTML = `${placed.length}<i>대</i>`;
-      $("k-stop").innerHTML = `${placed.filter((e) => e.status !== "RUNNING").length}<i>대</i>`;
-      const idle = items.filter((e) => !e.work_zone_id);
-      $("idle").innerHTML = idle.length ? `<div class="label">미투입 장비</div>${idle.map(row).join("")}` : "";
-      const card = document.querySelector(".zcard.on");
-      if (card) card.scrollIntoView({ block: "nearest" });
-    })().catch((err) => toast(err.message));
-  </script>
+  <p><a href="work-workers.html">작업별 장비 · 작업자 목록으로 이동</a></p>
 </body>
 </html>

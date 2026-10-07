@@ -3,17 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>작업별 작업자 목록 · 안전관제</title>
+  <title>작업별 장비 · 작업자 목록 · 안전관제</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: auto minmax(0, 1fr); }
-    .work-sum { display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, auto); gap: 18px; align-items: center; padding: 14px 18px; }
+    .main { grid-template-rows: auto auto auto; align-content: start; }
+    .work-sum { display: grid; grid-template-columns: minmax(0, 1fr) repeat(5, auto); gap: 18px; align-items: center; padding: 14px 18px; }
     .work-sum h2 { font-size: 19px; letter-spacing: -0.03em; display: flex; align-items: center; gap: 8px; }
     .work-sum div > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
     .work-sum div > b { font-size: 15px; }
     .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
     .tbl tr.sp-row td:first-child { box-shadow: inset 3px 0 0 var(--orange); }
+    .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 12px 12px 4px; }
+    .sec-head b { font-size: 14px; }
+    .eq-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; padding: 6px 12px 12px; }
+    .eq-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); color: inherit; }
+    .eq-row:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .eq-row .ico { font-size: 20px; text-align: center; }
+    .eq-row b { font-size: 13px; }
+    .eq-row small { display: block; color: var(--muted); font-size: 11.5px; }
+    .none { margin: 6px 12px 12px; padding: 12px; text-align: center; color: var(--muted); font-size: 12.5px; border: 1px dashed var(--line); border-radius: 10px; }
     .cell { scrollbar-width: none; }  /* 스크롤바만 숨김 (휠 스크롤은 그대로) */
     .cell::-webkit-scrollbar { display: none; }
     @media (max-width: 1100px) { .work-sum { grid-template-columns: 1fr 1fr; } }
@@ -31,19 +40,25 @@
 
     <header class="cell head"></header>
 
-    <main class="main">
+    <main class="main scroll">
       <section class="cell work-sum">
         <div><h2><span id="w-title">-</span> <span id="w-status"></span></h2><p class="muted" id="w-sub">-</p></div>
         <div><span>담당</span><b id="w-manager">-</b></div>
         <div><span>배정</span><b id="w-count">0명</b></div>
         <div><span>특별관리</span><b style="color:var(--orange)" id="w-sp">0명</b></div>
         <div><span>기초교육 미이수</span><b id="w-noedu">0명</b></div>
+        <div><span>투입 장비</span><b id="w-eq">0대</b></div>
       </section>
       <section class="cell" style="padding:0 6px 6px">
+        <div class="sec-head"><b>작업자</b><span class="muted" id="worker-sub">이 작업에 배정된 사람</span></div>
         <table class="tbl">
           <thead><tr><th>이름</th><th>협력사</th><th>직종</th><th>특별관리</th><th>배정일</th><th>안전교육</th><th>연락처</th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
+      </section>
+      <section class="cell">
+        <div class="sec-head"><b>투입 장비</b><span class="muted" id="eq-sub">이 작업 구역에 오늘 투입된 장비 · 누르면 장비 상세</span></div>
+        <div id="eq"></div>
       </section>
     </main>
 
@@ -54,6 +69,7 @@
         <div class="label" style="margin-top:6px">작업 내용 · 주의사항</div>
         <div class="hint" id="w-desc">-</div>
         <a class="btn primary block" id="to-assign" href="works.html" data-need="MANAGER">작업자 배정 바꾸기 →</a>
+        <a class="btn block" href="equipment-assign.html" data-need="MANAGER">장비 투입 구역 바꾸기 →</a>
       </div>
     </aside>
   </div>
@@ -62,11 +78,44 @@
   <script>
     requireLogin();
     const $ = (id) => document.getElementById(id);
-    let works = [];
+    let works = [], equipment = [];
 
     function card(w, current) {
       return `<button class="tc-card${w.id === current ? " active" : ""}" data-id="${w.id}"><div class="code">W-${pad2(w.id)} · ${labelOf("workStatus", w.status)}</div>
         <strong>${esc(w.name)}</strong><p>${esc(w.manager_name || "담당 없음")} · ${w.worker_count}명</p></button>`;
+    }
+
+    // 장비 한 줄. 운전원이 이 작업에 배정된 사람이면 표시
+    function eqRow(e, workerIds) {
+      const who = e.operator_name ? `운전원 ${e.operator_name}${e.operator_company ? ` (${e.operator_company})` : ""}` : e.company || "운전원 미지정";
+      const mine = e.operator_id && workerIds.has(e.operator_id) ? ' <span class="sp">이 작업 배정</span>' : "";
+      return `<a class="eq-row" href="equipment-detail.html?id=${e.id}"><span class="ico">${EQUIP_ICON[e.equip_type]}</span>
+        <div><b>${esc(e.name)}${mine}</b><small>${esc(labelOf("equipType", e.equip_type))} · ${esc(who)}</small></div>${badge("equipStatus", e.status)}</a>`;
+    }
+
+    function drawEquipment(zoneId, workerIds) {
+      const list = equipment.filter((e) => e.work_zone_id === zoneId);
+      $("w-eq").textContent = list.length + "대";
+      $("eq").innerHTML = list.length ? `<div class="eq-list">${list.map((e) => eqRow(e, workerIds)).join("")}</div>`
+        : '<div class="none">이 구역에 투입된 장비가 없습니다</div>';
+      return list;
+    }
+
+    function eqChecks(list, workerIds) {
+      const out = [];
+      const bad = list.filter((e) => e.status === "BROKEN" || e.status === "MAINTENANCE");
+      if (bad.length) out.push(["warn", "점검 · 고장 장비", bad.map((e) => `${e.name}(${labelOf("equipStatus", e.status)})`).join(" · "), "주의"]);
+      const noOp = list.filter((e) => !e.operator_id && e.equip_type !== "DUMP_TRUCK" && e.equip_type !== "MIXER_TRUCK");
+      if (noOp.length) out.push(["warn", "운전원 미지정", noOp.map((e) => e.name).join(" · "), "확인"]);
+      const elsewhere = list.filter((e) => e.operator_id && workerIds.size && !workerIds.has(e.operator_id));
+      if (elsewhere.length) out.push(["info", "운전원이 이 작업에 배정 안 됨", elsewhere.map((e) => `${e.name} · ${e.operator_name}`).join(" · "), "참고"]);
+      if (list.length && !out.length) out.push(["ok", "투입 장비", `${list.length}대 모두 가동 가능 · 운전원 지정됨`, "충족"]);
+      return out;
+    }
+
+    function drawChecks(checks) {
+      $("checks").innerHTML = checks.map(([cls, title, sub, tag]) =>
+        `<div class="check ${cls}"><div><b>${esc(title)}</b><small>${esc(sub)}</small></div><span class="status ${cls}">${tag}</span></div>`).join("");
     }
 
     async function show(id) {
@@ -88,6 +137,7 @@
       $("w-noedu").textContent = noEdu.length + "명";
       $("w-noedu").style.color = noEdu.length ? "var(--red)" : "";
       $("w-desc").textContent = w.description || "적힌 내용이 없습니다.";
+      $("worker-sub").textContent = `이 작업에 배정된 사람 ${w.workers.length}명`;
 
       $("rows").innerHTML = w.workers.length ? w.workers.map((p) => `
         <tr class="${p.special_tags.length ? "sp-row" : ""}"><td><b>${esc(p.name)}</b></td><td>${esc(p.company || "-")}</td><td>${esc(p.job_type || "-")}</td>
@@ -96,7 +146,11 @@
           <td class="num">${esc(p.phone || "-")}</td></tr>`).join("")
         : '<tr><td colspan="7" class="muted" style="text-align:center; padding:28px">배정된 작업자가 없습니다</td></tr>';
 
-      // 확인 사항: 배정 인원 · 특별관리 포함 · 기초안전교육
+      const workerIds = new Set(w.workers.map((p) => p.id));
+      const eqList = drawEquipment(w.work_zone_id, workerIds);
+      $("eq-sub").textContent = `${w.work_zone_name}에 오늘 투입된 장비 · 누르면 장비 상세`;
+
+      // 확인 사항: 배정 인원 · 특별관리 포함 · 기초안전교육 · 투입 장비
       const checks = [];
       if (!w.workers.length) checks.push(["warn", "배정 인원 없음", "작업자 배정에서 사람을 넣으세요", "주의"]);
       if (w.status === "STOPPED") checks.push(["stop", "작업중지 상태", "관련 경보를 처리한 뒤 진행중으로 바꾸세요", "중지"]);
@@ -104,16 +158,40 @@
       checks.push(noEdu.length
         ? ["stop", "기초안전보건교육 미이수", noEdu.map((p) => p.name).join(" · ") + " — 투입 전 이수 필요", "불충족"]
         : ["ok", "기초안전보건교육", w.workers.length ? `배정 인원 ${w.workers.length}명 모두 이수` : "배정 인원 없음", "충족"]);
-      $("checks").innerHTML = checks.map(([cls, title, sub, tag]) =>
-        `<div class="check ${cls}"><div><b>${esc(title)}</b><small>${esc(sub)}</small></div><span class="status ${cls}">${tag}</span></div>`).join("");
+      drawChecks([...checks, ...eqChecks(eqList, workerIds)]);
+    }
+
+    // 작업이 없는 구역 (예전 구역별 투입장비 목록에서 넘어온 경우): 장비만 보여 준다
+    async function showZoneOnly(zoneId) {
+      const zones = await api("/api/work-zones");
+      const z = zones.find((x) => x.id === zoneId);
+      history.replaceState(null, "", "?zone=" + zoneId);
+      $("same-label").textContent = z ? `${z.name} 작업` : "같은 구역 작업";
+      $("same").innerHTML = '<p class="muted">이 구역에 진행 · 예정 작업이 없습니다</p>';
+      $("back").href = "zone-works.html?zone=" + zoneId;
+      $("w-title").textContent = z ? z.name : "구역";
+      $("w-status").innerHTML = "";
+      $("w-sub").textContent = "진행 · 예정 작업이 없습니다";
+      ["w-manager"].forEach((k) => { $(k).textContent = "-"; });
+      ["w-count", "w-sp", "w-noedu"].forEach((k) => { $(k).textContent = "0명"; });
+      $("w-desc").textContent = "작업이 없는 구역입니다. 작업 등록 및 배정에서 작업을 만들 수 있습니다.";
+      $("worker-sub").textContent = "작업이 없어 배정된 사람이 없습니다";
+      $("rows").innerHTML = '<tr><td colspan="7" class="muted" style="text-align:center; padding:28px">이 구역에 진행 · 예정 작업이 없습니다</td></tr>';
+      const eqList = drawEquipment(zoneId, new Set());
+      $("eq-sub").textContent = `${z ? z.name : "이 구역"}에 오늘 투입된 장비 · 누르면 장비 상세`;
+      drawChecks(eqChecks(eqList, new Set()).filter((c) => c[1] !== "운전원이 이 작업에 배정 안 됨"));
     }
 
     $("side").addEventListener("click", (e) => { const c = e.target.closest("[data-id]"); if (c) show(Number(c.dataset.id)).catch((err) => toast(err.message)); });
 
     (async () => {
-      works = await api("/api/works", { query: { upcoming: true } });
-      const id = Number(new URLSearchParams(location.search).get("id")) || (works[0] && works[0].id);
-      if (id) await show(id); else $("w-title").textContent = "진행 · 예정 작업이 없습니다";
+      [works, equipment] = await Promise.all([api("/api/works", { query: { upcoming: true } }), api("/api/equipment")]);
+      const p = new URLSearchParams(location.search);
+      const zone = Number(p.get("zone"));
+      const id = Number(p.get("id")) || (zone ? (works.find((w) => w.work_zone_id === zone) || {}).id : null) || (!zone && works[0] && works[0].id);
+      if (id) await show(id);
+      else if (zone) await showZoneOnly(zone);
+      else $("w-title").textContent = "진행 · 예정 작업이 없습니다";
     })().catch((err) => toast(err.message));
   </script>
 </body>
