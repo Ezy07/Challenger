@@ -50,9 +50,20 @@ def test_roi_zones_validation(client, manager):
         {**ROW, "kind": "아무구역"},
         {**ROW, "no": 0},
         {**ROW, "schedule": {"on": True, "start": "25:00", "end": "18:00", "days": []}},
+        {**ROW, "dwell": -1},
     ]
     for row in bad:
         assert client.put("/api/roi-zones", json=[row], headers=manager).status_code == 422, row
+
+
+def test_dwell_seconds_round_trip(client, manager):
+    saved = client.put("/api/roi-zones", json=[{**ROW, "dwell": 0}], headers=manager).json()
+    assert saved[0]["dwell"] == 0
+    again = client.put("/api/roi-zones", json=[{**ROW, "dwell": 12}], headers=manager).json()
+    assert again[0]["dwell"] == 12
+    assert client.get("/api/roi-zones", headers=manager).json()[0]["dwell"] == 12
+    muted = client.put("/api/roi-zones", json=[{**ROW, "dwell": 0, "intrusion": False}], headers=manager).json()
+    assert muted[0]["intrusion"] is False
 
 
 def test_schedule_toggles_enabled(client, manager, monkeypatch):

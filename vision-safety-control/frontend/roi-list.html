@@ -18,8 +18,16 @@
     #roi-empty td { text-align: center; color: var(--muted); font-weight: 700; padding: 28px 12px; }
     .sched-time { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
     .sched-time .input { width: 120px; }
+    #sched-dwell { width: 72px; }
     #sched-pop .pop-card { width: min(440px, 100%); }
     #sched-days.is-off { opacity: 0.45; pointer-events: none; }
+    .set-block + .set-block { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .set-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .set-head b { font-size: 14px; letter-spacing: -0.03em; }
+    .set-note { margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .dwell-off { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 750; cursor: pointer; }
+    .dwell-off input { width: 16px; height: 16px; accent-color: var(--orange); }
+    #sched-dwell:disabled { opacity: 0.45; }
   </style>
 </head>
 <body>
@@ -78,18 +86,32 @@
     <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="sched-title">
       <div class="pop-head">
         <div>
-          <div class="label">적용 시간</div>
+          <div class="label">구역 설정</div>
           <h2 id="sched-title">구역</h2>
-          <p>이 시간에만 구역이 켜집니다. 사용 스위치도 이 시각에 맞춰 자동으로 바뀝니다.</p>
+          <p>활성화 시간과 체류 시간은 각각 저장합니다. 둘 다 저장해야 붉은 점이 사라집니다.</p>
         </div>
-        <span class="switch on" id="sched-on" title="적용 시간 사용"></span>
       </div>
       <div class="pop-body">
-        <div class="sched-time"><input class="input" id="sched-start" type="time" value="00:00" /> ~ <input class="input" id="sched-end" type="time" value="23:59" /></div>
-        <div class="chips" id="sched-days">
-          <span class="chip on" data-day="월">월</span><span class="chip on" data-day="화">화</span><span class="chip on" data-day="수">수</span><span class="chip on" data-day="목">목</span><span class="chip on" data-day="금">금</span><span class="chip on" data-day="토">토</span><span class="chip on" data-day="일">일</span>
-        </div>
-        <div class="row end"><button class="btn" type="button" data-close>닫기</button><button class="btn primary" type="button" id="sched-save">저장</button></div>
+        <section class="set-block">
+          <div class="set-head">
+            <b>활성화 시간</b>
+            <span class="switch on" id="sched-on" title="적용 시간 사용"></span>
+          </div>
+          <p class="set-note">이 시간에만 구역이 켜집니다. 사용 스위치도 이 시각에 맞춰 자동으로 바뀝니다.</p>
+          <div class="sched-time"><input class="input" id="sched-start" type="time" value="00:00" /> ~ <input class="input" id="sched-end" type="time" value="23:59" /></div>
+          <div class="chips" id="sched-days">
+            <span class="chip on" data-day="월">월</span><span class="chip on" data-day="화">화</span><span class="chip on" data-day="수">수</span><span class="chip on" data-day="목">목</span><span class="chip on" data-day="금">금</span><span class="chip on" data-day="토">토</span><span class="chip on" data-day="일">일</span>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" id="sched-save">활성화 시간 저장</button></div>
+        </section>
+        <section class="set-block">
+          <div class="set-head"><b>체류 시간</b></div>
+          <p class="set-note">작업자가 구역 안에 이 시간 이상 머무르면 경고가 뜹니다. 0초면 들어오자마자 경고입니다.</p>
+          <div class="sched-time">작업자가 <input class="input" id="sched-dwell" type="number" min="0" max="86400" step="1" value="0" /> 초 이상</div>
+          <label class="dwell-off"><input type="checkbox" id="dwell-off" /> 사용안함</label>
+          <div class="row end"><button class="btn primary" type="button" id="dwell-save">체류 시간 저장</button></div>
+        </section>
+        <div class="row end" style="margin-top:16px"><button class="btn" type="button" data-close>닫기</button></div>
       </div>
     </div>
   </div>
@@ -159,6 +181,18 @@
     }
     const DAY_ORDER = ["월", "화", "수", "목", "금", "토", "일"];
     const SCHEDULE_DEFAULT = { on: true, start: "00:00", end: "23:59", days: ["월", "화", "수", "목", "금", "토", "일"] };
+    function settingsSaved(roi) {
+      return !!roi.schedule && Number.isInteger(roi.dwell);
+    }
+    function dwellText(roi) {
+      if (!Number.isInteger(roi.dwell)) return "";
+      if (roi.intrusion === false) return "침입 알림 사용 안 함";
+      return roi.dwell <= 0 ? "들어오면 바로 경고" : `${roi.dwell}초 이상 체류하면 경고`;
+    }
+    function ruleHtml(roi, key) {
+      const dwell = dwellText(roi);
+      return `${esc(scheduleText(roi))}${dwell ? `<br><small class="muted">${esc(dwell)}</small>` : ""}<br><small class="muted">프레임 ${key.frame + 1}부터</small>`;
+    }
     function scheduleText(roi) {
       const s = roi.schedule;
       if (!s || s.on === false) return "항상";
@@ -171,6 +205,9 @@
       document.getElementById("sched-start").disabled = !on;
       document.getElementById("sched-end").disabled = !on;
       document.getElementById("sched-days").classList.toggle("is-off", !on);
+    }
+    function syncDwellForm() {
+      document.getElementById("sched-dwell").disabled = document.getElementById("dwell-off").checked;
     }
     let pendingDelete = null;
     function askDelete(file, roi) {
@@ -187,6 +224,9 @@
       document.getElementById("sched-on").classList.toggle("on", s.on !== false);
       document.getElementById("sched-start").value = s.start || "00:00";
       document.getElementById("sched-end").value = s.end || "23:59";
+      document.getElementById("sched-dwell").value = Number.isInteger(roi.dwell) ? String(roi.dwell) : "0";
+      document.getElementById("dwell-off").checked = roi.intrusion === false;
+      syncDwellForm();
       document.querySelectorAll("#sched-days .chip").forEach((chip) => chip.classList.toggle("on", days.has(chip.dataset.day)));
       syncScheduleForm();
       document.getElementById("sched-pop").hidden = false;
@@ -226,14 +266,14 @@
         const time = key.time != null ? key.time : key.frame / 30;
         const on = roi.enabled !== false;
         const auto = roi.schedule && roi.schedule.on !== false;
-        const isNew = !roi.schedule;
-        const dot = isNew ? `<i class="new-dot" title="설정을 아직 저장하지 않은 구역"></i>` : "";
+        const isNew = !settingsSaved(roi);
+        const dot = isNew ? `<i class="new-dot" title="활성화 시간 또는 체류 시간을 아직 저장하지 않았습니다"></i>` : "";
         return `<tr data-href="roi-rules.html" data-file="${esc(file)}" data-uid="${roi.uid}" data-cam="${esc(cam.code)}" data-kind="${esc(kind.label)}" data-name="${esc(name)}"${isNew ? ' class="is-new"' : ""}>
           <td><div class="mini-cam"><video muted playsinline preload="auto" data-file="${esc(file)}" data-time="${time}"></video><svg viewBox="0 0 1000 600" preserveAspectRatio="none"><polygon points="${points}" fill="${kind.color}" fill-opacity="0.28" stroke="${kind.color}" stroke-width="28" /></svg></div></td>
           <td><b><span class="swatch" style="background:${kind.color}"></span>${esc(name)}</b><br><small class="muted">${esc(cam.title)}</small></td>
           <td>${esc(cam.code)}</td>
           <td>${esc(kind.label)}</td>
-          <td class="rule-cell">${esc(scheduleText(roi))}<br><small class="muted">프레임 ${key.frame + 1}부터</small></td>
+          <td class="rule-cell">${ruleHtml(roi, key)}</td>
           <td>-</td>
           <td><span class="switch${on ? " on" : ""}" title="${auto ? "적용 시간에 따라 자동으로 바뀝니다" : "사용"}"></span></td>
           <td data-need="MANAGER"><button type="button" class="btn sm" data-set style="margin-right:10px">설정${dot}</button><a class="btn sm" href="roi-draw.html?cam=${encodeURIComponent(cam.code)}&uid=${roi.uid}">수정</a> <button type="button" class="mini-btn" data-del="${roi.uid}">삭제</button></td>
@@ -323,7 +363,25 @@
       persist().then((ok) => { if (ok) toast(`${pending.no}번 구역을 삭제했습니다.`); });
       paint();
     });
+    function refreshSavedMark(roi) {
+      if (!editingSchedule) return;
+      const row = document.querySelector(`#rows tr[data-file="${editingSchedule.file}"][data-uid="${roi.uid}"]`);
+      const cell = row && row.querySelector(".rule-cell");
+      const key = latestKey(roi);
+      if (cell && key) cell.innerHTML = ruleHtml(roi, key);
+      if (!row) return;
+      const btn = row.querySelector("[data-set]");
+      const saved = settingsSaved(roi);
+      row.classList.toggle("is-new", !saved);
+      const mark = btn && btn.querySelector(".new-dot");
+      if (saved) {
+        if (mark) mark.remove();
+      } else if (btn && !mark) {
+        btn.insertAdjacentHTML("beforeend", `<i class="new-dot" title="활성화 시간 또는 체류 시간을 아직 저장하지 않았습니다"></i>`);
+      }
+    }
     document.getElementById("sched-on").addEventListener("click", syncScheduleForm);
+    document.getElementById("dwell-off").addEventListener("change", syncDwellForm);
     document.getElementById("sched-save").addEventListener("click", () => {
       const roi = editingSchedule && editingSchedule.roi;
       if (!roi) return;
@@ -335,17 +393,19 @@
         days: [...document.querySelectorAll("#sched-days .chip.on")].map((chip) => chip.dataset.day),
       };
       persist();
-      const row = document.querySelector(`#rows tr[data-file="${editingSchedule.file}"][data-uid="${roi.uid}"]`);
-      const cell = row && row.querySelector(".rule-cell");
-      const key = latestKey(roi);
-      if (cell && key) cell.innerHTML = `${esc(scheduleText(roi))}<br><small class="muted">프레임 ${key.frame + 1}부터</small>`;
-      if (row) {
-        row.classList.remove("is-new");
-        const mark = row.querySelector(".new-dot");
-        if (mark) mark.remove();
-      }
-      document.getElementById("sched-pop").hidden = true;
-      toast(on ? "적용 시간을 저장했습니다." : "구역을 항상 활성화했습니다.");
+      refreshSavedMark(roi);
+      toast(on ? "활성화 시간을 저장했습니다." : "구역을 항상 활성화하도록 저장했습니다.");
+    });
+    document.getElementById("dwell-save").addEventListener("click", () => {
+      const roi = editingSchedule && editingSchedule.roi;
+      if (!roi) return;
+      const off = document.getElementById("dwell-off").checked;
+      const typed = Math.round(Number(document.getElementById("sched-dwell").value));
+      roi.dwell = Number.isFinite(typed) ? Math.min(86400, Math.max(0, typed)) : 0;
+      roi.intrusion = !off;
+      persist();
+      refreshSavedMark(roi);
+      toast(off ? "침입 알림을 사용하지 않도록 저장했습니다." : (roi.dwell > 0 ? `체류 ${roi.dwell}초를 저장했습니다.` : "들어오면 바로 경고하도록 저장했습니다."));
     });
     document.getElementById("reset").addEventListener("click", () => {
       document.getElementById("q").value = "";

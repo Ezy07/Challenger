@@ -135,6 +135,8 @@
     let pts = [];
     let peopleHits = [];
     let alarmToken = 0;
+    const dwellSince = new Map();
+    let dwellTimer = 0;
     let detectorPromise = null;
     let detectorFailed = false;
 
@@ -256,6 +258,10 @@
       const cur = now.getHours() * 60 + now.getMinutes();
       return start <= end ? cur >= start && cur <= end : cur >= start || cur <= end;
     }
+    function dwellSeconds(roi) {
+      const n = Number(roi && roi.dwell);
+      return Number.isInteger(n) && n > 0 ? n : 0;
+    }
     function zoneLive(roi, now) {
       if (roi.schedule && roi.schedule.on !== false) return scheduleActive(roi, now);
       return roi.enabled !== false;
@@ -268,14 +274,15 @@
       currentRois().forEach((roi) => {
         if (roi.uid === selected) return;
         if (roi.kind !== "danger" && roi.kind !== "control") return;
+        if (roi.intrusion === false) return;
         if (!zoneLive(roi, now)) return;
         const key = shapeAt(roi, frame);
-        if (key && key.pts.length >= 3) zones.push({ no: roi.no, kind: roi.kind, pts: key.pts });
+        if (key && key.pts.length >= 3) zones.push({ no: roi.no, kind: roi.kind, pts: key.pts, dwell: dwellSeconds(roi) });
       });
       const editing = currentRois().find((roi) => roi.uid === selected);
-      if (pts.length >= 3 && (draftKind === "danger" || draftKind === "control") && (!editing || zoneLive(editing, now))) {
+      if (pts.length >= 3 && (draftKind === "danger" || draftKind === "control") && (!editing || (editing.intrusion !== false && zoneLive(editing, now)))) {
         const no = Number(document.getElementById("roi-no").value);
-        zones.push({ no: Number.isInteger(no) ? no : "?", kind: draftKind, pts });
+        zones.push({ no: Number.isInteger(no) ? no : "?", kind: draftKind, pts, dwell: dwellSeconds(editing) });
       }
       return zones;
     }
@@ -305,7 +312,29 @@
     }
     function clearAlarm() {
       peopleHits = [];
+      dwellSince.clear();
+      clearTimeout(dwellTimer);
       setAlarm([]);
+    }
+    function keepAfterDwell(hits, zones) {
+      const need = new Map(zones.map((zone) => [`${zone.no}:${zone.kind}`, zone.dwell || 0]));
+      const present = new Set(hits.map((hit) => `${hit.no}:${hit.kind}`));
+      const now = Date.now();
+      dwellSince.forEach((_at, key) => { if (!present.has(key)) dwellSince.delete(key); });
+      let wait = 0;
+      const kept = hits.filter((hit) => {
+        const key = `${hit.no}:${hit.kind}`;
+        const seconds = need.get(key) || 0;
+        if (seconds <= 0) return true;
+        if (!dwellSince.has(key)) dwellSince.set(key, now);
+        const left = seconds * 1000 - (now - dwellSince.get(key));
+        if (left <= 0) return true;
+        wait = wait ? Math.min(wait, left) : left;
+        return false;
+      });
+      clearTimeout(dwellTimer);
+      if (wait > 0) dwellTimer = setTimeout(() => checkWorkers(), Math.max(200, wait));
+      return kept;
     }
     async function checkWorkers() {
       const my = ++alarmToken;
@@ -336,8 +365,9 @@
           hits.push({ no: zone.no, kind: zone.kind, rect: [rectA[0], rectA[1], rectB[0] - rectA[0], rectB[1] - rectA[1]] });
         });
       });
-      peopleHits = hits;
-      setAlarm(hits);
+      const ready = keepAfterDwell(hits, zones);
+      peopleHits = ready;
+      setAlarm(ready);
       render();
     }
     function scheduleCheck() {

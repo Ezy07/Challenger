@@ -41,8 +41,12 @@ async function loadRoiBooks(cams) {
     if (!roi) {
       roi = { uid: roiUid(cam, r.no, key), no: r.no, kind, enabled: r.enabled !== false, listed: true, keys: [] };
       if (r.schedule) roi.schedule = r.schedule;
+      if (Number.isInteger(r.dwell)) roi.dwell = r.dwell;
+      if (typeof r.intrusion === "boolean") roi.intrusion = r.intrusion;
       list.push(roi);
     }
+    if (Number.isInteger(r.dwell)) roi.dwell = r.dwell;
+    if (typeof r.intrusion === "boolean") roi.intrusion = r.intrusion;
     roi.keys.push({ frame: r.frame - 1, pts: r.points, time: r.time });
   });
   Object.values(books).forEach((list) => list.forEach((roi) => roi.keys.sort((a, b) => a.frame - b.frame)));
@@ -70,6 +74,8 @@ function roiRows(books, cams) {
           points: k.pts,
           enabled: roi.enabled !== false,
         };
+        if (Number.isInteger(roi.dwell) && roi.dwell >= 0) row.dwell = roi.dwell;
+        if (typeof roi.intrusion === "boolean") row.intrusion = roi.intrusion;
         if (roi.schedule) row.schedule = roi.schedule;
         rows.push(row);
       });

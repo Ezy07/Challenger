@@ -40,6 +40,8 @@ class RoiZoneRow(BaseModel):
     time: float | None = Field(default=None, ge=0)           # 그 프레임의 영상 시각(초)
     points: list[list[float]] = Field(min_length=3, max_length=100)  # 화면 좌표 (가로 0~1000, 세로 0~600)
     enabled: bool = True
+    dwell: int | None = Field(default=None, ge=0, le=24 * 60 * 60)  # 작업자가 이 초 이상 머무르면 경고. 저장 전이면 없음
+    intrusion: bool | None = None  # false 면 침입 알림을 띄우지 않음 (체류 시간의 사용안함)
     schedule: Schedule | None = None
 
 
