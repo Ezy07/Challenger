@@ -280,6 +280,7 @@
       pointer-events: none;
       animation: cam-flash 1.05s ease-in-out infinite;
     }
+    .cam-2.alarm-off { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22); }
     .cam-2.alarm-off .cam-alarm { display: none; }
     @keyframes cam-flash {
       0%, 42% { opacity: 1; }
@@ -836,10 +837,10 @@
               <div class="desc">작업자 2명 · 신호수 배치</div>
               <div class="bar ok"><i></i></div>
             </a>
-            <a class="item" href="event-detail.html">
-              <div class="item-top"><b>CAM_0002</b><span class="status stop">작업중지</span></div>
-              <div class="desc">제38조 신호수 미배치 · 85%</div>
-              <div class="bar stop"><i></i></div>
+            <a class="item" href="#" id="cam2-item">
+              <div class="item-top"><b>CAM_0002</b><span class="status stop" id="cam2-status">작업중지</span></div>
+              <div class="desc" id="cam2-desc">제38조 신호수 미배치 · 85%</div>
+              <div class="bar stop" id="cam2-bar"><i></i></div>
             </a>
             <a class="item" href="event-detail.html">
               <div class="item-top"><b>CAM_0003</b><span class="status warn">현장점검</span></div>
@@ -1079,23 +1080,21 @@
   </div>
 
   <div class="pop" id="cam-pop" hidden>
-    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="cam-title">
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="cam-title" style="width:min(560px, 100%)">
       <div class="pop-head">
         <div>
-          <span class="role">작업중지</span>
+          <span class="role" id="cam-role">작업중지</span>
           <h2 id="cam-title">CAM_0002</h2>
           <p>102동 대형거푸집구역 · 신호수 미배치</p>
         </div>
         <button type="button" class="pop-x" id="cam-close">닫기</button>
       </div>
-      <p class="cam-lead">신호수가 없는 양중이 감지되어 작업이 중지되었습니다. 화면의 빨간 점멸은 이 경보입니다.</p>
-      <div class="check stop"><div><b>중지 사유</b><small>제38조 신호수 미배치</small></div><span class="status stop">작업중지</span></div>
-      <div class="check stop"><div><b>탐지</b><small>신호수 없음 · 신뢰도 85%</small></div><span class="status stop">경보</span></div>
-      <div class="check stop"><div><b>조치</b><small>인양을 멈추고 신호수를 배치한 뒤 재개</small></div><span class="status stop">인양금지</span></div>
+      <p class="cam-lead" id="cam-lead">신호수가 없는 양중이 감지되었습니다. 세 항목을 모두 작업 허가해야 경보를 해제할 수 있습니다.</p>
+      <div id="cam-list"></div>
       <div class="pop-actions">
         <button type="button" class="pop-act" id="cam-cancel">취소</button>
         <a class="pop-act" href="event-detail.html">상세 보기</a>
-        <button type="button" class="pop-act stop" id="cam-clear" data-need="MANAGER">오버랩 해제</button>
+        <button type="button" class="pop-act go" id="cam-clear" data-need="MANAGER" disabled>경보 해제</button>
       </div>
     </div>
   </div>
@@ -1491,28 +1490,69 @@
     const camPop = document.getElementById("cam-pop");
     const cam2 = document.getElementById("cam-2");
     const camClear = document.getElementById("cam-clear");
+    const CAM_ITEMS = [
+      { id: "hoist", title: "인양 중지", detail: "신호수 없는 양중 감지 · 인양 즉시 중지" },
+      { id: "signal", title: "신호수 배치", detail: "양중 구간에 신호수를 배치" },
+      { id: "resume", title: "작업 재개", detail: "신호수 배치를 확인한 뒤 인양 재개" },
+    ];
+    const camPermit = {};
+    function paintCam() {
+      const done = CAM_ITEMS.filter((it) => camPermit[it.id]).length;
+      const ready = done === CAM_ITEMS.length;
+      document.getElementById("cam-role").textContent = ready ? "작업허가 " + done + "/3" : "작업중지 · 허가 " + done + "/3";
+      document.getElementById("cam-list").innerHTML = CAM_ITEMS.map((it) => {
+        const ok = !!camPermit[it.id];
+        return '<div class="permit-row' + (ok ? " ok" : "") + '"><div><b>' + it.title + "</b><small>" + it.detail + "</small></div>" +
+          '<button type="button" class="permit-btn' + (ok ? " back" : "") + '" data-need="MANAGER" data-cam="' + it.id + '">' + (ok ? "작업 중지로" : "작업 허가") + "</button></div>";
+      }).join("");
+      camClear.disabled = !ready;
+    }
+    function setCamAlarm(on) {
+      cam2.classList.toggle("alarm-off", !on);
+      const st = document.getElementById("cam2-status");
+      st.className = "status " + (on ? "stop" : "ok");
+      st.textContent = on ? "작업중지" : "정상";
+      document.getElementById("cam2-desc").textContent = on ? "제38조 신호수 미배치 · 85%" : "신호수 배치 · 이상 없음";
+      document.getElementById("cam2-bar").className = "bar " + (on ? "stop" : "ok");
+    }
     function openCamAlarm() {
+      showCamPage("1");
       closeAlerts();
       tcPop.hidden = true;
+      tc3Pop.hidden = true;
+      paintCam();
       camPop.hidden = false;
-      camClear.focus();
+      document.getElementById("cam-close").focus();
     }
     function closeCamAlarm() { camPop.hidden = true; }
-    cam2.addEventListener("click", openCamAlarm);
+    document.getElementById("cam-list").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-cam]");
+      if (!btn) return;
+      camPermit[btn.dataset.cam] = !btn.classList.contains("back");
+      paintCam();
+    });
+    function onCam2Activate() {
+      if (!cam2.classList.contains("alarm-off")) openCamAlarm();
+      else location.href = "event-detail.html";
+    }
+    cam2.addEventListener("click", onCam2Activate);
     cam2.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        openCamAlarm();
+        onCam2Activate();
       }
+    });
+    document.getElementById("cam2-item").addEventListener("click", (e) => {
+      e.preventDefault();
+      onCam2Activate();
     });
     document.getElementById("cam-cancel").addEventListener("click", closeCamAlarm);
     document.getElementById("cam-close").addEventListener("click", closeCamAlarm);
     camPop.addEventListener("click", (event) => { if (event.target === camPop) closeCamAlarm(); });
     camClear.addEventListener("click", () => {
-      cam2.classList.add("alarm-off");
-      camClear.disabled = true;
-      camClear.textContent = "오버랩 해제됨";
+      setCamAlarm(false);
       closeCamAlarm();
+      toast("CAM_0002 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
     });
 
     document.addEventListener("keydown", (event) => {
