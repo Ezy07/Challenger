@@ -81,3 +81,19 @@ function roiRows(books, cams) {
 function saveRoiBooks(books, cams) {
   return api("/api/roi-zones", { method: "PUT", body: roiRows(books, cams) });
 }
+
+// 서버가 받아 온 인터넷 한국 시각. 받은 뒤로는 그 시각에서 흐른 시간만 더한다 (PC 시계가 틀려도 맞춤)
+let roiClockBase = null, roiClockAt = 0;
+async function refreshRoiClock() {
+  try {
+    const clock = await api("/api/clock");
+    const t = new Date(clock.now);
+    if (Number.isNaN(t.getTime())) return;
+    roiClockBase = t.getTime();
+    roiClockAt = Date.now();
+  } catch (e) { /* 못 받으면 roiNow() 가 이 PC 시각을 쓴다 */ }
+}
+function roiNow() {
+  if (roiClockBase == null) return new Date();
+  return new Date(roiClockBase + (Date.now() - roiClockAt));
+}

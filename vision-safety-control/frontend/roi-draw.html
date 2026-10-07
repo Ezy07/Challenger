@@ -256,20 +256,24 @@
       const cur = now.getHours() * 60 + now.getMinutes();
       return start <= end ? cur >= start && cur <= end : cur >= start || cur <= end;
     }
+    function zoneLive(roi, now) {
+      if (roi.schedule && roi.schedule.on !== false) return scheduleActive(roi, now);
+      return roi.enabled !== false;
+    }
     function alertZones() {
       const frame = currentFrame();
-      const now = new Date();
+      const now = roiNow();
       const zones = [];
       const draftKind = kindNow();
       currentRois().forEach((roi) => {
         if (roi.uid === selected) return;
         if (roi.kind !== "danger" && roi.kind !== "control") return;
-        if (!scheduleActive(roi, now)) return;
+        if (!zoneLive(roi, now)) return;
         const key = shapeAt(roi, frame);
         if (key && key.pts.length >= 3) zones.push({ no: roi.no, kind: roi.kind, pts: key.pts });
       });
       const editing = currentRois().find((roi) => roi.uid === selected);
-      if (pts.length >= 3 && (draftKind === "danger" || draftKind === "control") && (!editing || scheduleActive(editing, now))) {
+      if (pts.length >= 3 && (draftKind === "danger" || draftKind === "control") && (!editing || zoneLive(editing, now))) {
         const no = Number(document.getElementById("roi-no").value);
         zones.push({ no: Number.isInteger(no) ? no : "?", kind: draftKind, pts });
       }
@@ -796,6 +800,8 @@
     const params = new URLSearchParams(location.search);
     const uidParam = Number(params.get("uid"));
     if (Number.isInteger(uidParam) && uidParam > 0) pendingUid = uidParam;
+    refreshRoiClock();
+    setInterval(() => { refreshRoiClock().then(() => checkWorkers()); }, 20000);
     (async () => {
       cams = await api("/api/cameras");
       Object.assign(books, await loadRoiBooks(cams));

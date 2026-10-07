@@ -1,13 +1,40 @@
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from .clock import now_kst
 from .config import DEV_JWT_SECRET, settings
+from .deps import CurrentUser
 from .routers import auth, cameras, equipment, events, meta, roi_zones, site_plan, stats, users, videos, workers, works, zones
+from .routers.roi_zones import sync_stored_zones
 
-app = FastAPI(title="비전AI 안전관제 API", version="0.1.0")
+
+async def _watch_roi_schedule():
+    """화면을 닫아 둬도 적용 시간이 되면 구역 사용 여부를 파일에 반영한다."""
+    while True:
+        await asyncio.sleep(20)
+        try:
+            await asyncio.to_thread(sync_stored_zones)
+        except Exception:
+            logging.getLogger("uvicorn.error").exception("ROI 사용 여부를 적용 시간에 맞추지 못했습니다")
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    task = asyncio.create_task(_watch_roi_schedule())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+app = FastAPI(title="비전AI 안전관제 API", version="0.1.0", lifespan=lifespan)
 
 if settings.jwt_secret == DEV_JWT_SECRET:
     logging.getLogger("uvicorn.error").warning("JWT_SECRET 이 개발용 기본값입니다. 운영 전에 .env 에서 꼭 바꾸세요.")
@@ -29,6 +56,13 @@ async def revalidate_static(request, call_next):
 @app.get("/api/health", tags=["상태"])
 def health():
     return {"ok": True}
+
+
+@app.get("/api/clock", tags=["상태"])
+def clock(_: CurrentUser):
+    """지금 시각. 인터넷에서 받은 한국 시각이고, 못 받으면 이 PC 의 한국 시각이다."""
+    now, source = now_kst()
+    return {"now": now.isoformat(timespec="seconds"), "source": source}
 
 
 @app.get("/", include_in_schema=False)

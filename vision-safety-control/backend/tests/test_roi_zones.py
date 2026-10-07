@@ -1,8 +1,11 @@
 import json
+from datetime import datetime
 
 import pytest
 
+from app.clock import KST
 from app.config import settings
+from app.routers.roi_zones import Schedule, in_schedule
 
 from .conftest import DEMO_PASSWORD, login
 
@@ -15,6 +18,12 @@ def zones_file(tmp_path, monkeypatch):
     path = tmp_path / "roi-zones.json"
     monkeypatch.setattr(settings, "roi_zones_file", path)
     return path
+
+
+@pytest.fixture(autouse=True)
+def frozen_now(monkeypatch):
+    """2026-10-04 일요일 낮. 월·화·수 스케줄은 이 시각에 꺼져 있어서 저장한 사용 여부가 유지된다."""
+    monkeypatch.setattr("app.routers.roi_zones.now_kst", lambda: (datetime(2026, 10, 4, 12, 0, tzinfo=KST), "local"))
 
 
 def test_roi_zones_save_and_read(client, manager, zones_file):
@@ -44,6 +53,30 @@ def test_roi_zones_validation(client, manager):
     ]
     for row in bad:
         assert client.put("/api/roi-zones", json=[row], headers=manager).status_code == 422, row
+
+
+def test_schedule_toggles_enabled(client, manager, monkeypatch):
+    def at(moment):
+        monkeypatch.setattr("app.routers.roi_zones.now_kst", lambda: (moment, "local"))
+
+    row = {**ROW, "enabled": False, "schedule": {"on": True, "start": "07:00", "end": "18:30", "days": ["수"]}}
+    at(datetime(2026, 10, 7, 10, 0, tzinfo=KST))  # 수요일 오전, 적용 시간 안
+    saved = client.put("/api/roi-zones", json=[row], headers=manager).json()
+    assert saved[0]["enabled"] is True
+
+    at(datetime(2026, 10, 7, 19, 0, tzinfo=KST))  # 같은 날 저녁, 적용 시간 밖
+    assert client.get("/api/roi-zones", headers=manager).json()[0]["enabled"] is False
+
+    at(datetime(2026, 10, 7, 10, 0, tzinfo=KST))
+    manual = {**ROW, "enabled": False, "schedule": {"on": False, "start": "07:00", "end": "18:30", "days": ["수"]}}
+    assert client.put("/api/roi-zones", json=[manual], headers=manager).json()[0]["enabled"] is False
+
+
+def test_in_schedule_spans_midnight():
+    plan = Schedule(on=True, start="22:00", end="06:00", days=["화", "수"])
+    assert in_schedule(plan, datetime(2026, 10, 6, 23, 0, tzinfo=KST))
+    assert in_schedule(plan, datetime(2026, 10, 7, 5, 30, tzinfo=KST))
+    assert not in_schedule(plan, datetime(2026, 10, 7, 12, 0, tzinfo=KST))
 
 
 def test_roi_zones_viewer_reads_only(client, admin, manager):

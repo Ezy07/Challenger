@@ -80,7 +80,7 @@
         <div>
           <div class="label">적용 시간</div>
           <h2 id="sched-title">구역</h2>
-          <p>이 시간에만 구역이 활성화됩니다</p>
+          <p>이 시간에만 구역이 켜집니다. 사용 스위치도 이 시각에 맞춰 자동으로 바뀝니다.</p>
         </div>
         <span class="switch on" id="sched-on" title="적용 시간 사용"></span>
       </div>
@@ -110,8 +110,26 @@
       books = await loadRoiBooks(cams);
     }
     // 구역 전체를 서버(storage/roi-zones.json)에 저장. 실패하면 이유를 알리고 false
+    function adoptEnabled(rows) {
+      if (!Array.isArray(rows)) return;
+      const wanted = new Map(rows.map((r) => [`${r.camera}\0${r.no}`, r.enabled !== false]));
+      Object.keys(books).forEach((file) => {
+        const code = camInfo(file).code;
+        (books[file] || []).forEach((roi) => {
+          const on = wanted.get(`${code}\0${roi.no}`);
+          if (on == null) return;
+          roi.enabled = on;
+        });
+      });
+      document.querySelectorAll("#rows tr[data-uid]").forEach((row) => {
+        const sw = row.querySelector(".switch");
+        const roi = (books[row.dataset.file] || []).find((item) => item.uid === Number(row.dataset.uid));
+        if (sw && roi) sw.classList.toggle("on", roi.enabled !== false);
+      });
+      if (document.getElementById("roi-empty")) apply();
+    }
     function persist() {
-      return saveRoiBooks(books, cams).then(() => true).catch((err) => { toast(err.message); return false; });
+      return saveRoiBooks(books, cams).then((rows) => { adoptEnabled(rows); return true; }).catch((err) => { toast(err.message); return false; });
     }
     function candidateUrls(file) {
       const name = encodeURIComponent(file);
@@ -207,6 +225,7 @@
         const points = key.pts.map((p) => p.join(",")).join(" ");
         const time = key.time != null ? key.time : key.frame / 30;
         const on = roi.enabled !== false;
+        const auto = roi.schedule && roi.schedule.on !== false;
         const isNew = !roi.schedule;
         const dot = isNew ? `<i class="new-dot" title="설정을 아직 저장하지 않은 구역"></i>` : "";
         return `<tr data-href="roi-rules.html" data-file="${esc(file)}" data-uid="${roi.uid}" data-cam="${esc(cam.code)}" data-kind="${esc(kind.label)}" data-name="${esc(name)}"${isNew ? ' class="is-new"' : ""}>
@@ -216,7 +235,7 @@
           <td>${esc(kind.label)}</td>
           <td class="rule-cell">${esc(scheduleText(roi))}<br><small class="muted">프레임 ${key.frame + 1}부터</small></td>
           <td>-</td>
-          <td><span class="switch${on ? " on" : ""}"></span></td>
+          <td><span class="switch${on ? " on" : ""}" title="${auto ? "적용 시간에 따라 자동으로 바뀝니다" : "사용"}"></span></td>
           <td data-need="MANAGER"><button type="button" class="btn sm" data-set style="margin-right:10px">설정${dot}</button><a class="btn sm" href="roi-draw.html?cam=${encodeURIComponent(cam.code)}&uid=${roi.uid}">수정</a> <button type="button" class="mini-btn" data-del="${roi.uid}">삭제</button></td>
         </tr>`;
       }).join("") + `<tr id="roi-empty" hidden><td colspan="8">조건에 맞는 구역이 없습니다</td></tr>`;
@@ -268,6 +287,10 @@
       }
       if (e.target.closest(".switch")) {
         if (!roi || !can("MANAGER")) return; // 조회 전용은 켜고 끌 수 없음
+        if (roi.schedule && roi.schedule.on !== false) {
+          toast("적용 시간에 맞춰 사용 여부가 자동으로 바뀝니다.");
+          return;
+        }
         const sw = row.querySelector(".switch");
         sw.classList.toggle("on");
         roi.enabled = sw.classList.contains("on");
@@ -345,6 +368,7 @@
     }
     start().catch((err) => toast(err.message));
     window.addEventListener("pageshow", (e) => { if (e.persisted) start().catch((err) => toast(err.message)); }); // 뒤로 가기로 돌아오면 다시 불러오기
+    setInterval(() => { api("/api/roi-zones").then(adoptEnabled).catch(() => {}); }, 20000);
   </script>
 </body>
 </html>

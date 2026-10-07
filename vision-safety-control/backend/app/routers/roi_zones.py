@@ -7,11 +7,13 @@
 
 import json
 import os
+from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+from ..clock import now_kst
 from ..config import settings
 from ..deps import CurrentUser, Manager
 
@@ -47,12 +49,92 @@ def check_points(rows: list[RoiZoneRow]) -> None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{r.camera} {r.no}번 구역의 점이 화면 밖에 있습니다.")
 
 
+_WEEK = ("월", "화", "수", "목", "금", "토", "일")  # datetime.weekday(): 월요일 = 0
+
+
+def _minutes(value: str) -> int:
+    hour, minute = value.split(":")
+    return int(hour) * 60 + int(minute)
+
+
+def in_schedule(plan: Schedule, now: datetime) -> bool:
+    """적용 시간이 켜져 있을 때, now(한국 시각)가 그 요일 · 시간 안인지."""
+    if _WEEK[now.weekday()] not in plan.days:
+        return False
+    start, end = _minutes(plan.start), _minutes(plan.end)
+    cur = now.hour * 60 + now.minute
+    if start <= end:
+        return start <= cur <= end
+    return cur >= start or cur <= end  # 밤을 넘기는 구간 (22:00~06:00)
+
+
+def sync_models(rows: list[RoiZoneRow], now: datetime) -> bool:
+    """적용 시간이 켜진 구역의 사용 여부를 시각에 맞춘다. 항상(on 이 꺼짐)은 그대로 둔다."""
+    changed = False
+    for row in rows:
+        if row.schedule is None or not row.schedule.on:
+            continue
+        active = in_schedule(row.schedule, now)
+        if row.enabled != active:
+            row.enabled = active
+            changed = True
+    return changed
+
+
+def sync_raw(rows: list, now: datetime) -> bool:
+    """파일에 있는 줄(dict)을 같은 규칙으로 고친다. 형식이 이상한 줄은 건너뛴다."""
+    changed = False
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        sched = row.get("schedule")
+        if not isinstance(sched, dict) or not sched.get("on", True):
+            continue
+        try:
+            plan = Schedule.model_validate(sched)
+        except Exception:
+            continue
+        active = in_schedule(plan, now)
+        if bool(row.get("enabled", True)) != active:
+            row["enabled"] = active
+            changed = True
+    return changed
+
+
+def _write_raw(rows: list) -> None:
+    path = settings.roi_zones_file
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")  # 쓰다가 멈춰도 원래 파일이 깨지지 않게 바꿔치기
+    tmp.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def sync_stored_zones() -> bool:
+    """저장 파일을 인터넷(또는 PC) 한국 시각에 맞춘다. 바꿀 게 없으면 파일을 건드리지 않는다."""
+    path = settings.roi_zones_file
+    if not path.is_file():
+        return False
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        return False
+    now, _source = now_kst()
+    if not sync_raw(data, now):
+        return False
+    _write_raw(data)
+    return True
+
+
 @router.get("", response_model=list[RoiZoneRow])
 def read_zones(_: CurrentUser):
     path = settings.roi_zones_file
     if not path.is_file():
         return []
-    return json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(data, list):
+        now, _source = now_kst()
+        if sync_raw(data, now):
+            _write_raw(data)
+    return data
 
 
 @router.put("", response_model=list[RoiZoneRow])
@@ -62,9 +144,7 @@ def save_zones(rows: list[RoiZoneRow], _: Manager):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "구역이 너무 많습니다 (5000줄까지).")
     check_points(rows)
     rows = sorted(rows, key=lambda r: (r.camera, r.no, r.frame))
-    path = settings.roi_zones_file
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".json.tmp")  # 쓰다가 멈춰도 원래 파일이 깨지지 않게 바꿔치기
-    tmp.write_text(json.dumps([r.model_dump(exclude_none=True) for r in rows], ensure_ascii=False, indent=1), encoding="utf-8")
-    os.replace(tmp, path)
+    now, _source = now_kst()
+    sync_models(rows, now)
+    _write_raw([r.model_dump(exclude_none=True) for r in rows])
     return rows
