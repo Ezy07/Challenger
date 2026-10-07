@@ -8,8 +8,15 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr) auto; }
-    .roi { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
     .controls { padding: 12px 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow: hidden; }
+    /* 영상 비율 그대로 칸 가운데에 (ROI 좌표가 ROI 그리기 화면과 같은 기준이 되게) */
+    .stage { position: absolute; z-index: 1; }
+    .stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; background: #000; }
+    .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .no-video { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; text-align: center; padding: 20px; color: #c5d0dc; font-size: 14px; font-weight: 700; background: rgba(8, 12, 18, 0.55); }
+    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .info-row > span { color: var(--muted); font-weight: 700; white-space: nowrap; }
+    .info-row b { text-align: right; overflow-wrap: anywhere; }
   </style>
 </head>
 <body>
@@ -19,95 +26,221 @@
     <main class="main">
       <section class="cell searchbar">
         <div class="searchbar-row">
-          <b class="now" id="now">CAM_0002</b>
+          <b class="now" id="now">카메라를 불러오는 중…</b>
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="pick">카메라 선택 <i class="chev">▾</i></button>
           <span class="grow"></span>
           <a class="btn" href="monitor.html">← 관제화면으로 돌아가기</a>
         </div>
         <div class="search-panel" id="pick" hidden>
-          <div class="search-cards">
-        <div class="label">1페이지 · 현장 CAM</div>
-        <a class="tc-card" href="monitor-camera.html?cam=1"><div class="code">CAM_0001</div><strong>101동 갱폼 인양구역 <span class="status ok">정상</span></strong><p>작업자 2명 · 신호수 배치</p></a>
-        <a class="tc-card" href="monitor-camera.html?cam=2"><div class="code">CAM_0002</div><strong>102동 대형거푸집구역 <span class="status stop">작업중지</span></strong><p>신호수 미배치 · 85%</p></a>
-        <a class="tc-card" href="monitor-camera.html?cam=3"><div class="code">CAM_0003</div><strong>Sector A 토공 <span class="status warn">현장점검</span></strong><p>지반침하 의심 · 96%</p></a>
-        <a class="tc-card" href="monitor-camera.html?cam=4"><div class="code">CAM_0004</div><strong>외곽 야적장 <span class="status ok">정상</span></strong><p>이상 없음</p></a>
-        <div class="label">2페이지 · TC 관제 CAM</div>
-        <a class="tc-card" href="monitor-camera.html?cam=tc1"><div class="code">CAM_TC01 · 1호기</div><strong>101동 갱폼 인양구역 <span class="status ok">정상</span></strong><p>T-CRN-01 · 갱폼 인양</p></a>
-        <a class="tc-card" href="monitor-camera.html?cam=tc2"><div class="code">CAM_TC02 · 2호기</div><strong>102동 대형거푸집구역 <span class="status warn">대기</span></strong><p>T-CRN-02 · 신호수 미배치</p></a>
-        <a class="tc-card" href="monitor-camera.html?cam=tc3"><div class="code">CAM_TC03 · 3호기</div><strong>중앙 자재하역장 <span class="status stop">작업중지</span></strong><p>M-CRN-01 · 인양물 직하부 작업자</p></a>
-        <a class="tc-card" href="monitor-camera.html?cam=tc4"><div class="code">CAM_TC04 · 4호기</div><strong>103동 외벽 인양구역 <span class="status ok">정상</span></strong><p>T-CRN-03 · 작업 없음</p></a>
-          </div>
+          <div class="search-cards" id="cams"></div>
         </div>
       </section>
-      <section class="cell cam">
-        <div class="scene red" id="scene">
+      <section class="cell cam" id="cam-box">
+        <div class="scene" id="scene">
           <div class="ground-line"></div>
           <div class="bld" style="left:10%; width:22%; height:52%;"></div>
           <div class="mast" style="left:48%; height:64%;"></div>
           <div class="jib" style="left:48%; top:18%; width:34%;"></div>
-          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
-          <svg class="roi" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polygon points="52,48 92,46 96,84 46,86" fill="rgba(255,93,93,0.16)" stroke="#ff5d5d" stroke-width="0.4" stroke-dasharray="1.5 1" />
-          </svg>
-          <div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em>신호수 없음 85%</em></div>
-          <div class="box" style="left:22%; top:46%; width:8%; height:24%;"><em>작업자 92%</em></div>
-          <div class="box info" style="left:72%; top:52%; width:7%; height:12%;"><em>인양물</em></div>
         </div>
-        <div class="cam-tag" id="cam-tag">CAM_0002</div>
+        <div class="stage" id="stage" hidden>
+          <video id="video" muted loop playsinline autoplay></video>
+          <svg id="rois" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-label="ROI 구역"></svg>
+        </div>
+        <div class="no-video" id="no-video" hidden></div>
+        <div class="cam-tag" id="cam-tag">-</div>
         <div class="cam-time js-cam-time"></div>
-        <div class="cam-zone" id="cam-zone">102동 대형거푸집구역 · 빨간 점선 = ROI</div>
+        <div class="cam-zone" id="cam-zone">-</div>
       </section>
       <section class="cell controls">
-        <button class="btn" data-toast="실시간 영상은 카메라 연결 후 재생됩니다.">⏸ 일시정지</button>
-        <button class="btn" data-toast="스냅샷을 저장했습니다. (예시)">📷 스냅샷 저장</button>
-        <span class="chips" data-single>
-          <span class="chip on">탐지 박스</span><span class="chip">박스 숨기기</span>
-        </span>
-        <span class="chips">
-          <span class="chip on">ROI 표시</span>
-        </span>
+        <button class="btn" type="button" id="pause" disabled>⏸ 일시정지</button>
+        <button class="btn" type="button" id="snap" disabled>📷 스냅샷 저장</button>
+        <span class="chips"><span class="chip on" id="roi-toggle">ROI 표시</span></span>
+        <span class="muted" id="roi-sum"></span>
         <span class="grow"></span>
-        <a class="btn" href="roi-draw.html" data-need="MANAGER">ROI 수정</a>
-        <a class="btn primary" href="event-detail.html">이 경보 상세 보기</a>
+        <a class="btn" id="roi-edit" href="roi-draw.html" data-need="MANAGER">ROI 수정</a>
+        <a class="btn primary" id="to-event" href="events.html" hidden>이 경보 상세 보기</a>
       </section>
     </main>
 
     <aside class="cell right">
       <div class="pad">
-        <div class="label">지금 탐지된 객체 <span>실시간</span></div>
-        <div class="check stop"><div><b>신호수</b><small>인양 중인데 신호수 없음</small></div><span class="status stop">0명</span></div>
-        <div class="check"><div><b>작업자</b><small>안전모 · 조끼 착용</small></div><span class="status ok">1명</span></div>
-        <div class="check info"><div><b>타워크레인</b><small>T-CRN-02 인양 중</small></div><span class="status info">작업중</span></div>
+        <div class="label">카메라 정보</div>
+        <div id="info"></div>
+        <a class="btn block" id="to-edit" href="camera-edit.html">카메라 설정 보기</a>
 
-        <div class="label" style="margin-top:6px">이 카메라의 최근 이벤트 <span>오늘</span></div>
-        <a class="item stop" href="event-detail.html"><div class="item-top"><b>신호수 미배치</b><span class="status stop">높음</span></div><div class="desc">14:32:10 · 미처리</div></a>
-        <a class="item ok" href="event-detail.html"><div class="item-top"><b>펌프카 붐 하부 출입</b><span class="status stop">높음</span></div><div class="desc">10:12:47 · 처리완료</div></a>
-        <a class="item ok" href="event-detail.html"><div class="item-top"><b>안전모 미착용</b><span class="status ok">낮음</span></div><div class="desc">08:41:02 · 처리완료</div></a>
-        <a class="btn block" href="events.html">이 카메라 이벤트 전체 보기</a>
+        <div class="label" style="margin-top:6px">이 카메라의 최근 이벤트 <span>최근 5건</span></div>
+        <div id="events" style="display:grid; gap:8px"></div>
+        <a class="btn block" href="events.html">이벤트 목록에서 보기</a>
       </div>
     </aside>
   </div>
 
+  <script src="api.js"></script>
+  <script src="roi-store.js"></script>
   <script src="common.js"></script>
   <script>
-    // ?cam=번호 로 들어오면 그 카메라 이름으로 바꾼다 (화면 그림은 예시라 같다)
-    const CAMS = {
-      1: ["CAM_0001", "101동 갱폼 인양구역", ""],
-      2: ["CAM_0002", "102동 대형거푸집구역", "red"],
-      3: ["CAM_0003", "Sector A 토공 / EXC_01", "green"],
-      4: ["CAM_0004", "외곽 야적장", "teal"],
-      tc1: ["CAM_TC01", "1호기 · 101동 갱폼 인양구역", ""],
-      tc2: ["CAM_TC02", "2호기 · 102동 대형거푸집구역", ""],
-      tc3: ["CAM_TC03", "3호기 · 중앙 자재하역장", "red"],
-      tc4: ["CAM_TC04", "4호기 · 103동 외벽 인양구역", ""],
-    };
-    const n = new URLSearchParams(location.search).get("cam") || "2";
-    const cam = CAMS[n] || CAMS[2];
-    document.getElementById("cam-tag").textContent = cam[0];
-    document.getElementById("cam-zone").textContent = cam[1] + " · 빨간 점선 = ROI";
-    document.getElementById("scene").className = "scene " + cam[2];
-    document.getElementById("now").innerHTML = `${cam[0]}<small>${cam[1]}</small>`;
-    document.querySelectorAll("#pick .tc-card").forEach((el) => el.classList.toggle("active", el.getAttribute("href") === "monitor-camera.html?cam=" + n));
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const TONE = { NEW: "stop", ACK: "warn", DONE: "ok", FALSE: "" };
+    let cams = [], books = {}, cam = null;
+
+    // ?camera=번호, ?cam=CAM_0001 (이름), 관제화면의 ?cam=1~4 (1페이지 칸) · ?cam=tc1~4 (2페이지 칸)
+    function wanted() {
+      const p = new URLSearchParams(location.search);
+      const id = Number(p.get("camera")), key = p.get("cam") || "";
+      const slot = /^tc(\d)$/i.exec(key) ? [2, Number(key.slice(2))] : /^\d$/.test(key) ? [1, Number(key)] : null;
+      return cams.find((c) => c.id === id) || cams.find((c) => c.name === key)
+        || (slot && cams.find((c) => c.view_page === slot[0] && c.view_slot === slot[1]))
+        || cams.find((c) => c.is_active && videoSrc(c.stream_url)) || cams[0];
+    }
+
+    function card(c) {
+      const sub = [!c.is_active && "사용 안 함", videoSrc(c.stream_url) ? "영상 파일" : c.stream_url ? "RTSP" : "영상 없음",
+        c.view_slot && `${c.view_page}페이지 ${c.view_slot}번 칸`].filter(Boolean).join(" · ");
+      return `<button class="tc-card${cam && c.id === cam.id ? " active" : ""}" type="button" data-id="${c.id}">
+        <div class="code">${esc(c.name)}</div><strong>${esc(c.work_zone_name || "구역 없음")}</strong><p>${esc(sub)}</p></button>`;
+    }
+    function drawCams() {
+      const groups = [["1페이지 · 현장 CAM", (c) => c.view_page === 1 && c.view_slot], ["2페이지 · TC 관제 CAM", (c) => c.view_page === 2 && c.view_slot],
+        ["관제화면에 안 나오는 카메라", (c) => !c.view_slot]];
+      $("cams").innerHTML = groups.map(([title, test]) => {
+        const list = cams.filter(test);
+        return list.length ? `<div class="label">${title}</div>` + list.map(card).join("") : "";
+      }).join("") || '<p class="muted">등록된 카메라가 없습니다</p>';
+    }
+
+    // ---------------- 영상 + ROI
+    function fitStage() {
+      const v = $("video"), box = $("cam-box").getBoundingClientRect();
+      if (!v.videoWidth || !box.width) return;
+      const s = Math.min(box.width / v.videoWidth, box.height / v.videoHeight), w = v.videoWidth * s, h = v.videoHeight * s;
+      Object.assign($("stage").style, { width: w + "px", height: h + "px", left: (box.width - w) / 2 + "px", top: (box.height - h) / 2 + "px" });
+    }
+    new ResizeObserver(fitStage).observe($("cam-box"));
+
+    // 지금 영상 시각에 맞는 모양 (ROI 그리기에서 프레임마다 바꿔 둔 경우)
+    function drawRois() {
+      const list = (cam && books[roiFileOf(cam)]) || [];
+      const show = $("roi-toggle").classList.contains("on");
+      const t = $("video").currentTime || 0;
+      $("roi-sum").textContent = list.length ? `ROI ${list.length}개${list.some((r) => r.enabled === false) ? ` (꺼짐 ${list.filter((r) => r.enabled === false).length})` : ""}` : "그려진 ROI 없음";
+      $("rois").innerHTML = !show ? "" : list.filter((r) => r.enabled !== false).map((r) => {
+        let key = r.keys[0];
+        r.keys.forEach((k) => { if ((k.time ?? k.frame / 30) <= t) key = k; });
+        if (!key || key.pts.length < 3) return "";
+        const color = ROI_KINDS[r.kind].color, pts = key.pts.map((q) => q.join(",")).join(" ");
+        const c = key.pts.reduce((a, q) => [a[0] + q[0] / key.pts.length, a[1] + q[1] / key.pts.length], [0, 0]);
+        return `<polygon points="${pts}" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="3" stroke-dasharray="12 7" />
+          <text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="26" font-weight="800" stroke="#0c1016" stroke-width="5" paint-order="stroke">${r.no} ${ROI_KINDS[r.kind].label}</text>`;
+      }).join("");
+    }
+    $("video").addEventListener("timeupdate", drawRois);
+    $("video").addEventListener("loadedmetadata", fitStage);
+    $("video").addEventListener("playing", () => { $("scene").style.visibility = "hidden"; $("pause").textContent = "⏸ 일시정지"; });
+    $("video").addEventListener("pause", () => { $("pause").textContent = "▶ 다시 재생"; });
+    $("video").addEventListener("error", () => noVideo("영상을 재생할 수 없습니다. 이 PC 의 브라우저가 못 여는 형식(H.265 등)일 수 있습니다."));
+
+    function noVideo(text) {
+      const v = $("video");
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+      $("stage").hidden = true;
+      $("scene").style.visibility = "";
+      $("no-video").hidden = false;
+      $("no-video").textContent = text;
+      $("pause").disabled = $("snap").disabled = true;
+      $("pause").textContent = "⏸ 일시정지";
+    }
+
+    function play(c) {
+      const src = videoSrc(c.stream_url);
+      if (!src) {
+        return noVideo(c.stream_url ? "RTSP 카메라는 영상 서버를 붙인 뒤 여기서 볼 수 있습니다. 지금은 카메라 등록에서 '영상 파일'로 연결하면 재생됩니다." : "이 카메라에는 영상 소스가 없습니다. 카메라 등록에서 연결하세요.");
+      }
+      $("no-video").hidden = true;
+      $("stage").hidden = false;
+      $("pause").disabled = $("snap").disabled = false;
+      const v = $("video");
+      v.src = src;
+      v.play().catch(() => document.addEventListener("pointerdown", () => v.play().catch(() => {}), { once: true }));
+    }
+
+    // ---------------- 오른쪽: 카메라 정보 · 최근 이벤트
+    async function side(c) {
+      const row = (k, v) => `<div class="info-row"><span>${k}</span><b>${v}</b></div>`;
+      $("info").innerHTML = row("설치 위치", esc([c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "-"))
+        + row("종류", c.camera_type === "TC" ? "TC CAM (크레인 부착)" : "현장 CAM")
+        + row("관제화면", c.view_slot ? `${c.view_page}페이지 ${c.view_slot}번 칸` : "표시 안 함")
+        + row("영상", videoSrc(c.stream_url) ? "📁 " + esc(c.stream_url.slice(7)) : c.stream_url ? "RTSP" : "-")
+        + row("사용", c.is_active ? '<span class="status ok">사용</span>' : '<span class="status mute">사용 안 함</span>');
+      $("to-edit").href = "camera-edit.html?id=" + c.id;
+      $("roi-edit").href = "roi-draw.html?camera=" + c.id;
+      const page = await api("/api/events", { query: { camera_id: c.id, size: 5 } });
+      if (cam !== c) return; // 그 사이 다른 카메라를 골랐으면 버린다
+      $("events").innerHTML = page.items.length ? page.items.map((e) => `<a class="item ${TONE[e.status]}" href="event-detail.html?id=${e.id}">
+          <div class="item-top"><b>${esc(e.detection_label)}</b>${badge("severity", e.severity)}</div>
+          <div class="desc">${fmtTime(e.detected_at).slice(5, 16)} · ${LABEL.eventStatus[e.status][1]}</div></a>`).join("")
+        : '<p class="muted">이 카메라의 이벤트가 없습니다</p>';
+      const open = page.items.find((e) => e.status === "NEW" || e.status === "ACK");
+      $("to-event").hidden = !open;
+      if (open) $("to-event").href = "event-detail.html?id=" + open.id;
+    }
+
+    function show(c) {
+      cam = c;
+      history.replaceState(null, "", "?camera=" + c.id);
+      $("now").innerHTML = `${esc(c.name)}<small>${esc(c.work_zone_name || "구역 없음")}</small>`;
+      $("cam-tag").textContent = c.name;
+      $("cam-zone").textContent = [c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "설치 위치 없음";
+      drawCams();
+      play(c);
+      drawRois();
+      side(c).catch((err) => toast(err.message));
+    }
+
+    $("cams").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-id]");
+      if (b) { show(cams.find((c) => c.id === Number(b.dataset.id))); closeSearch(); }
+    });
+    $("roi-toggle").addEventListener("click", drawRois); // 칩 켜고 끄기는 common.js 가 한다
+    $("pause").addEventListener("click", () => { const v = $("video"); if (v.paused) v.play().catch(() => {}); else v.pause(); });
+    // 스냅샷: 지금 화면(영상 원래 크기)을 PNG 로 내려받기. ROI 를 켜 두었으면 함께 그린다
+    $("snap").addEventListener("click", async () => {
+      const v = $("video");
+      if (!v.videoWidth) return toast("영상이 아직 열리지 않았습니다.");
+      const canvas = Object.assign(document.createElement("canvas"), { width: v.videoWidth, height: v.videoHeight });
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(v, 0, 0);
+      if ($("rois").innerHTML) {
+        const svg = new Blob([new XMLSerializer().serializeToString($("rois"))], { type: "image/svg+xml" });
+        const img = new Image();
+        img.src = URL.createObjectURL(svg);
+        await img.decode().catch(() => {});
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(img.src);
+      }
+      const stamp = new Date().toTimeString().slice(0, 8).replaceAll(":", "");
+      canvas.toBlob((blob) => {
+        const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `${cam.name}_${todayStr()}_${stamp}.png` });
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        toast("스냅샷을 저장했습니다.");
+      }, "image/png");
+    });
+
+    (async () => {
+      cams = await api("/api/cameras");
+      books = await loadRoiBooks(cams).catch(() => ({})); // ROI 를 못 불러와도 영상은 본다
+      if (!cams.length) {
+        $("now").textContent = "등록된 카메라가 없습니다";
+        drawCams();
+        return noVideo("등록된 카메라가 없습니다. 카메라 등록에서 먼저 추가하세요.");
+      }
+      show(wanted());
+    })().catch((err) => toast(err.message));
   </script>
 </body>
 </html>
