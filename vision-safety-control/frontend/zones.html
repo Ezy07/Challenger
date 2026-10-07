@@ -95,7 +95,7 @@
           <div class="label" style="margin-top:4px">오늘 작업</div>
           <div id="z-works" style="display:grid; gap:6px"></div>
           <a class="btn primary block" id="z-go-works" href="zone-works.html">구역별 작업 목록 →</a>
-          <a class="btn block" id="z-go-eq" href="zone-equipment.html">구역별 투입장비 목록 →</a>
+          <a class="btn block" id="z-go-eq" href="work-workers.html">작업별 장비 · 작업자 목록 →</a>
           <button class="btn block" type="button" id="edit" data-need="MANAGER">✏ 이름 · 배치도 영역 수정</button>
         </div>
 
@@ -247,7 +247,7 @@
         `<a class="item" href="work-workers.html?id=${w.id}"><div class="item-top"><b>W-${pad2(w.id)} · ${esc(w.name)}</b>${badge("workStatus", w.status)}</div></a>`).join("")
         : '<p class="muted">오늘 이 구역 작업이 없습니다</p>';
       $("z-go-works").href = "zone-works.html?zone=" + z.id;
-      $("z-go-eq").href = "zone-equipment.html?zone=" + z.id;
+      $("z-go-eq").href = "work-workers.html?zone=" + z.id;
       setMode(mode === "edit" ? "edit" : "view"); // 고치는 중에 다른 구역을 고르면 그 구역을 고친다
     }
 
