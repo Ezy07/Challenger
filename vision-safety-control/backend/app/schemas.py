@@ -325,7 +325,8 @@ class ZoneSummary(WorkZoneOut):
     worker_count: int          # 오늘 배정 인원
     special_count: int         # 그중 특별관리
     equipment: list[NamedRef]  # 투입 장비
-    cameras: list[str]
+    cameras: list[str]         # 이 구역에 설치된 카메라 중 사용 중
+    cameras_off: list[str] = []  # 설치는 됐지만 사용 안 함
     open_events: int           # 미처리 · 확인중 이벤트
     open_high: int             # 그중 높음
 

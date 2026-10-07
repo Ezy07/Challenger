@@ -86,6 +86,18 @@ def test_zone_summary(client, manager):
     assert zones["103동 외벽 인양구역"]["works"] == []  # 예정 작업은 오늘 것이 아님
 
 
+def test_zone_summary_counts_installed_cameras(client, admin, manager):
+    """새 구역에 카메라를 달면 그 구역 요약에 잡힌다. 사용 안 함으로 꺼도 설치된 대수에는 남는다"""
+    zid = client.post("/api/work-zones", json={"name": "104동 신규 구역"}, headers=manager).json()["id"]
+    assert any(z["name"] == "104동 신규 구역" for z in client.get("/api/work-zones", headers=admin).json())  # 카메라 등록 화면의 구역 목록
+    cam = client.post("/api/cameras", json={"name": "CAM_0104", "work_zone_id": zid, "view_page": 1, "location_desc": "3층 외벽"}, headers=admin).json()
+    assert cam["work_zone_name"] == "104동 신규 구역"
+    summary = lambda: next(z for z in client.get("/api/work-zones/summary", headers=manager).json() if z["id"] == zid)
+    assert (summary()["cameras"], summary()["cameras_off"]) == (["CAM_0104"], [])
+    client.patch(f"/api/cameras/{cam['id']}", json={"is_active": False}, headers=admin)
+    assert (summary()["cameras"], summary()["cameras_off"]) == ([], ["CAM_0104"])
+
+
 def test_zone_crud(client, manager):
     poly = [[0.1, 0.1], [0.2, 0.1], [0.2, 0.2], [0.1, 0.2]]
     z = client.post("/api/work-zones", json={"name": "104동 구역", "plan_polygon": poly}, headers=manager)
@@ -94,6 +106,14 @@ def test_zone_crud(client, manager):
     bad = [[0.1, 0.1], [1.5, 0.1], [0.2, 0.2]]
     assert client.patch(f"/api/work-zones/{zid}", json={"plan_polygon": bad}, headers=manager).status_code == 422
     assert client.patch(f"/api/work-zones/{zid}", json={"name": "104동 골조"}, headers=manager).json()["name"] == "104동 골조"
+
+    # 다각형 (ㄱ자 6각형) · 꼭짓점 상한 · 배치도에서 빼기(null)
+    ell = [[0.1, 0.1], [0.4, 0.1], [0.4, 0.2], [0.2, 0.2], [0.2, 0.5], [0.1, 0.5]]
+    assert client.patch(f"/api/work-zones/{zid}", json={"plan_polygon": ell}, headers=manager).json()["plan_polygon"] == ell
+    assert client.patch(f"/api/work-zones/{zid}", json={"plan_polygon": [[0.1, 0.1], [0.2, 0.2]]}, headers=manager).status_code == 422
+    many = [[0.5 + 0.3 * (i % 2), i / 41] for i in range(41)]
+    assert client.patch(f"/api/work-zones/{zid}", json={"plan_polygon": many}, headers=manager).status_code == 422
+    assert client.patch(f"/api/work-zones/{zid}", json={"plan_polygon": None}, headers=manager).json()["plan_polygon"] is None
     assert client.delete(f"/api/work-zones/{zid}", headers=manager).status_code == 204
     used = client.get("/api/work-zones", headers=manager).json()[0]["id"]
     assert client.delete(f"/api/work-zones/{used}", headers=manager).status_code == 409

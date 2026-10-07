@@ -12,32 +12,41 @@
     .road { position: absolute; background: #1a212b; }
     .road.h { left: 0; right: 0; top: 52%; height: 7%; }
     .road.v { top: 0; bottom: 0; left: 46%; width: 5%; }
-    .zone-box {
-      position: absolute; display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
-      padding: 8px 10px; border-radius: 10px; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 14%, transparent);
+    /* 구역: 도면 위 다각형(SVG) + 가운데 이름표(버튼) */
+    #shapes { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #shapes .zone { cursor: pointer; fill: var(--c); fill-opacity: 0.16; stroke: var(--c); stroke-width: 3; stroke-linejoin: round; }
+    .plan.has-image #shapes .zone { fill-opacity: 0.32; }
+    #shapes .zone:hover, #shapes .zone.on { fill-opacity: 0.34; }
+    #shapes .zone.on { stroke: #fff; stroke-width: 4; }
+    #shapes .zone.alarm { animation: zone-flash 1.2s ease-in-out infinite; }
+    @keyframes zone-flash { 50% { fill: #ff5d5d; fill-opacity: 0.4; } }
+    .zone-tag {
+      position: absolute; transform: translate(-50%, -50%); display: grid; gap: 3px; max-width: 220px;
+      padding: 6px 9px; border-radius: 9px; border: 1.5px solid var(--c); background: rgba(10, 14, 20, 0.8);
       color: var(--ink); font: inherit; text-align: left; cursor: pointer;
     }
-    .zone-box:hover, .zone-box.on { background: color-mix(in srgb, var(--c) 28%, transparent); }
-    .zone-box.on { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
-    /* 밝은 도면 위에서도 글자가 읽히게 구역 칸을 어둡게 깐다 */
-    .plan.has-image .zone-box { background: color-mix(in srgb, var(--c) 22%, rgba(10, 14, 20, 0.62)); }
-    .plan.has-image .zone-box:hover, .plan.has-image .zone-box.on { background: color-mix(in srgb, var(--c) 34%, rgba(10, 14, 20, 0.7)); }
-    .zone-box:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
-    .zone-box b { font-size: 13px; letter-spacing: -0.02em; }
-    .zone-box small { font-size: 11px; color: #c5d0dc; font-weight: 600; }
-    .zone-box .status { align-self: flex-start; }
-    .zone-box.alarm { animation: zone-flash 1.2s ease-in-out infinite; }
-    @keyframes zone-flash { 50% { background: rgba(255, 93, 93, 0.35); } }
-    .tc { position: absolute; border-radius: 50%; border: 2px dashed var(--c); opacity: 0.55; pointer-events: none; transform: translate(-50%, -50%); }
-    .tc-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); pointer-events: none; }
-    .cam-pin { position: absolute; transform: translate(-50%, -50%); font-size: 10.5px; font-weight: 800; padding: 1px 5px; border-radius: 5px; background: rgba(8,12,18,0.85); border: 1px solid rgba(255,255,255,0.15); pointer-events: none; white-space: nowrap; }
+    .zone-tag.on { box-shadow: 0 0 0 2px #fff; }
+    .zone-tag:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+    .zone-tag b { font-size: 12.5px; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .zone-tag small { font-size: 10.5px; color: #c5d0dc; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .zone-tag .status { justify-self: start; }
+    /* 영역 그리기: 다른 구역은 흐리게, 고치는 구역은 점선 + 꼭짓점 손잡이 */
+    .drawing #shapes { cursor: crosshair; }
+    .drawing #shapes .zone { opacity: 0.35; pointer-events: none; }
+    .drawing .zone-tag { opacity: 0.25; pointer-events: none; }
+    #shapes polyline.draft { fill: none; }
+    #shapes .draft { fill: rgba(255, 154, 31, 0.22); stroke: #ff9a1f; stroke-width: 3; stroke-dasharray: 10 6; pointer-events: none; }
+    #shapes .vtx { fill: #ff9a1f; stroke: #0c1016; stroke-width: 3; cursor: grab; }
+    #shapes .vtx.first { fill: #fff; }
+    #shapes .mid { fill: #0c1016; fill-opacity: 0.6; stroke: #ff9a1f; stroke-width: 2; cursor: copy; }
+    .draw-bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 9px 12px; border-radius: 12px; border: 1px dashed rgba(255, 154, 31, 0.6); background: rgba(255, 154, 31, 0.06); font-size: 12.5px; }
     .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
     .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -2px; }
-    .stat4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-    .stat4 div { padding: 8px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); text-align: center; }
+    .stat4 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+    .stat4 div { padding: 8px 4px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); text-align: center; }
     .stat4 span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
     .stat4 b { font-size: 20px; font-variant-numeric: tabular-nums; }
-    @media (prefers-reduced-motion: reduce) { .zone-box.alarm { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { #shapes .zone.alarm { animation: none; } }
   </style>
 </head>
 <body>
@@ -45,47 +54,74 @@
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell plan-wrap">
+      <section class="cell plan-wrap" id="plan-wrap">
         <div class="row between">
-          <div class="label">현장 배치도 <span>구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
+          <div class="label">현장 배치도 <span id="plan-sub">구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
           <div class="row"><a class="btn sm" href="camera-map.html" data-need="ADMIN" title="도면은 카메라 배치도와 같이 씁니다">🖼 도면 관리</a>
           <div class="legend"><span><i style="background:#3ddc84"></i>정상</span><span><i style="background:#ffb020"></i>점검 필요</span><span><i style="background:#ff5d5d"></i>작업중지 · 높음 경보</span><span><i style="background:#8e9aab"></i>오늘 작업 없음</span></div></div>
         </div>
-        <div class="plan-area"><div class="plan" id="plan"><div class="road h"></div><div class="road v"></div></div></div>
+        <div class="draw-bar" id="draw-bar" hidden>
+          <b id="draw-name">영역 그리기</b>
+          <span class="muted" id="draw-help">도면을 눌러 꼭짓점을 찍으세요. 점은 끌어서 옮기고, 변 가운데 작은 점을 끌면 점이 늘어나며, 점을 오른쪽 클릭하면 지워집니다.</span>
+          <span class="grow"></span>
+          <b id="draw-count">점 0개</b>
+        </div>
+        <div class="plan-area"><div class="plan" id="plan"><div class="road h"></div><div class="road v"></div>
+          <svg id="shapes" preserveAspectRatio="none" aria-label="작업구역 영역"></svg>
+          <div id="tags"></div>
+        </div></div>
       </section>
     </main>
 
     <aside class="cell right">
       <div class="pad">
-        <div class="row between"><div class="label" id="z-code">-</div><button class="btn sm" id="new" data-need="MANAGER">＋ 새 구역</button></div>
-        <h2 id="z-name" style="font-size:20px; letter-spacing:-0.03em">-</h2>
-        <div id="z-state"></div>
-        <div class="stat4">
-          <div><span>작업</span><b id="z-work">0</b></div>
-          <div><span>인원</span><b id="z-people">0</b></div>
-          <div><span>장비</span><b id="z-eq">0</b></div>
-          <div><span>경보</span><b id="z-alarm">0</b></div>
+        <div class="row" style="flex-wrap:nowrap">
+          <select class="input grow" id="z-pick" aria-label="구역 고르기"></select>
+          <button class="btn sm" type="button" id="new" data-need="MANAGER">＋ 새 구역</button>
         </div>
-        <div class="label" style="margin-top:4px">오늘 작업</div>
-        <div id="z-works" style="display:grid; gap:6px"></div>
-        <a class="btn primary block" id="z-go-works" href="zone-works.html">구역별 작업 목록 →</a>
-        <a class="btn block" id="z-go-eq" href="zone-equipment.html">구역별 투입장비 목록 →</a>
 
-        <details id="edit-box" style="margin-top:6px" data-need="MANAGER">
-          <summary class="label" style="cursor:pointer">구역 이름 · 배치도 위치 바꾸기</summary>
-          <form id="form" style="display:grid; gap:8px; margin-top:8px">
-            <label class="field">구역 이름<input class="input" id="e-name" required maxlength="100" /></label>
-            <div class="two">
-              <label class="field">왼쪽 (%)<input class="input" type="number" id="e-x" min="0" max="100" step="1" /></label>
-              <label class="field">위 (%)<input class="input" type="number" id="e-y" min="0" max="100" step="1" /></label>
+        <div id="view-box" style="display:grid; gap:inherit">
+          <div class="label" id="z-code">-</div>
+          <h2 id="z-name" style="font-size:20px; letter-spacing:-0.03em">-</h2>
+          <div id="z-state"></div>
+          <div class="stat4">
+            <div><span>작업</span><b id="z-work">0</b></div>
+            <div><span>인원</span><b id="z-people">0</b></div>
+            <div><span>장비</span><b id="z-eq">0</b></div>
+            <div><span>카메라</span><b id="z-cam">0</b></div>
+            <div><span>경보</span><b id="z-alarm">0</b></div>
+          </div>
+          <div class="muted" id="z-cams" style="font-size:12px"></div>
+          <div class="label" style="margin-top:4px">오늘 작업</div>
+          <div id="z-works" style="display:grid; gap:6px"></div>
+          <a class="btn primary block" id="z-go-works" href="zone-works.html">구역별 작업 목록 →</a>
+          <a class="btn block" id="z-go-eq" href="zone-equipment.html">구역별 투입장비 목록 →</a>
+          <button class="btn block" type="button" id="edit" data-need="MANAGER">✏ 이름 · 배치도 영역 수정</button>
+        </div>
+
+        <form id="form" hidden style="display:grid; gap:8px">
+          <div class="row between">
+            <button class="btn sm" type="button" id="back">← 뒤로</button>
+            <span class="label" id="form-title">구역 수정</span>
+          </div>
+          <label class="field">구역 이름<input class="input" id="e-name" required maxlength="100" /></label>
+          <div class="field">배치도 영역 <span class="muted" style="font-weight:600">(왼쪽 도면에서 그리기)</span>
+            <div class="row" style="flex-wrap:wrap">
+              <button class="btn sm" type="button" id="undo">↶ 마지막 점</button>
+              <button class="btn sm" type="button" id="clear">처음부터</button>
+              <button class="btn sm" type="button" id="rect">□ 사각형</button>
+              <button class="btn sm" type="button" id="revert">되돌리기</button>
             </div>
-            <div class="two">
-              <label class="field">너비 (%)<input class="input" type="number" id="e-w" min="1" max="100" step="1" /></label>
-              <label class="field">높이 (%)<input class="input" type="number" id="e-h" min="1" max="100" step="1" /></label>
+            <small class="muted">점이 없으면 배치도에 표시하지 않습니다. 점 3개 이상이면 다각형이 됩니다.</small>
+          </div>
+          <div class="row between">
+            <button class="btn sm" type="button" id="del" style="color:var(--red)">구역 삭제</button>
+            <div class="row">
+              <button class="btn sm" type="button" id="cancel">취소</button>
+              <button class="btn sm primary">저장</button>
             </div>
-            <div class="row between"><button class="btn sm" type="button" id="del" style="color:var(--red)">구역 삭제</button><button class="btn sm primary">저장</button></div>
-          </form>
-        </details>
+          </div>
+        </form>
       </div>
     </aside>
   </div>
@@ -94,17 +130,26 @@
   <script>
     requireLogin();
     const $ = (id) => document.getElementById(id);
-    let zones = [], current = null, creating = false;
+    const W = 1000; // 표시 좌표계 너비. 높이는 도면 비율에 맞춘다
+    const MAX_POINTS = 40;
+    let zones = [], current = null, mode = "view", H = W / PLAN_RATIO;
+    let draft = null, drag = null, saved = ""; // 그리는 중인 꼭짓점 [[x, y], ...] (0~1) · 끌고 있는 점 번호 · 고치기 시작할 때 값
 
-    // 배치도 영역(0~1 비율 다각형)을 감싸는 사각형
-    function box(z) {
-      const p = z.plan_polygon;
-      if (!p || !p.length) return null;
-      const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]);
-      const x = Math.min(...xs), y = Math.min(...ys);
-      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+    const r4 = (v) => Math.round(v * 10000) / 10000;
+    const poly = (z) => (z.plan_polygon && z.plan_polygon.length >= 3 ? z.plan_polygon : null);
+    const camCount = (z) => z.cameras.length + z.cameras_off.length; // 설치된 카메라 (사용 안 함 포함)
+    const pts = (p) => p.map(([x, y]) => `${(x * W).toFixed(1)},${(y * H).toFixed(1)}`).join(" ");
+
+    // 다각형 무게중심 (이름표 자리). 넓이가 0 이면 점 평균
+    function center(p) {
+      let a = 0, cx = 0, cy = 0;
+      p.forEach(([x1, y1], i) => {
+        const [x2, y2] = p[(i + 1) % p.length], k = x1 * y2 - x2 * y1;
+        a += k; cx += (x1 + x2) * k; cy += (y1 + y2) * k;
+      });
+      if (Math.abs(a) < 1e-9) return [p.reduce((s, q) => s + q[0], 0) / p.length, p.reduce((s, q) => s + q[1], 0) / p.length];
+      return [cx / (3 * a), cy / (3 * a)];
     }
-    const pct = (v) => Math.round(v * 1000) / 10;
 
     function state(z) {
       if (z.open_high || z.works.some((w) => w.status === "STOPPED")) return ["stop", "#ff5d5d", z.open_high ? `높음 경보 ${z.open_high}건` : "작업중지"];
@@ -114,33 +159,88 @@
     }
 
     function drawPlan() {
-      $("plan").querySelectorAll(".zone-box").forEach((b) => b.remove());
+      $("shapes").setAttribute("viewBox", `0 0 ${W} ${H.toFixed(1)}`);
+      const editingId = mode === "edit" && current ? current.id : null;
+      let svg = "", tags = "";
       zones.forEach((z) => {
-        const b = box(z);
-        if (!b) return;
+        const p = poly(z);
+        if (!p || z.id === editingId) return;
         const [cls, color, text] = state(z);
+        const on = current && current.id === z.id && mode !== "new" ? " on" : "";
+        svg += `<polygon class="zone${cls === "stop" ? " alarm" : ""}${on}" data-z="${z.id}" points="${pts(p)}" style="--c:${color}" />`;
+        const [cx, cy] = center(p);
         const sub = [...z.equipment.filter((e) => e.kind === "TC").map((e) => e.name.split(" · ")[0]),
-          z.works.length && `작업 ${z.works.length}`, z.worker_count && `인원 ${z.worker_count}`].filter(Boolean).join(" · ");
-        $("plan").insertAdjacentHTML("beforeend", `
-          <button class="zone-box${cls === "stop" ? " alarm" : ""}${current && current.id === z.id ? " on" : ""}" data-z="${z.id}"
-            style="--c:${color}; left:${pct(b.x)}%; top:${pct(b.y)}%; width:${pct(b.w)}%; height:${pct(b.h)}%">
-            <b>${esc(z.name)}</b><small>${esc(sub || "-")}</small><span class="status ${cls}">${esc(text.split(" · ")[0])}</span></button>`);
+          z.works.length && `작업 ${z.works.length}`, z.worker_count && `인원 ${z.worker_count}`, camCount(z) && `CAM ${camCount(z)}대`].filter(Boolean).join(" · ");
+        tags += `<button class="zone-tag${on}" data-z="${z.id}" style="--c:${color}; left:${(cx * 100).toFixed(2)}%; top:${(cy * 100).toFixed(2)}%">
+          <b>${esc(z.name)}</b><small>${esc(sub || "-")}</small><span class="status ${cls}">${esc(text.split(" · ")[0])}</span></button>`;
       });
+      if (draft) {
+        if (draft.length >= 3) svg += `<polygon class="draft" points="${pts(draft)}" />`;
+        else if (draft.length === 2) svg += `<polyline class="draft" points="${pts(draft)}" />`;
+        if (draft.length >= 2) draft.forEach((a, i) => {
+          if (draft.length < 3 && i === draft.length - 1) return; // 두 점일 때는 변이 하나
+          const b = draft[(i + 1) % draft.length];
+          svg += `<circle class="mid" data-mid="${i}" cx="${((a[0] + b[0]) / 2 * W).toFixed(1)}" cy="${((a[1] + b[1]) / 2 * H).toFixed(1)}" r="7" />`;
+        });
+        draft.forEach(([x, y], i) => { svg += `<circle class="vtx${i === 0 ? " first" : ""}" data-v="${i}" cx="${(x * W).toFixed(1)}" cy="${(y * H).toFixed(1)}" r="10" />`; });
+      }
+      $("shapes").innerHTML = svg;
+      $("tags").innerHTML = tags;
+      $("plan-wrap").classList.toggle("drawing", Boolean(draft));
+      $("draw-bar").hidden = !draft;
+      if (draft) {
+        $("draw-name").textContent = mode === "new" ? "새 구역 영역 그리기" : `${current.name} 영역 고치기`;
+        $("draw-count").textContent = `점 ${draft.length}개${draft.length && draft.length < 3 ? " · 3개부터 저장" : ""}`;
+        $("plan-sub").textContent = "영역 그리는 중 — 오른쪽에서 저장";
+      } else {
+        $("plan-sub").textContent = "구역을 누르면 오른쪽에 요약이 나옵니다";
+      }
+    }
+
+    // mode: view(보기) · edit(고치기) · new(새 구역)
+    function setMode(next) {
+      mode = next;
+      const editing = mode !== "view";
+      $("view-box").hidden = editing;
+      $("form").hidden = !editing;
+      $("new").hidden = editing;
+      $("z-pick").disabled = mode === "new";
+      $("del").hidden = mode !== "edit";
+      $("form-title").textContent = mode === "new" ? "새 구역 만들기" : "구역 수정";
+      if (editing) {
+        $("e-name").value = mode === "new" ? "" : current.name;
+        draft = mode === "new" ? [] : (poly(current) || []).map((q) => [...q]);
+        saved = JSON.stringify([$("e-name").value, draft]);
+      } else {
+        draft = null;
+      }
+      drawPlan();
+    }
+    const dirty = () => mode !== "view" && JSON.stringify([$("e-name").value.trim(), draft]) !== saved;
+    const leave = () => !dirty() || confirm("저장하지 않은 변경이 있습니다. 버리고 갈까요?");
+
+    function fillPick() {
+      $("z-pick").innerHTML = (mode === "new" ? '<option value="">새 구역</option>' : "")
+        + zones.map((z) => `<option value="${z.id}">${esc(z.name)}${poly(z) ? "" : " · 배치도에 없음"}</option>`).join("");
+      $("z-pick").value = mode === "new" ? "" : current ? current.id : "";
     }
 
     function show(id) {
-      creating = false;
       current = zones.find((z) => z.id === id) || zones[0];
+      fillPick();
       if (!current) return;
       history.replaceState(null, "", "?zone=" + current.id);
-      document.querySelectorAll(".zone-box").forEach((b) => b.classList.toggle("on", Number(b.dataset.z) === current.id));
       const z = current, [cls, , text] = state(z);
-      $("z-code").textContent = "ZONE-" + pad2(z.id);
+      $("z-code").textContent = "ZONE-" + pad2(z.id) + (poly(z) ? "" : " · 배치도에 없음");
       $("z-name").textContent = z.name;
       $("z-state").innerHTML = `<span class="status ${cls}">${esc(text)}</span>`;
       $("z-work").textContent = z.works.length;
       $("z-people").textContent = z.worker_count;
       $("z-eq").textContent = z.equipment.length;
+      $("z-cam").textContent = camCount(z);
+      $("z-cams").innerHTML = camCount(z)
+        ? `📷 설치된 카메라 ${camCount(z)}대${z.cameras_off.length ? ` (사용 안 함 ${z.cameras_off.length}대)` : ""} · ${[...z.cameras, ...z.cameras_off].map(esc).join(", ")} <a href="cameras.html" style="color:var(--orange)">카메라 목록 →</a>`
+        : '📷 이 구역에 설치된 카메라가 없습니다 <a href="camera-edit.html" data-need="ADMIN" style="color:var(--orange)">카메라 등록 →</a>';
       $("z-alarm").textContent = z.open_events;
       $("z-alarm").style.color = z.open_events ? "var(--red)" : "";
       $("z-works").innerHTML = z.works.length ? z.works.map((w) =>
@@ -148,43 +248,93 @@
         : '<p class="muted">오늘 이 구역 작업이 없습니다</p>';
       $("z-go-works").href = "zone-works.html?zone=" + z.id;
       $("z-go-eq").href = "zone-equipment.html?zone=" + z.id;
-      fillForm(z);
-    }
-
-    function fillForm(z) {
-      const b = (z && box(z)) || { x: 0.4, y: 0.4, w: 0.15, h: 0.15 };
-      $("e-name").value = z ? z.name : "";
-      [["e-x", b.x], ["e-y", b.y], ["e-w", b.w], ["e-h", b.h]].forEach(([id, v]) => { $(id).value = pct(v); });
-      $("del").hidden = !z;
+      setMode(mode === "edit" ? "edit" : "view"); // 고치는 중에 다른 구역을 고르면 그 구역을 고친다
     }
 
     async function load(id) {
       const [list, plan] = await Promise.all([api("/api/work-zones/summary"), loadSitePlan()]);
       zones = list;
       paintPlan($("plan"), plan);
-      drawPlan();
+      H = W / (plan ? plan.width / plan.height : PLAN_RATIO);
       show(id);
     }
 
-    $("plan").addEventListener("click", (e) => { const b = e.target.closest(".zone-box"); if (b) show(Number(b.dataset.z)); });
+    // ---------------- 영역 그리기
+    function toPlan(ev) {
+      const r = $("shapes").getBoundingClientRect();
+      const clamp = (v) => Math.min(1, Math.max(0, v));
+      return [r4(clamp((ev.clientX - r.left) / r.width)), r4(clamp((ev.clientY - r.top) / r.height))];
+    }
+
+    $("tags").addEventListener("click", (e) => { const b = e.target.closest("[data-z]"); if (b && mode === "view") show(Number(b.dataset.z)); });
+    $("shapes").addEventListener("click", (e) => { const g = e.target.closest(".zone"); if (g && !draft) show(Number(g.dataset.z)); });
+    $("shapes").addEventListener("pointerdown", (e) => {
+      if (!draft || e.button !== 0) return;
+      const v = e.target.closest(".vtx"), m = e.target.closest(".mid");
+      if (v) drag = Number(v.dataset.v);
+      else if (m) { drag = Number(m.dataset.mid) + 1; draft.splice(drag, 0, toPlan(e)); }
+      else {
+        if (draft.length >= MAX_POINTS) return toast(`점은 ${MAX_POINTS}개까지 찍을 수 있습니다.`);
+        draft.push(toPlan(e));
+        drag = draft.length - 1;
+      }
+      $("shapes").setPointerCapture(e.pointerId);
+      drawPlan();
+    });
+    $("shapes").addEventListener("pointermove", (e) => {
+      if (drag === null) return;
+      draft[drag] = toPlan(e);
+      drawPlan();
+    });
+    $("shapes").addEventListener("pointerup", () => { drag = null; });
+    $("shapes").addEventListener("contextmenu", (e) => {
+      const v = e.target.closest(".vtx");
+      if (!draft || !v) return;
+      e.preventDefault();
+      draft.splice(Number(v.dataset.v), 1);
+      drawPlan();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (!draft || e.target.closest("input, textarea, select")) return;
+      if (e.key === "Backspace" || (e.key === "z" && (e.ctrlKey || e.metaKey))) { e.preventDefault(); draft.pop(); drawPlan(); }
+    });
+    $("undo").addEventListener("click", () => { if (draft) { draft.pop(); drawPlan(); } });
+    $("clear").addEventListener("click", () => { if (draft) { draft.length = 0; drawPlan(); } });
+    $("rect").addEventListener("click", () => {
+      if (!draft) return;
+      const xs = draft.map((q) => q[0]), ys = draft.map((q) => q[1]);
+      const [x1, y1, x2, y2] = draft.length >= 2 ? [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)] : [0.4, 0.4, 0.6, 0.6];
+      draft = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]].map(([x, y]) => [r4(x), r4(y)]); // 찍은 점을 감싸는 사각형
+      drawPlan();
+    });
+    $("revert").addEventListener("click", () => {
+      draft = mode === "new" || !current ? [] : (poly(current) || []).map((q) => [...q]);
+      drawPlan();
+    });
+
+    $("z-pick").addEventListener("change", () => {
+      const id = Number($("z-pick").value);
+      if (!leave()) { $("z-pick").value = current.id; return; }
+      show(id);
+    });
+    $("edit").addEventListener("click", () => setMode("edit"));
     $("new").addEventListener("click", () => {
-      creating = true;
-      $("z-code").textContent = "새 구역";
-      $("z-name").textContent = "새 구역 만들기";
-      fillForm(null);
-      $("edit-box").open = true;
+      setMode("new");
+      fillPick();
       $("e-name").focus();
     });
+    const back = () => { if (leave()) show(current && current.id); };
+    $("back").addEventListener("click", back);
+    $("cancel").addEventListener("click", back);
     $("form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const [x, y, w, h] = ["e-x", "e-y", "e-w", "e-h"].map((id) => Number($(id).value) / 100);
-      if (x + w > 1.0001 || y + h > 1.0001) return toast("배치도 밖으로 나갑니다. 왼쪽 + 너비, 위 + 높이가 100% 이하여야 합니다.");
-      const r = (v) => Math.round(v * 1000) / 1000;
-      const body = { name: $("e-name").value.trim(), plan_polygon: [[r(x), r(y)], [r(x + w), r(y)], [r(x + w), r(y + h)], [r(x), r(y + h)]] };
+      if (draft.length > 0 && draft.length < 3) return toast("영역은 점 3개 이상이어야 합니다. 점을 더 찍거나 [처음부터]로 비우세요.");
+      const body = { name: $("e-name").value.trim(), plan_polygon: draft.length ? draft : null };
       try {
-        const saved = creating ? await api("/api/work-zones", { method: "POST", body }) : await api(`/api/work-zones/${current.id}`, { method: "PATCH", body });
-        toast(creating ? "구역을 만들었습니다." : "구역을 저장했습니다.");
-        await load(saved.id);
+        const res = mode === "new" ? await api("/api/work-zones", { method: "POST", body }) : await api(`/api/work-zones/${current.id}`, { method: "PATCH", body });
+        toast(mode === "new" ? "구역을 만들었습니다." : "구역을 저장했습니다.");
+        mode = "view";
+        await load(res.id);
       } catch (err) { toast(err.message); }
     });
     $("del").addEventListener("click", async () => {
@@ -192,9 +342,11 @@
       try {
         await api(`/api/work-zones/${current.id}`, { method: "DELETE" });
         toast("구역을 삭제했습니다.");
+        mode = "view";
         await load(null);
       } catch (err) { toast(err.message); }
     });
+    window.addEventListener("beforeunload", (e) => { if (dirty()) { e.preventDefault(); e.returnValue = ""; } });
 
     load(Number(new URLSearchParams(location.search).get("zone"))).catch((err) => toast(err.message));
   </script>

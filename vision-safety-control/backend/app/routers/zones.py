@@ -15,9 +15,15 @@ router = APIRouter(prefix="/api/work-zones", tags=["작업구역"])
 ZONE_ID = func.coalesce(Roi.work_zone_id, Camera.work_zone_id)
 
 
+MAX_POINTS = 40  # 화면(zones.html)에서 찍을 수 있는 꼭짓점 수와 같게
+
+
 def check_polygon(polygon: list[list[float]] | None) -> None:
+    """배치도 영역: 도면 크기 기준 0~1 비율 꼭짓점 3~40개 (null 이면 배치도에 표시 안 함)"""
     if polygon is None:
         return
+    if len(polygon) > MAX_POINTS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"배치도 영역의 꼭짓점은 {MAX_POINTS}개까지입니다.")
     if len(polygon) < 3 or any(len(p) != 2 or not (0 <= p[0] <= 1 and 0 <= p[1] <= 1) for p in polygon):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "배치도 영역은 0~1 비율 좌표 3개 이상이어야 합니다.")
 
@@ -45,7 +51,7 @@ def zone_summary(db: DB, _: CurrentUser):
         .order_by(Work.start_date, Work.id)
     ).all()
     equipment = db.scalars(select(Equipment).where(Equipment.work_zone_id.is_not(None)).order_by(Equipment.name)).all()
-    cameras = db.scalars(select(Camera).where(Camera.work_zone_id.is_not(None), Camera.is_active).order_by(Camera.id)).all()
+    cameras = db.scalars(select(Camera).where(Camera.work_zone_id.is_not(None)).order_by(Camera.id)).all()
     open_q = (
         select(ZONE_ID, Event.severity, func.count(Event.id))
         .select_from(Event)
@@ -72,7 +78,8 @@ def zone_summary(db: DB, _: CurrentUser):
             special_count=sum(1 for w in people.values() if special_tags(w, today)),
             equipment=[NamedRef(id=e.id, name=e.name, status=e.status, kind=e.equip_type)
                        for e in equipment if e.work_zone_id == z.id],
-            cameras=[c.name for c in cameras if c.work_zone_id == z.id],
+            cameras=[c.name for c in cameras if c.work_zone_id == z.id and c.is_active],
+            cameras_off=[c.name for c in cameras if c.work_zone_id == z.id and not c.is_active],
             open_events=sum(n for _, n in counts),
             open_high=sum(n for sev, n in counts if sev == Severity.HIGH),
         ))

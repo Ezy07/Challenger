@@ -10,6 +10,7 @@
     .main { grid-template-rows: minmax(0, 1fr); }
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form .wide { grid-column: 1 / -1; }
+    .loc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
     .help { font-size: 11.5px; color: var(--muted); font-weight: 600; }
     .test { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
   </style>
@@ -25,7 +26,13 @@
           <div class="label"><span id="form-title" style="all:unset">새 카메라</span> <span>* 는 꼭 입력</span></div>
           <div class="form">
             <label class="field">카메라 이름 *<input class="input" id="ce-name" placeholder="예: CAM_0005" required /></label>
-            <label class="field">설치 위치<input class="input" id="ce-loc" placeholder="예: 102동 3층 외벽 남측" /></label>
+            <div class="field">설치 위치 <span class="help">구역 · 상세 위치</span>
+              <div class="loc">
+                <select class="input" id="ce-zone" aria-label="설치 구역"></select>
+                <input class="input" id="ce-loc" placeholder="예: 3층 외벽 남측" aria-label="상세 위치" />
+              </div>
+              <span class="help">구역은 <a href="zones.html" style="color:var(--orange)">전체 구역 표시</a>에서 추가하면 여기에 바로 나옵니다.</span>
+            </div>
             <div class="field wide">영상 소스
               <div class="chips" id="ce-src" data-single><span class="chip on" data-v="rtsp">카메라 (RTSP)</span><span class="chip" data-v="file">영상 파일</span></div>
             </div>
@@ -37,7 +44,6 @@
               <select class="input" id="ce-video"></select>
               <span class="help" id="video-help">실제 카메라 대신 폴더에 넣은 영상을 반복 재생합니다. 파일을 새로 넣었으면 이 화면을 새로고침하세요.</span>
             </label>
-            <label class="field">소속 구역<select class="input" id="ce-zone"></select></label>
             <label class="field">카메라 종류
               <select class="input" id="ce-type"><option value="FIXED">현장 CAM (고정)</option><option value="TC">TC CAM (크레인 부착)</option></select>
             </label>
@@ -87,7 +93,7 @@
       const [list, zones, eq, vids] = await Promise.all([api("/api/cameras"), api("/api/work-zones"), api("/api/equipment"), api("/api/videos")]);
       cams = list;
       videos = vids;
-      $("ce-zone").innerHTML = '<option value="">구역 없음</option>' + zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join("");
+      $("ce-zone").innerHTML = '<option value="">구역 고르기 (없음)</option>' + zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join("");
       $("ce-eq").innerHTML = '<option value="">없음</option>' + eq.filter((e) => e.equip_type === "TC")
         .map((e) => `<option value="${e.id}">${esc(e.name)}</option>`).join("");
       // 새로 등록은 관리자만. 아니면 번호가 없을 때 첫 카메라를 보여 준다

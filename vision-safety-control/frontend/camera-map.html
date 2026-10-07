@@ -125,7 +125,7 @@
         const where = placed(c) ? `${c.plan_dir == null ? "방향 없음" : c.plan_dir + "° 방향"}` : "배치도에 없음";
         return `<button class="item ${c.is_active ? "ok" : ""}${picked === c.id ? " on" : ""}" type="button" data-id="${c.id}">
           <div class="item-top"><b>${esc(c.name)}</b><span class="status ${c.is_active ? (placed(c) ? "ok" : "warn") : "mute"}">${c.is_active ? (placed(c) ? "배치됨" : "위치 없음") : "사용 안 함"}</span></div>
-          <div class="desc">${esc(c.location_desc || c.work_zone_name || "-")} · ${where}</div></button>`;
+          <div class="desc">${esc([c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "설치 위치 없음")} · ${where}</div></button>`;
       }).join("") || '<p class="muted">등록된 카메라가 없습니다</p>';
     }
 
