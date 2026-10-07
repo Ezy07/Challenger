@@ -24,9 +24,10 @@ def get_camera(db: DB, camera_id: int) -> Camera:
     return cam
 
 
-def check_refs(db: DB, cam: Camera) -> None:
-    """저장 전에 구역 · 장비 연결이 맞는지 확인"""
-    if cam.stream_url and cam.stream_url.startswith(URL_PREFIX):
+def check_refs(db: DB, cam: Camera, check_video: bool = True) -> None:
+    """저장 전에 구역 · 장비 연결이 맞는지 확인. 영상 파일은 영상 소스를 바꿀 때만 본다
+    (나중에 파일이 지워진 카메라도 배치도 위치 · 색 같은 다른 값은 바꿀 수 있게)"""
+    if check_video and cam.stream_url and cam.stream_url.startswith(URL_PREFIX):
         path = video_path(cam.stream_url)
         if not path or not path.is_file():
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "영상 폴더(storage/videos)에 없는 파일입니다.")
@@ -74,9 +75,10 @@ def create_camera(body: CameraIn, db: DB, _: Admin):
 @router.patch("/{camera_id}", response_model=CameraOut)
 def update_camera(camera_id: int, body: CameraUpdate, db: DB, _: Admin):
     cam = get_camera(db, camera_id)
-    for key, value in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    for key, value in data.items():
         setattr(cam, key, value)
-    check_refs(db, cam)
+    check_refs(db, cam, check_video="stream_url" in data)
     commit_or_409(db)
     db.refresh(cam)
     return to_out(cam)

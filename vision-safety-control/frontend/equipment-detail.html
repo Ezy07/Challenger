@@ -38,12 +38,13 @@
 
     <main class="main">
       <a class="cell cam" id="cam-link" href="monitor.html">
-        <div class="scene">
+        <div class="scene" id="cam-scene">
           <div class="ground-line"></div>
           <div class="bld" style="left:10%; width:22%; height:52%;"></div>
           <div class="mast" style="left:48%; height:64%;"></div>
           <div class="jib" style="left:48%; top:18%; width:34%;"></div>
         </div>
+        <video class="cam-video" id="cam-video" muted loop playsinline autoplay hidden style="object-fit:contain; background:#000"></video>
         <div class="cam-tag" id="cam-tag">-</div>
         <div class="cam-time js-cam-time"></div>
         <div class="cam-zone" id="cam-zone">누르면 관제화면으로</div>
@@ -119,9 +120,7 @@
         ? `<div class="check"><div><b>운전 전 점검</b><small>${fmtTime(log.inspected_at, { date: false }).slice(0, 5)} 완료 · ${esc(log.recorded_by_name || "")}</small></div><span class="status ok">완료</span></div>`
         : `<div class="check warn"><div><b>운전 전 점검</b><small>오늘 기록이 없습니다</small></div><span class="status warn">미기록</span></div>`;
 
-      const cam = e.cameras[0];
-      $("cam-tag").textContent = cam ? `${cam.name} · ${e.name}` : `${e.name} · 연결된 카메라 없음`;
-      $("cam-zone").textContent = e.work_zone_name ? `${e.work_zone_name} · 누르면 관제화면으로` : "누르면 관제화면으로";
+      showCamera(e).catch(() => { /* 카메라를 못 불러와도 장비 정보는 본다 */ });
 
       $("logs").innerHTML = e.logs.length ? e.logs.map((l) => `<tr><td class="num">${l.log_date.replaceAll("-", ".")}</td><td>${badge("equipStatus", l.status)}</td>
         <td class="num">${l.inspected_at ? fmtTime(l.inspected_at, { date: false }).slice(0, 5) : "-"}</td><td>${esc(l.note || "-")}</td><td>${esc(l.recorded_by_name || "-")}</td></tr>`).join("")
@@ -147,6 +146,29 @@
       $("l-status").value = l ? l.status : eq.status;
       $("l-time").value = l && l.inspected_at ? fmtTime(l.inspected_at, { date: false }).slice(0, 5) : "";
       $("l-note").value = l ? l.note || "" : "";
+    }
+
+    // 장비 영상: 장비에 달린 카메라(TC CAM) → 없으면 투입 구역의 카메라. 영상 파일이 연결된 것을 먼저
+    let allCams = null, shownCam = null;
+    async function showCamera(e) {
+      allCams = allCams || await api("/api/cameras");
+      const usable = (c) => c.is_active && videoSrc(c.stream_url);
+      const own = allCams.filter((c) => c.equipment_id === e.id);
+      const zone = e.work_zone_id ? allCams.filter((c) => c.work_zone_id === e.work_zone_id && c.equipment_id !== e.id) : [];
+      const cam = own.find(usable) || zone.find(usable) || own[0] || zone[0] || null;
+      const isOwn = cam && cam.equipment_id === e.id;
+      $("cam-link").href = cam ? "monitor-camera.html?camera=" + cam.id : "monitor.html";
+      $("cam-tag").textContent = cam ? `${cam.name} · ${isOwn ? e.name : "구역 카메라"}` : `${e.name} · 연결된 카메라 없음`;
+      $("cam-zone").textContent = [e.work_zone_name, cam ? (usable(cam) ? "누르면 크게 보기" : "영상 파일 없음 · 누르면 카메라 화면") : "누르면 관제화면으로"].filter(Boolean).join(" · ");
+      if (cam && shownCam === cam.id) return; // 같은 카메라면 영상을 다시 열지 않는다 (기록 저장 뒤 등)
+      shownCam = cam && cam.id;
+      const v = $("cam-video");
+      if (!cam || !usable(cam)) { v.hidden = true; v.removeAttribute("src"); $("cam-scene").style.visibility = ""; return; }
+      v.hidden = false; // 숨긴 영상은 자동재생이 안 되므로 보이게 두고, 재생되면 예시 그림을 숨긴다
+      v.onplaying = () => { $("cam-scene").style.visibility = "hidden"; };
+      v.onerror = () => { v.hidden = true; $("cam-scene").style.visibility = ""; $("cam-zone").textContent += " · 영상을 재생할 수 없음"; };
+      v.src = videoSrc(cam.stream_url);
+      v.play().catch(() => document.addEventListener("pointerdown", () => v.play().catch(() => {}), { once: true }));
     }
 
     $("l-date").max = todayStr();

@@ -74,7 +74,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `76 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `77 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -88,6 +88,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 |---|---|---|
 | 2026-10-05 | 비밀번호 5번 틀리면 15분 잠금 (`users.locked_until`) | `ALTER TABLE users ADD COLUMN locked_until DATETIME NULL AFTER failed_login_count;` |
 | 2026-10-06 | 현장 도면(`site_plan` 새 테이블) · 카메라 배치도 위치(`camera.plan_x` · `plan_y` · `plan_dir`) | 아래 SQL |
+| 2026-10-07 | 카메라 배치도 화각 색 (`camera.plan_color`) | `ALTER TABLE camera ADD COLUMN plan_color CHAR(7) NULL AFTER plan_dir;` |
 
 ```sql
 -- 2026-10-06 현장 도면 · 카메라 배치도 위치

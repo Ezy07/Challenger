@@ -200,6 +200,7 @@ class Camera(Base):
     plan_x: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # 도면 위 위치 (왼쪽 0 ~ 오른쪽 1)
     plan_y: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # (위 0 ~ 아래 1)
     plan_dir: Mapped[int | None] = mapped_column(SmallInteger)     # 보는 방향 (0 = 위쪽, 시계 방향 도)
+    plan_color: Mapped[str | None] = mapped_column(String(7))      # 배치도 화각 색 "#ff9a1f" (NULL = 기본색)
 
     work_zone: Mapped[WorkZone | None] = relationship()
     equipment: Mapped["Equipment | None"] = relationship()

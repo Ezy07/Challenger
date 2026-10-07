@@ -63,7 +63,7 @@ CHANGED = {
     "education": None,
     "worker_education": None,
     "site_plan": None,
-    "camera": {"plan_x", "plan_y", "plan_dir"},
+    "camera": {"plan_x", "plan_y", "plan_dir", "plan_color"},
     "users": {"status", "failed_login_count", "locked_until"},
     "worker": {"start_date", "special_reasons", "special_memo", "special_since", "special_by", "is_active"},
     "equipment": {"equip_type", "reg_no", "spec", "company", "status"},
@@ -73,7 +73,7 @@ CHANGED = {
 }
 CHANGE_NOTES = [
     ("education · worker_education", "새 테이블: 안전교육 목록과 작업자별 이수 이력"),
-    ("site_plan · camera", "새 테이블: 현장 도면 한 장 (구역 표시 · 카메라 배치도 배경), 카메라 도면 위 위치 · 방향"),
+    ("site_plan · camera", "새 테이블: 현장 도면 한 장 (구역 표시 · 카메라 배치도 배경), 카메라 도면 위 위치 · 방향 · 화각 색"),
     ("worker", "특별관리 사유 여러 개(JSON) · 메모 · 지정일 · 지정한 사람, 현장 투입일"),
     ("users", "DELETED 상태 추가 (처리 기록 때문에 행은 남김), 5번 틀리면 15분 잠금(locked_until)"),
     ("equipment", "등록번호 · 제원 · 소속 회사, 레미콘 · 덤프 유형, 상태 OUT → BROKEN(고장)"),

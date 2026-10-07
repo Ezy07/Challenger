@@ -57,6 +57,10 @@ def test_video_files_list_and_camera_link(client, admin, tmp_path, monkeypatch):
     # 없는 파일 · 폴더 밖으로 나가는 경로는 막음
     for bad in ("videos/none.mp4", "videos/../.env", "videos/sub/x.mp4"):
         assert client.patch(f"/api/cameras/{cam['id']}", json={"stream_url": bad}, headers=admin).status_code == 422
+    # 연결한 뒤에 파일이 지워져도, 영상 소스가 아닌 값(배치도 위치 · 색)은 바꿀 수 있다
+    (tmp_path / "factory.mp4").unlink()
+    moved = client.patch(f"/api/cameras/{cam['id']}", json={"plan_x": 0.3, "plan_y": 0.3, "plan_color": "#3ddc84"}, headers=admin)
+    assert moved.status_code == 200 and moved.json()["stream_url"] == "videos/factory.mp4"
     # RTSP 주소는 그대로 저장
     rtsp = client.patch(f"/api/cameras/{cam['id']}", json={"stream_url": "rtsp://10.0.0.5:554/s1"}, headers=admin)
     assert rtsp.status_code == 200

@@ -100,3 +100,12 @@ def test_camera_plan_position(client, admin, manager):
 
     off = client.patch(f"/api/cameras/{cam['id']}", json={"plan_x": None, "plan_y": None, "plan_dir": None}, headers=admin).json()
     assert (off["plan_x"], off["plan_y"], off["plan_dir"]) == (None, None, None)
+
+
+def test_camera_plan_color(client, admin):
+    cam = next(c for c in client.get("/api/cameras", headers=admin).json() if c["name"] == "CAM_0001")
+    assert cam["plan_color"] is None  # 기본색
+    assert client.patch(f"/api/cameras/{cam['id']}", json={"plan_color": "#3DDC84"}, headers=admin).json()["plan_color"] == "#3DDC84"
+    for bad in ("red", "#12345", "#gggggg", "3ddc84"):
+        assert client.patch(f"/api/cameras/{cam['id']}", json={"plan_color": bad}, headers=admin).status_code == 422, bad
+    assert client.patch(f"/api/cameras/{cam['id']}", json={"plan_color": None}, headers=admin).json()["plan_color"] is None

@@ -145,6 +145,7 @@ class CameraIn(BaseModel):
     plan_x: float | None = Field(default=None, ge=0, le=1)
     plan_y: float | None = Field(default=None, ge=0, le=1)
     plan_dir: int | None = Field(default=None, ge=0, le=359)
+    plan_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
 
 
 class CameraUpdate(BaseModel):
@@ -160,6 +161,7 @@ class CameraUpdate(BaseModel):
     plan_x: float | None = Field(default=None, ge=0, le=1)  # 셋 다 null 로 보내면 배치도에서 뺀다
     plan_y: float | None = Field(default=None, ge=0, le=1)
     plan_dir: int | None = Field(default=None, ge=0, le=359)
+    plan_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")  # null 이면 기본색
 
 
 class CameraOut(Out):
@@ -177,6 +179,7 @@ class CameraOut(Out):
     plan_x: float | None = None
     plan_y: float | None = None
     plan_dir: int | None = None
+    plan_color: str | None = None
 
 
 # ---------------------------------------------------------------- 현장 도면

@@ -16,6 +16,12 @@
     .map-cell .pad { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
     .edit-bar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(255, 154, 31, 0.6); background: rgba(255, 154, 31, 0.06); font-size: 13px; }
     .edit-bar input[type=range] { width: 180px; }
+    .swatches { display: flex; align-items: center; gap: 5px; }
+    .swatches button { width: 22px; height: 22px; border-radius: 6px; border: 2px solid transparent; background: var(--c); cursor: pointer; padding: 0; }
+    .swatches button.on { border-color: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); }
+    .swatches input[type=color] { width: 26px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
+    .swatches button:disabled, .swatches input:disabled { opacity: 0.35; cursor: default; }
+    .item .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
     #marks { position: absolute; inset: 0; width: 100%; height: 100%; }
     #marks .cam { cursor: pointer; }
     #marks .cam:hover circle, #marks .cam.on circle { stroke: #fff; stroke-width: 3; }
@@ -52,6 +58,16 @@
             <span class="muted" id="edit-help">고른 뒤 도면을 누르면 그 자리에 놓이고, 아이콘은 끌어서 옮길 수 있습니다. 바꾸면 바로 저장됩니다.</span>
             <span class="grow"></span>
             <label class="row" style="gap:8px">보는 방향 <input type="range" id="dir" min="0" max="355" step="5" value="0" disabled /> <b id="dir-out" style="width:44px">0°</b></label>
+            <span class="swatches" id="swatches" aria-label="화각 색">색
+              <button type="button" data-color="" title="기본색 (현장 주황 · TC 파랑)" style="--c:conic-gradient(#ff9a1f 0 50%, #6cb6ff 0)"></button>
+              <button type="button" data-color="#ff5d5d" title="빨강" style="--c:#ff5d5d"></button>
+              <button type="button" data-color="#ff9a1f" title="주황" style="--c:#ff9a1f"></button>
+              <button type="button" data-color="#f5c400" title="노랑" style="--c:#f5c400"></button>
+              <button type="button" data-color="#3ddc84" title="초록" style="--c:#3ddc84"></button>
+              <button type="button" data-color="#6cb6ff" title="파랑" style="--c:#6cb6ff"></button>
+              <button type="button" data-color="#b07cff" title="보라" style="--c:#b07cff"></button>
+              <input type="color" id="color-pick" title="다른 색 고르기" value="#ff9a1f" />
+            </span>
             <button class="btn sm" type="button" id="unplace" disabled>배치도에서 빼기</button>
             <button class="btn sm primary" type="button" id="edit-done">끝내기</button>
           </div>
@@ -98,7 +114,9 @@
     let plan = null, cams = [], H = W / PLAN_RATIO, editing = false, picked = null, drag = null;
 
     const placed = (c) => c.plan_x != null && c.plan_y != null;
-    const color = (c) => (!c.is_active ? "#8e9aab" : c.camera_type === "TC" ? "#6cb6ff" : "#ff9a1f");
+    // 화각 색: 카메라마다 고른 색(plan_color) → 없으면 현장 주황 · TC 파랑. 사용 안 함은 회색
+    const baseColor = (c) => c.plan_color || (c.camera_type === "TC" ? "#6cb6ff" : "#ff9a1f");
+    const color = (c) => (!c.is_active ? "#8e9aab" : baseColor(c));
 
     function cone(x, y, dir) {
       const pt = (deg) => [x + CONE_R * Math.sin(deg * Math.PI / 180), y - CONE_R * Math.cos(deg * Math.PI / 180)];
@@ -113,7 +131,7 @@
         const ty = y + 34 > H ? y - 18 : y + 30; // 도면 아래 끝이면 이름을 점 위에
         const label = c.name + (c.is_active ? "" : " (사용 안 함)");
         return `<g class="cam${picked === c.id ? " on" : ""}" data-id="${c.id}">
-          ${c.plan_dir == null ? "" : `<path d="${cone(x, y, c.plan_dir)}" fill="${col}" fill-opacity="0.2" stroke="${col}" stroke-opacity="0.5" />`}
+          ${c.plan_dir == null ? "" : `<path d="${cone(x, y, c.plan_dir)}" fill="${col}" fill-opacity="0.42" stroke="${col}" stroke-opacity="0.95" stroke-width="2.5" stroke-linejoin="round" />`}
           <circle cx="${x}" cy="${y}" r="10" fill="${col}" stroke="#0c1016" stroke-width="3" />
           <text x="${x}" y="${ty}" fill="#fff" font-size="18" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#0c1016" stroke-width="4">${esc(label)}</text></g>`;
       }).join("");
@@ -124,7 +142,7 @@
       $("cams").innerHTML = cams.map((c) => {
         const where = placed(c) ? `${c.plan_dir == null ? "방향 없음" : c.plan_dir + "° 방향"}` : "배치도에 없음";
         return `<button class="item ${c.is_active ? "ok" : ""}${picked === c.id ? " on" : ""}" type="button" data-id="${c.id}">
-          <div class="item-top"><b>${esc(c.name)}</b><span class="status ${c.is_active ? (placed(c) ? "ok" : "warn") : "mute"}">${c.is_active ? (placed(c) ? "배치됨" : "위치 없음") : "사용 안 함"}</span></div>
+          <div class="item-top"><b><i class="dot" style="background:${color(c)}"></i>${esc(c.name)}</b><span class="status ${c.is_active ? (placed(c) ? "ok" : "warn") : "mute"}">${c.is_active ? (placed(c) ? "배치됨" : "위치 없음") : "사용 안 함"}</span></div>
           <div class="desc">${esc([c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "설치 위치 없음")} · ${where}</div></button>`;
       }).join("") || '<p class="muted">등록된 카메라가 없습니다</p>';
     }
@@ -154,6 +172,12 @@
       $("dir").disabled = $("unplace").disabled = !(c && placed(c));
       $("dir").value = c && c.plan_dir != null ? c.plan_dir : 0;
       $("dir-out").textContent = $("dir").value + "°";
+      document.querySelectorAll("#swatches button").forEach((b) => {
+        b.disabled = !c;
+        b.classList.toggle("on", Boolean(c) && b.dataset.color === (c.plan_color || "").toLowerCase());
+      });
+      $("color-pick").disabled = !c;
+      if (c) $("color-pick").value = baseColor(c);
     }
 
     function redraw() { drawList(); drawMarks(); drawEdit(); }
@@ -221,6 +245,18 @@
     $("dir").addEventListener("change", () => {
       const c = cams.find((x) => x.id === picked);
       if (c) save(c, { plan_dir: c.plan_dir });
+    });
+    $("swatches").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-color]"), c = cams.find((x) => x.id === picked);
+      if (b && c) save(c, { plan_color: b.dataset.color || null });
+    });
+    $("color-pick").addEventListener("input", () => { // 고르는 동안 미리 보고, 창을 닫으면 저장
+      const c = cams.find((x) => x.id === picked);
+      if (c) { c.plan_color = $("color-pick").value; drawMarks(); }
+    });
+    $("color-pick").addEventListener("change", () => {
+      const c = cams.find((x) => x.id === picked);
+      if (c) save(c, { plan_color: $("color-pick").value });
     });
     $("unplace").addEventListener("click", () => {
       const c = cams.find((x) => x.id === picked);
