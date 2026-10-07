@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     snapshot_dir: Path = ROOT_DIR / "storage" / "snapshots"
     plan_dir: Path = ROOT_DIR / "storage" / "plans"  # 현장 도면 그림 (site_plan.image_path 는 "plans/...")
     max_plan_mb: int = 15
+    roi_zones_file: Path = ROOT_DIR / "storage" / "roi-zones.json"  # ROI 그리기 화면이 그린 구역 (AI 탐지 프로그램이 읽음)
     video_dir: Path = ROOT_DIR / "storage" / "videos"  # 시연 · 개발용 영상 (카메라 대신)  # event_snapshot.image_path 는 이 폴더 기준 "snapshots/..." 경로
 
 

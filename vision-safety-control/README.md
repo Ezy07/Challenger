@@ -74,7 +74,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `72 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `76 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -123,13 +123,14 @@ ALTER TABLE camera
 | 로그인 · 회원가입 | `POST /api/auth/signup` · `POST /api/auth/login` · `GET /api/auth/me` | `login.html` · `signup.html` |
 | 회원 관리 (관리자) | `GET/POST /api/users` · `POST /api/users/{id}/approve` · `/reject` · `/reset-password` · `PATCH/DELETE /api/users/{id}` | `users.html` · `user-approval.html` · `user-edit.html` |
 | 조직 · 부서 | `GET/POST /api/orgs` · `PATCH/DELETE /api/orgs/{id}` (회사 아래 부서 최대 2단계) | `org.html` · 회원가입 |
-| 작업구역 | `GET/POST /api/work-zones` · `PATCH/DELETE /api/work-zones/{id}` · `GET /api/work-zones/summary` | `zones.html` |
+| 작업구역 | `GET/POST /api/work-zones` · `PATCH/DELETE /api/work-zones/{id}` · `GET /api/work-zones/summary` (배치도 영역 `plan_polygon` = 도면 기준 0~1 꼭짓점 3~40개, null 이면 표시 안 함) | `zones.html` (도면 위에서 다각형 그리기 · 고치기) |
 | 작업자 · 교육 | `GET/POST /api/workers` · `GET/PATCH/DELETE /api/workers/{id}` · `POST/DELETE /api/workers/{id}/special` · `GET /api/educations` · `POST /api/workers/{id}/educations` · `DELETE …/educations/{기록 id}` | `workers.html` · `worker-special.html` |
 | 작업 · 배정 | `GET/POST /api/works` (`?on=날짜`, `?upcoming=true`) · `GET/PATCH/DELETE /api/works/{id}` · `PUT /api/works/{id}/workers` · `GET /api/users/staff` | `works.html` · `zone-works.html` · `work-workers.html` |
 | 장비 · 일일 기록 | `GET/POST /api/equipment` · `GET/PATCH/DELETE /api/equipment/{id}` · `PUT /api/equipment/{id}/logs/{날짜}` · `POST /api/equipment/daily` | `equipment.html` · `equipment-detail.html` · `equipment-assign.html` · `zone-equipment.html` |
 | 판정 · 심각도 기준 | `GET /api/detection-types` · `PATCH /api/detection-types/{id}/rule` · `POST /api/detection-types/reset-rules` | `alert-threshold.html` · `alert-severity.html` |
 | 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` (배치도 위치 `plan_x` · `plan_y` · `plan_dir` 포함) | `cameras.html` · `camera-edit.html` · `camera-map.html` |
 | 현장 도면 | `GET /api/site-plan` · `PUT /api/site-plan` (본문 = 그림 파일, PNG · JPG · WebP 15MB) · `PATCH` (이름) · `DELETE` — 관리자만 바꿈, 그림은 `storage/plans` · `/plans/…` | `camera-map.html`(관리 · 카메라 위치 옮기기) · `zones.html`(배경) |
+| ROI 구역 | `GET /api/roi-zones` · `PUT /api/roi-zones` (구역 전체를 바꿈, 안전관리자 이상) — `storage/roi-zones.json` 에 저장, AI 탐지 프로그램이 이 파일을 읽음. 카메라 목록은 DB(영상 파일이 연결된 카메라에만 그릴 수 있음) | `roi-draw.html` · `roi-list.html` |
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
 | 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` | `events.html` · `event-detail.html` · `event-snapshot.html` |
 | 이벤트 내보내기 | `GET /api/events/export?format=csv\|xlsx\|zip&columns=…` (목록과 같은 조건) · `GET /api/events/export/preview` | `event-export.html` |
@@ -152,7 +153,8 @@ ALTER TABLE camera
 - [x] 이벤트 상세 · 처리 기록 화면 연결
 - [x] 회원가입 승인 · 회원 목록 · 회원정보 수정 · 카메라 목록 · 카메라 등록 화면 연결
 - [x] 조직 · 부서 관리, 작업자 · 특별관리 · 교육, 작업 · 배정, 장비 · 일일 기록, 작업구역, 판정 · 심각도 기준 화면 연결
-- [ ] ROI 그리기 저장 · ROI별 규칙 API
+- [x] ROI 그리기 저장 (`storage/roi-zones.json`) · 카메라 목록 DB 연결
+- [ ] ROI별 규칙 API (`roi-rules.html` 은 아직 예시. 그린 구역을 DB `roi` · `roi_rule` 과 이을지 정하기)
 - [ ] 관제화면 패널(TC/작업구역 · 섹터 감지경보 · 특별관리근로자)을 실제 데이터로 (알림 팝업은 30초 조회로 연결됨)
 - [x] 이벤트 내보내기(CSV · 엑셀 · 스냅샷 묶음) · 스냅샷 조회 · 통계(요약 · 추이 · 리포트 PDF) 화면 연결
 - [ ] 카메라 배치도 · 단일 카메라 확대 화면 연결
