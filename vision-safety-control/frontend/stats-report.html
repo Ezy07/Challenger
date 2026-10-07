@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
-    #quick { display: flex; flex-wrap: wrap; gap: 8px; }
     .opts { display: flex; flex-wrap: wrap; gap: 6px 14px; }
     .paper-wrap { padding: 18px; display: grid; justify-items: center; }
     .paper { width: min(720px, 100%); background: #f6f7f9; color: #1c2430; border-radius: 6px; padding: 34px 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.45); display: grid; gap: 18px; }
@@ -34,8 +33,6 @@
     #p-note:focus { border-color: #e8810a; background: #fff; }
     .paper [data-part] { display: grid; gap: 10px; }
     .paper [data-part][hidden] { display: none; }
-    #quick .item { width: auto; min-width: 190px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
-    #quick .item-top { gap: 12px; }
 
     /* 인쇄 · PDF: 보고서 종이만 A4 에 (메뉴 · 패널 · 배경은 빼고, 의견 칸 점선도 뺀다) */
     @page { size: A4; margin: 14mm; }
@@ -67,13 +64,10 @@
           <button class="btn primary" type="button" id="pdf">⬇ PDF로 저장</button>
         </div>
         <form class="search-panel" id="setup" hidden>
-          <div class="field">빠른 기간<div id="quick"></div></div>
           <div class="search-fields">
-            <div class="field">종류
-              <div class="chips" id="kind" data-single><span class="chip" data-v="day">일간</span><span class="chip on" data-v="week">주간</span><span class="chip" data-v="month">월간</span></div>
-            </div>
-            <label class="field">시작 날짜<input class="input" type="date" id="f-from" required /></label>
-            <label class="field">끝 날짜<input class="input" type="date" id="f-to" required /></label>
+            <label class="field">시작일<input class="input" type="date" id="f-from" required /></label>
+            <label class="field">끝일<input class="input" type="date" id="f-to" required /></label>
+            <div class="field">보고서 종류 <span class="muted" style="font-weight:600">(기간 길이로 정해짐)</span><b id="kind-out" style="font-size:14px; margin-top:6px">-</b></div>
             <div class="field wide">넣을 내용
               <div class="opts">
                 <label class="opt"><input type="checkbox" data-part="sum" checked /> 요약 숫자</label>
@@ -123,16 +117,11 @@
     const $ = (id) => document.getElementById(id);
     const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const day = (offset) => iso(new Date(Date.now() + offset * 86400000));
-    const now = new Date();
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    const QUICK = [
-      ["day", "오늘", day(0), day(0)],
-      ["week", "최근 7일", day(-6), day(0)],
-      ["week", "그 앞 7일", day(-13), day(-7)],
-      ["month", "이번 달", iso(new Date(now.getFullYear(), now.getMonth(), 1)), day(0)],
-      ["month", "지난달", iso(new Date(lastMonthEnd.getFullYear(), lastMonthEnd.getMonth(), 1)), iso(lastMonthEnd)],
-    ];
-    const KIND = { day: "일간", week: "주간", month: "월간" };
+    // 보고서 종류는 고른 기간 길이로: 하루 = 일간, 7일까지 = 주간, 31일까지 = 월간, 그보다 길면 기간
+    function kindOf(from, to) {
+      const n = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+      return n <= 1 ? "일간" : n <= 7 ? "주간" : n <= 31 ? "월간" : "기간";
+    }
     const dotted = (s) => s.replaceAll("-", ".");
 
     function mini(id, list) {
@@ -150,10 +139,10 @@
     async function build() {
       const from = $("f-from").value, to = $("f-to").value;
       const r = await api("/api/stats/report", { query: { date_from: from, date_to: to } });
-      const kind = document.querySelector("#kind .chip.on").dataset.v;
+      const kind = kindOf(from, to);
       const me = getAuth().user;
       const c = r.current, p = r.previous;
-      $("p-title").textContent = `${KIND[kind]} 안전관제 보고서`;
+      $("p-title").textContent = `${kind} 안전관제 보고서`;
       $("p-meta").textContent = `공동주택 건설현장 · OO단지 101~103동 · ${from === to ? dotted(from) : `${dotted(from)} ~ ${dotted(to)}`} · 작성: ${me.name} ${me.position || ""} · ${dotted(todayStr())} 출력`;
       $("s-total").textContent = c.total;
       $("s-high").textContent = c.high;
@@ -176,8 +165,8 @@
       if (p.total) lines.push(`앞 기간보다 전체 이벤트가 ${change(c.total, p.total, "건")}.`);
       if (c.open) lines.push(`아직 처리하지 않은 이벤트 ${c.open}건은 마무리가 필요합니다.`);
       $("p-note").textContent = lines.join(" ") || "이 기간 이벤트가 없습니다.";
-      document.title = `${KIND[kind]} 안전관제 보고서 ${from}~${to}`; // PDF 파일 이름으로 쓰인다
-      searchSummary(`${KIND[kind]} · ${from === to ? dotted(from) : `${dotted(from)} ~ ${dotted(to).slice(5)}`}`);
+      document.title = `${kind} 안전관제 보고서 ${from}~${to}`; // PDF 파일 이름으로 쓰인다
+      searchSummary(`${kind} · ${from === to ? dotted(from) : `${dotted(from)} ~ ${dotted(to).slice(5)}`}`);
       closeSearch();
       parts();
     }
@@ -189,25 +178,9 @@
       });
     }
 
-    function setKind(kind) {
-      document.querySelectorAll("#kind .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === kind));
-      const [, , from, to] = QUICK.find((q) => q[0] === kind);
-      $("f-from").value = from;
-      $("f-to").value = to;
-    }
-
-    $("quick").innerHTML = QUICK.map(([, name, from, to], i) =>
-      `<button class="item" type="button" data-q="${i}"><div class="item-top"><b>${name}</b><span class="status info">${from === to ? dotted(from).slice(5) : `${dotted(from).slice(5)} ~ ${dotted(to).slice(5)}`}</span></div></button>`).join("");
-    $("quick").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-q]");
-      if (!b) return;
-      const [kind, , from, to] = QUICK[b.dataset.q];
-      document.querySelectorAll("#kind .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === kind));
-      $("f-from").value = from;
-      $("f-to").value = to;
-      build().catch((err) => toast(err.message));
-    });
-    $("kind").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) setKind(c.dataset.v); });
+    const syncRange = linkDateRange($("f-from"), $("f-to"));
+    const showKind = () => { $("kind-out").textContent = $("f-from").value && $("f-to").value ? `${kindOf($("f-from").value, $("f-to").value)} 보고서` : "-"; };
+    ["f-from", "f-to"].forEach((id) => $(id).addEventListener("change", showKind));
     $("setup").addEventListener("change", (e) => { if (e.target.dataset.part) parts(); });
     $("setup").addEventListener("submit", (e) => { e.preventDefault(); build().catch((err) => toast(err.message)); });
     $("pdf").addEventListener("click", () => { toast("인쇄 창에서 대상을 'PDF로 저장'으로 고르세요."); setTimeout(() => window.print(), 300); });
@@ -215,12 +188,11 @@
 
     // 통계 요약에서 [리포트 만들기]로 오면 그 기간으로 (?date_from=…&date_to=…)
     const q = new URLSearchParams(location.search);
-    setKind("week");
-    if (q.get("date_from")) {
-      $("f-from").value = q.get("date_from");
-      $("f-to").value = q.get("date_to") || q.get("date_from");
-      if ($("f-from").value === $("f-to").value) document.querySelectorAll("#kind .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === "day"));
-    }
+    $("f-from").value = q.get("date_from") || day(-6); // 처음에는 최근 7일
+    $("f-to").value = q.get("date_to") || (q.get("date_from") ? q.get("date_from") : day(0));
+    $("f-to").max = day(0);
+    syncRange();
+    showKind();
     build().catch((err) => toast(err.message));
   </script>
 </body>

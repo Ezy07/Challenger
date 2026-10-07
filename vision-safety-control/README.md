@@ -135,7 +135,7 @@ ALTER TABLE camera
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
 | 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` | `events.html` · `event-detail.html` · `event-snapshot.html` |
 | 이벤트 내보내기 | `GET /api/events/export?format=csv\|xlsx\|zip&columns=…` (목록과 같은 조건) · `GET /api/events/export/preview` | `event-export.html` |
-| 통계 | `GET /api/stats/summary` (기간 · 앞 기간 비교) · `GET /api/stats/trend?days=14` · `GET /api/stats/report` | `stats.html` · `stats-trend.html` · `stats-report.html` (PDF 는 브라우저 인쇄 → PDF로 저장) |
+| 통계 | `GET /api/stats/summary` (기간 · 앞 기간 비교) · `GET /api/stats/trend?date_from=&date_to=` (없으면 `days=14`) · `GET /api/stats/report` | `stats.html` · `stats-trend.html` · `stats-report.html` (PDF 는 브라우저 인쇄 → PDF로 저장) |
 | 이벤트 처리 | `POST /api/events/{id}/actions` | `event-handle.html` |
 
 나머지 화면은 아직 예시 데이터로 보입니다. 화면에 API 를 붙일 때는 `api.js` 를 `common.js` 앞에 넣고 `api("/api/...")` 로 부르면 됩니다.

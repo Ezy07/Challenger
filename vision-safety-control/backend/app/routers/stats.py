@@ -164,21 +164,29 @@ def summary(db: DB, _: CurrentUser, date_from: date | None = None, date_to: date
 def trend(
     db: DB,
     _: CurrentUser,
-    days: Annotated[int, Query(ge=1, le=90, description="최근 며칠 (화면은 7 · 14 · 30)")] = 14,
+    days: Annotated[int, Query(ge=1, le=90, description="최근 며칠 (date_from · date_to 가 없을 때)")] = 14,
+    date_from: date | None = None,
+    date_to: date | None = None,
     detection_type: Annotated[list[str] | None, Query()] = None,
     work_zone_id: int | None = None,
     severity: Annotated[list[Severity] | None, Query()] = None,
 ):
-    """추이: 최근 N일 일별 건수와 그 기간의 시간대별 건수"""
-    end = date.today()
-    start = end - timedelta(days=days - 1)
+    """추이: 기간(시작 · 끝 날짜, 없으면 최근 N일)의 일별 건수와 시간대별 건수"""
+    if date_from or date_to:
+        start = date_from or date_to
+        end = date_to or date_from
+        check_range(start, end)
+    else:
+        end = date.today()
+        start = end - timedelta(days=days - 1)
+    span = (end - start).days + 1
     evs = load(db, start, end, codes=detection_type, zone_id=work_zone_id, severity=severity)
     per_day = daily(evs, start, end)
     last7 = [d.count for d in per_day[-7:]]
     hours = Counter(e.at.hour for e in evs)
     return {
         "date_from": start, "date_to": end, "total": len(evs),
-        "avg_per_day": round(len(evs) / days, 1),
+        "avg_per_day": round(len(evs) / span, 1),
         "avg_last7": round(sum(last7) / len(last7), 1),
         "daily": per_day,
         "by_hour": [hours.get(h, 0) for h in range(24)],

@@ -450,6 +450,27 @@ function searchSummary(text) {
   });
 }
 
+/* 기간 고르기: 시작일 · 끝일 달력 두 칸을 묶는다. 끝일이 시작일보다 앞서지 않게 서로 min · max 를 맞추고,
+   한쪽을 반대쪽 너머로 옮기면 다른 쪽을 같은 날로 따라 옮긴다 */
+function linkDateRange(fromEl, toEl) {
+  const sync = () => {
+    toEl.min = fromEl.value || "";
+    fromEl.max = toEl.value || "";
+  };
+  fromEl.addEventListener("change", () => { if (fromEl.value && toEl.value && toEl.value < fromEl.value) toEl.value = fromEl.value; sync(); });
+  toEl.addEventListener("change", () => { if (fromEl.value && toEl.value && fromEl.value > toEl.value) fromEl.value = toEl.value; sync(); });
+  sync();
+  return sync; // 값을 코드로 바꾼 뒤 다시 맞출 때 부른다
+}
+
+// "2026.10.01 ~ 10.07" (같은 날이면 하루만)
+function rangeText(from, to) {
+  const d = (s) => s.replaceAll("-", ".");
+  if (!from && !to) return "";
+  if (!from || !to || from === to) return d(from || to);
+  return `${d(from)} ~ ${from.slice(0, 4) === to.slice(0, 4) ? d(to).slice(5) : d(to)}`;
+}
+
 function closeSearch() {
   document.querySelectorAll(".searchbar").forEach((bar) => setSearchOpen(bar, false));
 }

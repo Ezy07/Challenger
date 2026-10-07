@@ -97,6 +97,14 @@ def test_trend_and_report_with_history(client, manager, db_session):
     only_high = client.get("/api/stats/trend", params={"days": 7, "severity": "HIGH"}, headers=manager).json()
     assert 0 < only_high["total"] < t["total"]
 
+    # 달력으로 고른 기간 (시작 · 끝 날짜)
+    start = TODAY - timedelta(days=4)
+    ranged = client.get("/api/stats/trend", params={"date_from": str(start), "date_to": str(TODAY)}, headers=manager).json()
+    assert [d["key"] for d in ranged["daily"]] == [str(start + timedelta(days=i)) for i in range(5)]
+    assert ranged["avg_per_day"] == round(ranged["total"] / 5, 1)
+    bad = client.get("/api/stats/trend", params={"date_from": str(TODAY), "date_to": str(start)}, headers=manager)
+    assert bad.status_code == 422  # 끝이 시작보다 빠름
+
     week_ago = TODAY - timedelta(days=6)
     r = client.get("/api/stats/report", params={"date_from": str(week_ago), "date_to": str(TODAY)}, headers=manager).json()
     assert r["current"]["total"] > 9 and r["previous"]["total"] > 0

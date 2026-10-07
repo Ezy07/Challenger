@@ -35,9 +35,8 @@
         </div>
         <div class="search-panel" id="filters" hidden>
           <div class="search-fields">
-            <div class="field">기간
-              <div class="chips" id="f-days" data-single><span class="chip" data-v="7">7일</span><span class="chip on" data-v="14">14일</span><span class="chip" data-v="30">30일</span></div>
-            </div>
+            <label class="field">시작일<input class="input" type="date" id="f-from" /></label>
+            <label class="field">끝일<input class="input" type="date" id="f-to" /></label>
             <label class="field">이벤트 종류<select class="input" id="f-type"><option value="">전체 종류</option></select></label>
             <label class="field">구역<select class="input" id="f-zone"><option value="">전체 구역</option></select></label>
             <div class="field">심각도
@@ -78,7 +77,7 @@
     function query() {
       const sev = [...document.querySelectorAll("#f-sev .chip.on")].map((c) => c.dataset.v);
       return {
-        days: document.querySelector("#f-days .chip.on").dataset.v,
+        date_from: $("f-from").value, date_to: $("f-to").value,
         detection_type: $("f-type").value, work_zone_id: $("f-zone").value,
         severity: sev.length === 3 ? undefined : sev,
       };
@@ -173,7 +172,7 @@
       const md = (s) => s.slice(5).replace("-", ".");
       $("range").textContent = `${md(data.date_from)} ~ ${md(data.date_to)}`;
       const sel = (id) => ($(id).value ? $(id).selectedOptions[0].textContent : "");
-      searchSummary([document.querySelector("#f-days .chip.on").textContent, sel("f-type"), sel("f-zone")].filter(Boolean).join(" · "));
+      searchSummary([rangeText(data.date_from, data.date_to), sel("f-type"), sel("f-zone")].filter(Boolean).join(" · "));
       $("avg").innerHTML = `하루 평균 <b style="color:var(--ink)">${data.avg_per_day}건</b> · 최근 7일 평균 <b style="color:var(--ink)">${data.avg_last7}건</b>`;
       $("hour-sub").textContent = `${md(data.date_from)} ~ ${md(data.date_to)} 합계 · 가장 많은 시간대만 숫자 표시`;
       $("t-daily").innerHTML = "<thead><tr><th>날짜</th><th>건수</th></tr></thead><tbody>"
@@ -188,6 +187,11 @@
     let rt = 0;
     window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => data && drawLine(), 120); });
     attachTips($("trend-main"));
+
+    // 처음에는 최근 14일. 끝일은 오늘까지
+    $("f-to").value = $("f-to").max = $("f-from").max = todayStr();
+    $("f-from").value = new Date(Date.now() - 13 * 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    linkDateRange($("f-from"), $("f-to"));
 
     (async () => {
       const [types, zones] = await Promise.all([api("/api/detection-types"), api("/api/work-zones")]);
