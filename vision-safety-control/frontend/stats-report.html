@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>리포트 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr); }
+    #quick { display: flex; flex-wrap: wrap; gap: 8px; }
+    .opts { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+    .paper-wrap { padding: 18px; display: grid; justify-items: center; }
+    .paper { width: min(720px, 100%); background: #f6f7f9; color: #1c2430; border-radius: 6px; padding: 34px 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.45); display: grid; gap: 18px; }
+    .paper h2 { font-size: 22px; letter-spacing: -0.03em; }
+    .paper .meta { color: #5d6b7c; font-size: 12px; margin-top: 4px; }
+    .paper h3 { font-size: 14px; border-left: 4px solid #ff9a1f; padding-left: 8px; }
+    .paper table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .paper th, .paper td { padding: 7px 8px; border-bottom: 1px solid #dde2e8; text-align: left; }
+    .paper th { background: #eceff3; }
+    .paper .sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .paper .sum div { background: #fff; border: 1px solid #dde2e8; border-radius: 8px; padding: 10px; }
+    .paper .sum span { display: block; font-size: 11px; color: #5d6b7c; font-weight: 700; }
+    .paper .sum b { font-size: 22px; }
+    .paper p { font-size: 13px; line-height: 1.6; color: #3d4a5a; }
+    .mini { display: grid; gap: 6px; }
+    .mini div { display: grid; grid-template-columns: 120px 1fr 34px; gap: 8px; align-items: center; font-size: 12px; }
+    .mini i { height: 8px; border-radius: 0 4px 4px 0; background: #e8810a; min-width: 2px; }
+    .mini span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .paper h3 span { font-weight: 600; color: #5d6b7c; }
+    .paper .cmp { margin-top: 8px; font-size: 12.5px; }
+    .paper .edit-hint { font-size: 11px; }
+    #p-note { padding: 8px 10px; border-radius: 6px; border: 1px dashed #c3cad3; outline: none; }
+    #p-note:focus { border-color: #e8810a; background: #fff; }
+    .paper [data-part] { display: grid; gap: 10px; }
+    .paper [data-part][hidden] { display: none; }
+    #quick .item { width: auto; min-width: 190px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+    #quick .item-top { gap: 12px; }
+
+    /* 인쇄 · PDF: 보고서 종이만 A4 에 (메뉴 · 패널 · 배경은 빼고, 의견 칸 점선도 뺀다) */
+    @page { size: A4; margin: 14mm; }
+    @media print {
+      html, body { height: auto !important; background: #fff !important; overflow: visible !important; }
+      body { padding: 0 !important; }
+      body > *:not(.page), .gnb, .drawer, .scrim, .toast, .viz-tip, .pop, .page > .left, .page > .right, .page > .head, .searchbar { display: none !important; }
+      .page, .main, .paper-wrap { display: block !important; padding: 0 !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; background: none !important; overflow: visible !important; }
+      .paper { width: 100% !important; box-shadow: none !important; border-radius: 0; padding: 0; background: #fff; }
+      .paper .edit-hint { display: none; }
+      #p-note { border: 0; padding: 0; }
+      .paper table tr { break-inside: avoid; }
+      .paper h3 { break-after: avoid; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page full">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="setup">보고서 설정 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="grow"></span>
+          <span class="muted" title="인쇄 창이 열리면 대상(프린터)을 'PDF로 저장'으로 고르세요. 보고서 종이 부분만 A4 로 나옵니다.">내려받기</span>
+          <button class="btn" type="button" id="print">🖨 인쇄</button>
+          <button class="btn primary" type="button" id="pdf">⬇ PDF로 저장</button>
+        </div>
+        <form class="search-panel" id="setup" hidden>
+          <div class="field">빠른 기간<div id="quick"></div></div>
+          <div class="search-fields">
+            <div class="field">종류
+              <div class="chips" id="kind" data-single><span class="chip" data-v="day">일간</span><span class="chip on" data-v="week">주간</span><span class="chip" data-v="month">월간</span></div>
+            </div>
+            <label class="field">시작 날짜<input class="input" type="date" id="f-from" required /></label>
+            <label class="field">끝 날짜<input class="input" type="date" id="f-to" required /></label>
+            <div class="field wide">넣을 내용
+              <div class="opts">
+                <label class="opt"><input type="checkbox" data-part="sum" checked /> 요약 숫자</label>
+                <label class="opt"><input type="checkbox" data-part="type" checked /> 종류별 건수</label>
+                <label class="opt"><input type="checkbox" data-part="zone" checked /> 구역별 건수</label>
+                <label class="opt"><input type="checkbox" data-part="high" checked /> 높음 이벤트 목록</label>
+                <label class="opt"><input type="checkbox" data-part="note" checked /> 의견</label>
+              </div>
+            </div>
+          </div>
+          <div class="row end"><button class="btn primary">미리보기 새로 만들기</button></div>
+        </form>
+      </section>
+      <section class="cell paper-wrap">
+        <article class="paper" id="paper">
+          <div>
+            <h2 id="p-title">안전관제 보고서</h2>
+            <div class="meta" id="p-meta"></div>
+          </div>
+          <div data-part="sum">
+            <div class="sum">
+              <div><span>전체 이벤트</span><b id="s-total">-</b>건</div>
+              <div><span>높음</span><b id="s-high" style="color:#c52b31">-</b>건</div>
+              <div><span>처리율</span><b id="s-rate">-</b>%</div>
+              <div><span>평균 처리</span><b id="s-time">-</b>분</div>
+            </div>
+            <p class="cmp" id="s-cmp"></p>
+          </div>
+          <div data-part="type"><h3>종류별 건수</h3><div class="mini" id="p-type"></div></div>
+          <div data-part="zone"><h3>구역별 건수</h3><div class="mini" id="p-zone"></div></div>
+          <div data-part="high">
+            <h3>높음 이벤트 <span id="high-n"></span></h3>
+            <table><thead><tr><th>일시</th><th>구역</th><th>내용</th><th>상태</th><th>조치</th></tr></thead><tbody id="p-high"></tbody></table>
+          </div>
+          <div data-part="note">
+            <h3>의견 <span class="edit-hint">· 눌러서 고칠 수 있음</span></h3>
+            <p id="p-note" contenteditable="true" spellcheck="false"></p>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const day = (offset) => iso(new Date(Date.now() + offset * 86400000));
+    const now = new Date();
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const QUICK = [
+      ["day", "오늘", day(0), day(0)],
+      ["week", "최근 7일", day(-6), day(0)],
+      ["week", "그 앞 7일", day(-13), day(-7)],
+      ["month", "이번 달", iso(new Date(now.getFullYear(), now.getMonth(), 1)), day(0)],
+      ["month", "지난달", iso(new Date(lastMonthEnd.getFullYear(), lastMonthEnd.getMonth(), 1)), iso(lastMonthEnd)],
+    ];
+    const KIND = { day: "일간", week: "주간", month: "월간" };
+    const dotted = (s) => s.replaceAll("-", ".");
+
+    function mini(id, list) {
+      const max = Math.max(1, ...list.map((x) => x.count)); // 구역 · 종류는 서로 비교하지 않으므로 각자 눈금
+      $(id).innerHTML = list.length ? list.map((x) =>
+        `<div><span>${esc(x.label)}</span><i style="width:${(x.count / max) * 100}%"></i><b>${x.count}</b></div>`).join("")
+        : '<p>이 기간 기록이 없습니다.</p>';
+    }
+    const change = (now, before, unit) => {
+      if (before == null || now == null) return "";
+      const d = Math.round((now - before) * 10) / 10;
+      return d ? `${Math.abs(d)}${unit} ${d > 0 ? "늘었" : "줄었"}습니다` : "같습니다";
+    };
+
+    async function build() {
+      const from = $("f-from").value, to = $("f-to").value;
+      const r = await api("/api/stats/report", { query: { date_from: from, date_to: to } });
+      const kind = document.querySelector("#kind .chip.on").dataset.v;
+      const me = getAuth().user;
+      const c = r.current, p = r.previous;
+      $("p-title").textContent = `${KIND[kind]} 안전관제 보고서`;
+      $("p-meta").textContent = `공동주택 건설현장 · OO단지 101~103동 · ${from === to ? dotted(from) : `${dotted(from)} ~ ${dotted(to)}`} · 작성: ${me.name} ${me.position || ""} · ${dotted(todayStr())} 출력`;
+      $("s-total").textContent = c.total;
+      $("s-high").textContent = c.high;
+      $("s-rate").textContent = c.handled_rate ?? "-";
+      $("s-time").textContent = c.avg_handle_min == null ? "-" : Math.round(c.avg_handle_min);
+      $("s-cmp").textContent = p.total
+        ? `바로 앞 같은 기간과 비교하면 전체 이벤트는 ${change(c.total, p.total, "건")}, 높음은 ${change(c.high, p.high, "건")}.`
+        : "바로 앞 같은 기간의 기록이 없어 비교하지 않았습니다.";
+      mini("p-type", r.by_type);
+      mini("p-zone", r.by_zone);
+      $("high-n").textContent = `· ${r.high_events.length}건`;
+      $("p-high").innerHTML = r.high_events.length ? r.high_events.map((h) => `<tr><td>${fmtTime(h.detected_at).slice(5, 16)}</td><td>${esc(h.zone || "-")}</td>
+        <td>${esc(h.label)}</td><td>${LABEL.eventStatus[h.status][1]}</td><td>${esc(h.memo || "-")}</td></tr>`).join("")
+        : '<tr><td colspan="5">이 기간 높음 이벤트가 없습니다.</td></tr>';
+
+      // 의견 초안: 숫자로 쓸 수 있는 것만 자동으로. 현장 판단은 직접 고쳐 쓴다
+      const lines = [];
+      if (r.by_zone[0]) lines.push(`${r.by_zone[0].label}에서 경보가 가장 많았습니다(${r.by_zone[0].count}건).`);
+      if (r.by_type[0]) lines.push(`가장 많이 나온 종류는 ${r.by_type[0].label}(${r.by_type[0].count}건)입니다.`);
+      if (p.total) lines.push(`앞 기간보다 전체 이벤트가 ${change(c.total, p.total, "건")}.`);
+      if (c.open) lines.push(`아직 처리하지 않은 이벤트 ${c.open}건은 마무리가 필요합니다.`);
+      $("p-note").textContent = lines.join(" ") || "이 기간 이벤트가 없습니다.";
+      document.title = `${KIND[kind]} 안전관제 보고서 ${from}~${to}`; // PDF 파일 이름으로 쓰인다
+      searchSummary(`${KIND[kind]} · ${from === to ? dotted(from) : `${dotted(from)} ~ ${dotted(to).slice(5)}`}`);
+      closeSearch();
+      parts();
+    }
+
+    // 넣을 내용 체크 → 종이에서 보이기 · 숨기기 (인쇄에도 그대로)
+    function parts() {
+      document.querySelectorAll("#setup [data-part]").forEach((cb) => {
+        document.querySelector(`#paper [data-part="${cb.dataset.part}"]`).hidden = !cb.checked;
+      });
+    }
+
+    function setKind(kind) {
+      document.querySelectorAll("#kind .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === kind));
+      const [, , from, to] = QUICK.find((q) => q[0] === kind);
+      $("f-from").value = from;
+      $("f-to").value = to;
+    }
+
+    $("quick").innerHTML = QUICK.map(([, name, from, to], i) =>
+      `<button class="item" type="button" data-q="${i}"><div class="item-top"><b>${name}</b><span class="status info">${from === to ? dotted(from).slice(5) : `${dotted(from).slice(5)} ~ ${dotted(to).slice(5)}`}</span></div></button>`).join("");
+    $("quick").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-q]");
+      if (!b) return;
+      const [kind, , from, to] = QUICK[b.dataset.q];
+      document.querySelectorAll("#kind .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === kind));
+      $("f-from").value = from;
+      $("f-to").value = to;
+      build().catch((err) => toast(err.message));
+    });
+    $("kind").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) setKind(c.dataset.v); });
+    $("setup").addEventListener("change", (e) => { if (e.target.dataset.part) parts(); });
+    $("setup").addEventListener("submit", (e) => { e.preventDefault(); build().catch((err) => toast(err.message)); });
+    $("pdf").addEventListener("click", () => { toast("인쇄 창에서 대상을 'PDF로 저장'으로 고르세요."); setTimeout(() => window.print(), 300); });
+    $("print").addEventListener("click", () => window.print());
+
+    // 통계 요약에서 [리포트 만들기]로 오면 그 기간으로 (?date_from=…&date_to=…)
+    const q = new URLSearchParams(location.search);
+    setKind("week");
+    if (q.get("date_from")) {
+      $("f-from").value = q.get("date_from");
+      $("f-to").value = q.get("date_to") || q.get("date_from");
+      if ($("f-from").value === $("f-to").value) document.querySelectorAll("#kind .chip").forEach((c) => c.classList.toggle("on", c.dataset.v === "day"));
+    }
+    build().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

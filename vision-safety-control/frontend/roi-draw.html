@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>구역 그리기 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr) auto; }
+    .left { display: flex; flex-direction: column; }
+    .left > .pad { flex: none; }
+    .draw-set { border-top: 1px solid var(--line); }
+    .cam-stage { position: absolute; z-index: 2; }
+    #draw { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; cursor: crosshair; }
+    .tools { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; align-items: stretch; overflow: hidden; }
+    .tools-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .frame-bar { display: grid; grid-template-columns: auto minmax(120px, 1fr); gap: 12px; align-items: center; }
+    .frame-bar span { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .frame-bar input[type="range"] { width: 100%; height: 22px; margin: 0; accent-color: var(--orange); cursor: pointer; }
+    .frame-bar input[type="range"]:disabled { cursor: default; opacity: 0.4; }
+    #frame-video { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: fill; background: #000; }
+    section.cam.alarm-danger { box-shadow: inset 0 0 0 3px #ff5d5d, 0 0 28px rgba(255, 93, 93, 0.45); }
+    section.cam.alarm-control { box-shadow: inset 0 0 0 3px #ff9a1f, 0 0 28px rgba(255, 154, 31, 0.4); }
+    .roi-alarm {
+      position: absolute; z-index: 6; top: 46px; left: 10px; right: 10px;
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+      background: #ff5d5d; color: #fff; font-size: 13px; font-weight: 800;
+    }
+    .roi-alarm.control { background: #ff9a1f; color: #1a1206; }
+    .roi-alarm b { flex: none; padding: 1px 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.22); }
+    #draw { font-family: Pretendard, "Malgun Gothic", sans-serif; }
+    #draw text { font-size: 22px; font-weight: 800; }
+    .roi-list { display: grid; gap: 6px; max-height: 220px; overflow: auto; }
+    .roi-item {
+      display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto;
+      gap: 0 8px; align-items: center; width: 100%; padding: 8px 10px;
+      border-radius: 12px; border: 1px solid var(--line); border-left-width: 3px;
+      background: var(--panel-2); color: inherit; font: inherit; text-align: left; cursor: pointer;
+    }
+    .roi-item b { grid-row: span 2; font-size: 18px; font-variant-numeric: tabular-nums; }
+    .roi-item span { font-size: 13px; font-weight: 700; }
+    .roi-item small { color: var(--muted); font-size: 11px; font-weight: 700; }
+    .roi-item .mini-btn { grid-row: span 2; }
+    .roi-item.on { background: rgba(255, 154, 31, 0.1); }
+    .colors { display: flex; gap: 6px; }
+    .colors i { width: 26px; height: 26px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
+    .colors i.on { border-color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="page no-right">
+    <aside class="cell left">
+      <div class="pad" data-pick>
+        <div class="label">어느 카메라에 그릴까요? <span id="n-cams"></span></div>
+        <div id="cam-pick" style="display:grid; gap:8px"><p class="muted">카메라 목록을 불러오는 중…</p></div>
+        <div class="hint"><b>그리는 방법</b><br>① 카메라를 고르고 프레임을 맞춥니다<br>② 화면을 클릭해 구역을 그립니다<br>③ 번호와 종류를 정하고 저장하면 그 프레임부터 적용됩니다<br>④ 위험구역 · 통제구역에 작업자가 들어오면 바로 경보가 납니다</div>
+      </div>
+      <div class="pad draw-set">
+        <div class="label">구역 정보 <span id="roi-frame-note"></span></div>
+        <div data-lock="MANAGER" style="display:contents">
+        <label class="field">구역 번호<input class="input" id="roi-no" type="number" min="1" step="1" value="1" /></label>
+        <label class="field">구역 종류
+          <select class="input" id="kind">
+            <option value="danger">위험구역</option>
+            <option value="control">통제구역</option>
+            <option value="manage">관리구역</option>
+            <option value="safe">안전구역</option>
+          </select>
+        </label>
+        </div>
+        <div class="roi-list" id="roi-list"></div>
+        <div class="hint" data-lacks="MANAGER">조회 전용 계정은 구역을 그리거나 바꿀 수 없습니다. 카메라를 골라 그려진 구역만 볼 수 있습니다.</div>
+        <button class="btn block" id="roi-new" type="button" data-need="MANAGER">새 구역</button>
+        <button class="btn primary block" id="roi-save" type="button" data-need="MANAGER">이 프레임부터 저장</button>
+        <button class="btn block" id="roi-rules" type="button" data-need="MANAGER">저장하고 규칙 정하기 →</button>
+        <a class="btn block" href="roi-list.html">구역 목록</a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell cam">
+        <div class="scene red" id="scene">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
+        </div>
+        <div class="cam-stage" id="cam-stage">
+          <video id="frame-video" muted playsinline preload="auto" hidden></video>
+          <svg id="draw" viewBox="0 0 1000 600" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="roi-alarm" id="roi-alarm" hidden><b>경보</b><span id="roi-alarm-text"></span></div>
+        <div class="cam-tag">카메라를 고르세요</div>
+        <div class="cam-zone" id="count">점 0개 · 화면을 클릭하세요</div>
+      </section>
+      <section class="cell tools">
+        <div class="tools-row">
+          <button class="btn" id="undo" data-need="MANAGER">↶ 마지막 점 지우기</button>
+          <button class="btn" id="clear" data-need="MANAGER">처음부터</button>
+          <button class="btn" id="sample" data-need="MANAGER">예시 구역 불러오기</button>
+          <span class="grow"></span>
+          <span class="muted">다른 구역</span>
+          <span class="chips"><span class="chip on" id="roi-overlay">겹쳐 보기</span></span>
+        </div>
+        <label class="frame-bar">
+          <span id="frame-readout">카메라를 고르면 프레임을 볼 수 있습니다</span>
+          <input type="range" id="frame-range" min="0" max="0" value="0" step="1" disabled aria-label="프레임 선택" />
+        </label>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script src="api.js"></script>
+  <script src="roi-store.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const svg = document.getElementById("draw");
+    let cams = []; // DB 의 카메라 (/api/cameras). 구역은 카메라에 연결된 영상 파일 이름 기준으로 저장한다
+    const fileOf = roiFileOf;
+    const KINDS = ROI_KINDS;
+    const books = {}; // 영상 파일별 구역 (roi-store.js). 서버에서 불러와 채운다
+    let currentCam = null;
+    let videoFile = null;
+    let selected = null;
+    let pendingUid = null;
+    let pts = [];
+    let peopleHits = [];
+    let alarmToken = 0;
+    let detectorPromise = null;
+    let detectorFailed = false;
+
+    function currentFrame() {
+      return Number(range.value) || 0;
+    }
+    function currentRois() {
+      return videoFile && books[videoFile] ? books[videoFile] : [];
+    }
+    function findRoi(uid) {
+      return currentRois().find((roi) => roi.uid === uid) || null;
+    }
+    function kindNow() {
+      const kind = document.getElementById("kind").value;
+      return KINDS[kind] ? kind : "danger";
+    }
+    function shapeAt(roi, frame) {
+      let found = null;
+      roi.keys.forEach((key) => { if (key.frame <= frame) found = key; });
+      return found;
+    }
+    // 구역 전체를 서버(storage/roi-zones.json)에 저장. 실패하면 이유를 알리고 false
+    function persist() {
+      return saveRoiBooks(books, cams).then(() => true).catch((err) => { toast(err.message); return false; });
+    }
+    function updateCounts() {
+      document.querySelectorAll("[data-video]").forEach((btn) => {
+        const n = (books[btn.dataset.video] || []).length;
+        const line = btn.querySelector(".roi-n") || btn.querySelector("p"); // 상세 위치 줄은 두고 구역 수만 바꾼다
+        const off = cams.some((c) => !c.is_active && fileOf(c) === btn.dataset.video);
+        if (line) line.textContent = off ? `사용 안 함 · 구역 ${n}개` : `구역 ${n}개`;
+      });
+    }
+    function mark(points, color, no, handles) {
+      const p = points.map((q) => q.join(",")).join(" ");
+      const body = points.length >= 3
+        ? `<polygon points="${p}" fill="${color}" fill-opacity="0.22" stroke="${color}" stroke-width="3" />`
+        : `<polyline points="${p}" fill="none" stroke="${color}" stroke-width="3" />`;
+      const dots = handles
+        ? points.map((q, i) => `<circle cx="${q[0]}" cy="${q[1]}" r="9" fill="${i === 0 ? "#fff" : color}" stroke="#0c1016" stroke-width="3" />`).join("")
+        : "";
+      let label = "";
+      if (no != null && points.length >= 3) {
+        const c = points.reduce((acc, q) => [acc[0] + q[0], acc[1] + q[1]], [0, 0]);
+        label = `<text x="${c[0] / points.length}" y="${c[1] / points.length}" text-anchor="middle" dominant-baseline="central" fill="#fff" stroke="#0c1016" stroke-width="4" paint-order="stroke">${no}</text>`;
+      }
+      return body + dots + label;
+    }
+    function render() {
+      const frame = currentFrame();
+      const overlay = document.getElementById("roi-overlay").classList.contains("on");
+      const parts = [];
+      if (overlay) {
+        currentRois().forEach((roi) => {
+          if (roi.uid === selected) return;
+          const key = shapeAt(roi, frame);
+          if (!key || key.pts.length < 3) return;
+          parts.push(mark(key.pts, KINDS[roi.kind].color, roi.no, false));
+        });
+      }
+      const color = KINDS[kindNow()].color;
+      const no = Number(document.getElementById("roi-no").value);
+      parts.push(mark(pts, color, Number.isInteger(no) && pts.length >= 3 ? no : null, true));
+      peopleHits.forEach((hit) => {
+        const [x, y, w, h] = hit.rect;
+        parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${KINDS[hit.kind].color}" stroke-width="3" pointer-events="none" />`);
+      });
+      svg.innerHTML = parts.join("");
+      document.getElementById("count").textContent = pts.length
+        ? `점 ${pts.length}개` + (pts.length < 3 ? " · 3개 이상 찍으세요" : " · 저장하면 이 프레임부터 적용")
+        : can("MANAGER") ? "점 0개 · 화면을 클릭하세요" : "조회 전용 · 그려진 구역만 보기";
+    }
+    function paintList() {
+      const frame = currentFrame();
+      const list = currentRois();
+      const box = document.getElementById("roi-list");
+      box.innerHTML = list.length ? list.map((roi) => {
+        const key = shapeAt(roi, frame);
+        const when = key ? `프레임 ${key.frame + 1}부터` : (roi.keys[0] ? `프레임 ${roi.keys[0].frame + 1}부터 시작` : "모양 없음");
+        return `<div class="roi-item${roi.uid === selected ? " on" : ""}" data-uid="${roi.uid}" style="border-left-color:${KINDS[roi.kind].color}">
+          <b style="color:${KINDS[roi.kind].color}">${roi.no}</b>
+          <span>${KINDS[roi.kind].label}</span>
+          <small>${when}</small>
+          <button type="button" class="mini-btn" data-del="${roi.uid}" data-need="MANAGER">삭제</button>
+        </div>`;
+      }).join("") : `<p class="muted">저장된 구역이 없습니다</p>`;
+    }
+    function inside(poly, x, y) {
+      let hit = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+        if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) hit = !hit;
+      }
+      return hit;
+    }
+    function videoPointToView(px, py) {
+      return [px / video.videoWidth * 1000, py / video.videoHeight * 600];
+    }
+    function scheduleActive(roi, now) {
+      const plan = roi && roi.schedule;
+      if (!plan || plan.on === false) return true;
+      const names = ["일", "월", "화", "수", "목", "금", "토"];
+      if (!(plan.days || []).includes(names[now.getDay()])) return false;
+      const mins = (value) => {
+        const parts = String(value || "").split(":");
+        const hour = Number(parts[0]);
+        const minute = Number(parts[1]);
+        return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : null;
+      };
+      const start = mins(plan.start);
+      const end = mins(plan.end);
+      if (start == null || end == null) return true;
+      const cur = now.getHours() * 60 + now.getMinutes();
+      return start <= end ? cur >= start && cur <= end : cur >= start || cur <= end;
+    }
+    function alertZones() {
+      const frame = currentFrame();
+      const now = new Date();
+      const zones = [];
+      const draftKind = kindNow();
+      currentRois().forEach((roi) => {
+        if (roi.uid === selected) return;
+        if (roi.kind !== "danger" && roi.kind !== "control") return;
+        if (!scheduleActive(roi, now)) return;
+        const key = shapeAt(roi, frame);
+        if (key && key.pts.length >= 3) zones.push({ no: roi.no, kind: roi.kind, pts: key.pts });
+      });
+      const editing = currentRois().find((roi) => roi.uid === selected);
+      if (pts.length >= 3 && (draftKind === "danger" || draftKind === "control") && (!editing || scheduleActive(editing, now))) {
+        const no = Number(document.getElementById("roi-no").value);
+        zones.push({ no: Number.isInteger(no) ? no : "?", kind: draftKind, pts });
+      }
+      return zones;
+    }
+    function setAlarm(hits) {
+      const banner = document.getElementById("roi-alarm");
+      const cam = document.querySelector("section.cam");
+      cam.classList.remove("alarm-danger", "alarm-control");
+      if (!hits.length) { banner.hidden = true; return; }
+      const danger = hits.some((hit) => hit.kind === "danger");
+      cam.classList.add(danger ? "alarm-danger" : "alarm-control");
+      banner.hidden = false;
+      banner.classList.toggle("control", !danger);
+      const names = [];
+      const seen = new Set();
+      hits.forEach((hit) => {
+        const key = `${hit.no}:${hit.kind}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        names.push(`${hit.no}번 ${KINDS[hit.kind].label}`);
+      });
+      document.getElementById("roi-alarm-text").textContent = `작업자가 ${names.join(", ")}에 들어왔습니다`;
+    }
+    function detector() {
+      if (!window.cocoSsd) return Promise.reject(new Error("모델 없음"));
+      if (!detectorPromise) detectorPromise = cocoSsd.load({ base: "lite_mobilenet_v2" });
+      return detectorPromise;
+    }
+    function clearAlarm() {
+      peopleHits = [];
+      setAlarm([]);
+    }
+    async function checkWorkers() {
+      const my = ++alarmToken;
+      const zones = alertZones();
+      if (!zones.length || video.hidden || !video.videoWidth) { clearAlarm(); render(); return; }
+      let preds = [];
+      try {
+        const model = await detector();
+        if (my !== alarmToken) return;
+        preds = await model.detect(video, 20, 0.35);
+      } catch (e) {
+        if (my !== alarmToken) return;
+        clearAlarm();
+        render();
+        if (!detectorFailed) { detectorFailed = true; toast("작업자 위치를 확인하지 못했습니다."); }
+        return;
+      }
+      if (my !== alarmToken) return;
+      const hits = [];
+      preds.filter((pred) => pred.class === "person").forEach((pred) => {
+        const [x, y, w, h] = pred.bbox;
+        const foot = videoPointToView(x + w / 2, y + h);
+        const mid = videoPointToView(x + w / 2, y + h / 2);
+        const rectA = videoPointToView(x, y);
+        const rectB = videoPointToView(x + w, y + h);
+        zones.forEach((zone) => {
+          if (!inside(zone.pts, foot[0], foot[1]) && !inside(zone.pts, mid[0], mid[1])) return;
+          hits.push({ no: zone.no, kind: zone.kind, rect: [rectA[0], rectA[1], rectB[0] - rectA[0], rectB[1] - rectA[1]] });
+        });
+      });
+      peopleHits = hits;
+      setAlarm(hits);
+      render();
+    }
+    function scheduleCheck() {
+      clearTimeout(scheduleCheck.timer);
+      scheduleCheck.timer = setTimeout(() => checkWorkers(), 280);
+    }
+    function onFrameShown() {
+      alarmToken += 1;
+      clearAlarm();
+      const frame = currentFrame();
+      const note = document.getElementById("roi-frame-note");
+      note.textContent = track ? `프레임 ${frame + 1}` : "";
+      const roi = findRoi(selected);
+      if (roi) {
+        const key = shapeAt(roi, frame);
+        pts = key ? key.pts.map((p) => p.slice()) : [];
+        document.getElementById("roi-no").value = roi.no;
+        document.getElementById("kind").value = roi.kind;
+      } else pts = [];
+      paintList();
+      render();
+    }
+    function selectRoi(uid) {
+      const roi = findRoi(Number(uid));
+      if (!roi) return;
+      selected = roi.uid;
+      onFrameShown();
+      scheduleCheck();
+    }
+    function removeRoi(uid) {
+      const list = currentRois();
+      const index = list.findIndex((roi) => roi.uid === Number(uid));
+      if (index < 0) return;
+      const [gone] = list.splice(index, 1);
+      if (selected === gone.uid) selected = null;
+      pts = [];
+      persist();
+      updateCounts();
+      onFrameShown();
+      scheduleCheck();
+      toast(`${gone.no}번 구역을 삭제했습니다.`);
+    }
+    function nextNumber() {
+      const used = new Set(currentRois().map((roi) => roi.no));
+      let no = 1;
+      while (used.has(no)) no += 1;
+      return no;
+    }
+    svg.addEventListener("click", (e) => {
+      if (e.target.closest("[data-del]") || !can("MANAGER")) return; // 조회 전용은 보기만
+      const r = svg.getBoundingClientRect();
+      pts.push([Math.round((e.clientX - r.left) / r.width * 1000), Math.round((e.clientY - r.top) / r.height * 600)]);
+      render();
+      scheduleCheck();
+    });
+    document.getElementById("undo").onclick = () => { pts.pop(); render(); scheduleCheck(); };
+    document.getElementById("clear").onclick = () => { pts = []; render(); scheduleCheck(); };
+    document.getElementById("sample").onclick = () => { pts = [[520, 290], [920, 276], [960, 504], [460, 516]]; render(); scheduleCheck(); };
+    document.getElementById("kind").addEventListener("change", () => { render(); scheduleCheck(); });
+    document.getElementById("roi-no").addEventListener("input", render);
+    document.getElementById("roi-overlay").addEventListener("click", () => render());
+    document.getElementById("roi-list").addEventListener("click", (e) => {
+      const del = e.target.closest("[data-del]");
+      if (del) { removeRoi(del.dataset.del); return; }
+      const item = e.target.closest("[data-uid]");
+      if (item) selectRoi(item.dataset.uid);
+    });
+    document.getElementById("roi-new").onclick = () => {
+      selected = null;
+      pts = [];
+      document.getElementById("roi-no").value = nextNumber();
+      paintList();
+      render();
+      scheduleCheck();
+    };
+    function saveCurrent() {
+      if (!videoFile || !track) { toast("먼저 카메라를 고르세요."); return null; }
+      if (pts.length < 3) { toast("점을 3개 이상 찍으세요."); return null; }
+      const no = Number(document.getElementById("roi-no").value);
+      if (!Number.isInteger(no) || no < 1) { toast("구역 번호는 1 이상의 정수로 지정하세요."); return null; }
+      const list = books[videoFile] || (books[videoFile] = []);
+      if (list.some((roi) => roi.no === no && roi.uid !== selected)) { toast("이 영상에서 이미 쓰는 번호입니다."); return null; }
+      const kind = kindNow();
+      const isNew = !findRoi(selected);
+      let roi = findRoi(selected);
+      if (!roi) {
+        roi = { uid: roiUid(currentCam, no, videoFile), no, kind, enabled: true, listed: false, keys: [] };
+        list.push(roi);
+        selected = roi.uid;
+      }
+      roi.no = no;
+      roi.kind = kind;
+      const frame = currentFrame();
+      const copy = pts.map((p) => p.slice());
+      const time = frameInstant(frame);
+      const key = roi.keys.find((item) => item.frame === frame);
+      if (key) { key.pts = copy; key.time = time; }
+      else {
+        roi.keys.push({ frame, pts: copy, time });
+        roi.keys.sort((a, b) => a.frame - b.frame);
+      }
+      updateCounts();
+      onFrameShown();
+      scheduleCheck();
+      return { roi, isNew, no, kind, frame };
+    }
+    document.getElementById("roi-save").onclick = () => {
+      const saved = saveCurrent();
+      if (!saved) return;
+      const savedText = `${saved.no}번 ${KINDS[saved.kind].label}을 프레임 ${saved.frame + 1}부터 저장했습니다.`;
+      persist().then((ok) => { if (ok) toast(savedText); });
+    };
+    document.getElementById("roi-rules").onclick = () => {
+      const saved = saveCurrent();
+      if (!saved) return;
+      const next = saved.isNew ? `roi-list.html?new=${saved.roi.uid}` : "roi-list.html";
+      persist().then((ok) => { if (ok) location.href = next; });
+    };
+    const scene = document.getElementById("scene");
+    const video = document.getElementById("frame-video");
+    const stage = document.getElementById("cam-stage");
+    function fitStage() {
+      const rect = stage.parentElement.getBoundingClientRect();
+      const vw = video.videoWidth || 16;
+      const vh = video.videoHeight || 9;
+      if (!rect.width || !rect.height) return;
+      const scale = Math.min(rect.width / vw, rect.height / vh);
+      const w = vw * scale;
+      const h = vh * scale;
+      stage.style.width = w + "px";
+      stage.style.height = h + "px";
+      stage.style.left = ((rect.width - w) / 2) + "px";
+      stage.style.top = ((rect.height - h) / 2) + "px";
+    }
+    new ResizeObserver(() => fitStage()).observe(stage.parentElement);
+    fitStage();
+    const camTag = document.querySelector(".cam-tag");
+    const range = document.getElementById("frame-range");
+    const readout = document.getElementById("frame-readout");
+    updateCounts();
+    paintList();
+    render();
+    const CONTAINERS = new Set(["moov", "trak", "mdia", "minf", "stbl", "edts"]);
+    let seq = 0;
+    let track = null;
+    let want = -1;
+    let seeking = false;
+
+    function ascii(bytes, off, len) {
+      let s = "";
+      for (let i = 0; i < len; i++) s += String.fromCharCode(bytes[off + i]);
+      return s;
+    }
+    function viewOf(bytes) {
+      return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    }
+    function eachBox(bytes, start, end, fn) {
+      const view = viewOf(bytes);
+      let i = start;
+      while (i + 8 <= end && i + 8 <= bytes.length) {
+        let size = view.getUint32(i);
+        const type = ascii(bytes, i + 4, 4);
+        let hdr = 8;
+        if (size === 1) {
+          if (i + 16 > bytes.length) return;
+          size = Number(view.getBigUint64(i + 8));
+          hdr = 16;
+        } else if (size === 0) size = end - i;
+        if (size < hdr) return;
+        const boxEnd = i + size;
+        fn({ type, start: i, end: boxEnd, hdr });
+        if (boxEnd > bytes.length) return;
+        i = boxEnd;
+      }
+    }
+    function findBox(bytes, root, type) {
+      let found = null;
+      const walk = (start, end) => {
+        if (found) return;
+        eachBox(bytes, start, Math.min(end, bytes.length), (box) => {
+          if (found) return;
+          if (box.type === type) { found = box; return; }
+          if (CONTAINERS.has(box.type)) walk(box.start + box.hdr, box.end);
+        });
+      };
+      walk(root.start + root.hdr, root.end);
+      return found;
+    }
+    function parseVide(bytes) {
+      if (ascii(bytes, 4, 4) !== "moov") return null;
+      const view = viewOf(bytes);
+      let found = null;
+      eachBox(bytes, view.getUint32(0) === 1 ? 16 : 8, bytes.length, (trak) => {
+        if (trak.type !== "trak" || found) return;
+        const hdlr = findBox(bytes, trak, "hdlr");
+        if (!hdlr || ascii(bytes, hdlr.start + hdlr.hdr + 8, 4) !== "vide") return;
+        const mdhd = findBox(bytes, trak, "mdhd");
+        const stts = findBox(bytes, trak, "stts");
+        if (!mdhd || !stts) return;
+        const ver = bytes[mdhd.start + mdhd.hdr];
+        const timescale = view.getUint32(mdhd.start + mdhd.hdr + (ver === 1 ? 20 : 12));
+        const duration = ver === 1
+          ? Number(view.getBigUint64(mdhd.start + mdhd.hdr + 24))
+          : view.getUint32(mdhd.start + mdhd.hdr + 16);
+        const runs = [];
+        let frames = 0;
+        const count = view.getUint32(stts.start + stts.hdr + 4);
+        let off = stts.start + stts.hdr + 8;
+        for (let n = 0; n < count; n++) {
+          const sampleCount = view.getUint32(off);
+          const delta = view.getUint32(off + 4);
+          runs.push({ count: sampleCount, delta });
+          frames += sampleCount;
+          off += 8;
+        }
+        if (frames > 0 && timescale > 0) found = { frames, timescale, duration, runs };
+      });
+      return found;
+    }
+    function fileSizeFrom(res, fallback) {
+      const rangeHeader = res.headers.get("Content-Range");
+      const match = rangeHeader && /\/(\d+)\s*$/.exec(rangeHeader);
+      if (match) return Number(match[1]);
+      const len = Number(res.headers.get("Content-Length"));
+      return len || fallback;
+    }
+    function candidateUrls(file) {
+      const name = encodeURIComponent(file);
+      const stored = new URL("../storage/videos/" + name, document.baseURI).href;
+      const mounted = new URL("videos/" + name, document.baseURI).href;
+      if (location.protocol === "file:") return [mounted, stored];
+      if (location.pathname.includes("/frontend/")) return [stored, mounted];
+      return [mounted, stored];
+    }
+    function guessTrack(duration) {
+      const candidates = [24000 / 1001, 24, 25, 30000 / 1001, 30, 50, 60000 / 1001, 60];
+      let fps = 30;
+      let best = Infinity;
+      candidates.forEach((rate) => {
+        const frames = duration * rate;
+        const err = Math.abs(frames - Math.round(frames));
+        if (err < best) { best = err; fps = rate; }
+      });
+      const timescale = 90000;
+      const delta = Math.max(1, Math.round(timescale / fps));
+      const frames = Math.max(1, Math.round(duration * timescale / delta));
+      return { frames, timescale, duration: Math.round(duration * timescale), runs: [{ count: frames, delta }] };
+    }
+    function loadVideoSrc(url) {
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        const cleanup = () => {
+          clearTimeout(timer);
+          video.removeEventListener("loadeddata", ok);
+          video.removeEventListener("error", bad);
+        };
+        const ok = () => { if (settled) return; settled = true; cleanup(); fitStage(); resolve(); };
+        const bad = () => { if (settled) return; settled = true; cleanup(); reject(new Error("영상")); };
+        const timer = setTimeout(bad, 12000);
+        video.hidden = false;
+        video.addEventListener("loadeddata", ok);
+        video.addEventListener("error", bad);
+        video.src = url;
+        video.load();
+      });
+    }
+    async function loadTrack(url) {
+      const headRes = await fetch(url, { headers: { Range: "bytes=0-65535" } });
+      if (!headRes.ok) throw new Error("영상 파일을 열지 못했습니다");
+      const headBytes = new Uint8Array(await headRes.arrayBuffer());
+      const total = fileSizeFrom(headRes, headBytes.length);
+      const boxes = [];
+      eachBox(headBytes, 0, total, (box) => boxes.push(box));
+      const moov = boxes.find((box) => box.type === "moov");
+      let moovBytes = null;
+      if (moov && moov.end <= headBytes.length) moovBytes = headBytes.subarray(moov.start, moov.end);
+      else {
+        const start = moov ? moov.start : (boxes.length ? boxes[boxes.length - 1].end : 0);
+        if (!start || start >= total) throw new Error("프레임 정보를 찾지 못했습니다");
+        const res = await fetch(url, { headers: { Range: `bytes=${start}-${total - 1}` } });
+        if (!res.ok) throw new Error("프레임 정보를 읽지 못했습니다");
+        moovBytes = new Uint8Array(await res.arrayBuffer());
+      }
+      const parsed = parseVide(moovBytes);
+      if (!parsed) throw new Error("프레임 정보를 읽지 못했습니다");
+      return parsed;
+    }
+    function frameStart(index) {
+      let left = index;
+      let ticks = 0;
+      for (const run of track.runs) {
+        if (left < run.count) return (ticks + left * run.delta) / track.timescale;
+        ticks += run.count * run.delta;
+        left -= run.count;
+      }
+      return track.duration / track.timescale;
+    }
+    function frameInstant(index) {
+      const start = frameStart(index);
+      const end = index + 1 < track.frames ? frameStart(index + 1) : track.duration / track.timescale;
+      return start + Math.max(0, end - start) * 0.5;
+    }
+    function paintLabel(index) {
+      readout.textContent = `프레임 ${index + 1} / ${track.frames}`;
+    }
+    function once(el, event, ms = 8000) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => { cleanup(); reject(new Error("timeout")); }, ms);
+        const ok = () => { cleanup(); resolve(); };
+        const bad = () => { cleanup(); reject(new Error(event)); };
+        const cleanup = () => {
+          clearTimeout(timer);
+          el.removeEventListener(event, ok);
+          el.removeEventListener("error", bad);
+        };
+        el.addEventListener(event, ok);
+        el.addEventListener("error", bad);
+      });
+    }
+    async function queueFrame(index) {
+      want = index;
+      if (seeking || !track) return;
+      seeking = true;
+      const gen = seq;
+      try {
+        while (gen === seq && want !== -1) {
+          const i = want;
+          const t = frameInstant(i);
+          if (Math.abs(video.currentTime - t) > 0.001) {
+            video.pause();
+            const done = once(video, "seeked");
+            video.currentTime = t;
+            await done;
+          }
+          if (gen !== seq) break;
+          if (want === i) want = -1;
+        }
+      } catch (e) {
+        want = -1;
+        if (seq === gen) readout.textContent = "이 프레임을 표시하지 못했습니다";
+      } finally {
+        seeking = false;
+        if (want !== -1) queueFrame(want);
+        else checkWorkers();
+      }
+    }
+    function fail(message) {
+      video.pause();
+      video.hidden = true;
+      video.style.zIndex = "0";
+      scene.hidden = false;
+      document.getElementById("count").textContent = message;
+      range.disabled = true;
+      range.value = "0";
+      range.max = "0";
+      track = null;
+      delete video.dataset.file;
+      readout.textContent = message;
+    }
+    async function openVideo(file, code) {
+      const my = ++seq;
+      want = -1;
+      track = null;
+      range.disabled = true;
+      readout.textContent = "영상을 불러오는 중";
+      camTag.textContent = `${code} · 그리기 모드`;
+      videoFile = null;
+      selected = null;
+      pts = [];
+      paintList();
+      render();
+      video.pause();
+      let shown = false;
+      for (const url of candidateUrls(file)) {
+        if (my !== seq) return;
+        const parsedPromise = loadTrack(url).catch(() => null);
+        try { await loadVideoSrc(url); }
+        catch (e) { continue; }
+        if (my !== seq) return;
+        scene.hidden = true;
+        video.hidden = false;
+        video.style.zIndex = "2";
+        video.pause();
+        let parsed = await parsedPromise;
+        if (my !== seq) return;
+        if (!parsed && Number.isFinite(video.duration)) parsed = guessTrack(video.duration);
+        if (!parsed) continue;
+        shown = true;
+        track = parsed;
+        scene.hidden = true;
+        video.hidden = false;
+        video.dataset.file = file;
+        videoFile = file;
+        range.max = String(parsed.frames - 1);
+        range.value = "0";
+        range.disabled = false;
+        if (pendingUid != null) {
+          const roi = (books[file] || []).find((item) => item.uid === pendingUid);
+          if (roi) {
+            pendingUid = null;
+            selected = roi.uid;
+            const key = roi.keys[roi.keys.length - 1];
+            if (key) range.value = String(Math.min(key.frame, parsed.frames - 1));
+          }
+        }
+        paintLabel(Number(range.value));
+        onFrameShown();
+        queueFrame(Number(range.value));
+        break;
+      }
+      if (!shown && my === seq) fail("영상 파일을 열지 못했습니다");
+    }
+    range.addEventListener("input", () => {
+      if (!track) return;
+      const index = Number(range.value);
+      paintLabel(index);
+      onFrameShown();
+      queueFrame(index);
+    });
+    // ---------------- 카메라 목록 (DB)
+    function camCard(c) {
+      const file = fileOf(c);
+      const state = !c.is_active ? "사용 안 함" : file ? `구역 ${(books[file] || []).length}개` : "영상 파일 없음 · 그릴 수 없음";
+      return `<button class="tc-card" type="button" data-id="${c.id}"${file ? ` data-video="${esc(file)}"` : ""}${file ? "" : ' style="opacity:0.55"'}>
+        <div class="code">${esc(c.name)}</div><strong>${esc(c.work_zone_name || "구역 없음")}</strong>
+        <p>${c.location_desc ? esc(c.location_desc) + "<br>" : ""}<span class="roi-n">${esc(state)}</span></p></button>`;
+    }
+    function drawCams() {
+      const fixed = cams.filter((c) => c.camera_type !== "TC"), tc = cams.filter((c) => c.camera_type === "TC");
+      document.getElementById("n-cams").textContent = `${cams.length}대`;
+      document.getElementById("cam-pick").innerHTML = cams.length
+        ? fixed.map(camCard).join("") + (tc.length ? '<div class="label" style="margin-top:4px">TC CAM</div>' + tc.map(camCard).join("") : "")
+        : '<p class="muted">등록된 카메라가 없습니다. <a href="camera-edit.html" style="color:var(--orange)">카메라 등록 →</a></p>';
+      updateCounts();
+    }
+    function pickCam(c) {
+      currentCam = c;
+      document.querySelectorAll("#cam-pick .tc-card").forEach((b) => b.classList.toggle("active", Number(b.dataset.id) === c.id));
+      const file = fileOf(c);
+      history.replaceState(null, "", "?camera=" + c.id);
+      if (!file) {
+        // 앞에서 열던 카메라의 구역이 남아 그 카메라에 잘못 저장되지 않게 비운다
+        seq++;
+        videoFile = null;
+        selected = null;
+        pts = [];
+        peopleHits = [];
+        fail(`${c.name} 은(는) 영상 파일이 연결되지 않아 프레임을 볼 수 없습니다`);
+        paintList();
+        render();
+        camTag.textContent = `${c.name} · 영상 없음`;
+        return toast("카메라 등록 및 수정에서 영상 소스를 '영상 파일'로 연결하면 이 카메라에 구역을 그릴 수 있습니다.");
+      }
+      openVideo(file, c.name);
+    }
+    document.getElementById("cam-pick").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-id]");
+      if (b) pickCam(cams.find((c) => c.id === Number(b.dataset.id)));
+    });
+
+    const params = new URLSearchParams(location.search);
+    const uidParam = Number(params.get("uid"));
+    if (Number.isInteger(uidParam) && uidParam > 0) pendingUid = uidParam;
+    (async () => {
+      cams = await api("/api/cameras");
+      Object.assign(books, await loadRoiBooks(cams));
+      drawCams();
+      // ?camera=번호 (카메라 수정 화면에서) 또는 ?cam=CAM_0001 (ROI 목록에서) 로 오면 그 카메라를 연다
+      const byId = Number(params.get("camera")), byName = params.get("cam");
+      const want = cams.find((c) => (byId && c.id === byId) || (byName && c.name === byName));
+      if (want) pickCam(want);
+    })().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

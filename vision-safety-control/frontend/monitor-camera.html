@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>단일 카메라 확대 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr) auto; }
+    .roi { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; }
+    .controls { padding: 12px 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <b class="now" id="now">CAM_0002</b>
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="pick">카메라 선택 <i class="chev">▾</i></button>
+          <span class="grow"></span>
+          <a class="btn" href="monitor.html">← 관제화면으로 돌아가기</a>
+        </div>
+        <div class="search-panel" id="pick" hidden>
+          <div class="search-cards">
+        <div class="label">1페이지 · 현장 CAM</div>
+        <a class="tc-card" href="monitor-camera.html?cam=1"><div class="code">CAM_0001</div><strong>101동 갱폼 인양구역 <span class="status ok">정상</span></strong><p>작업자 2명 · 신호수 배치</p></a>
+        <a class="tc-card" href="monitor-camera.html?cam=2"><div class="code">CAM_0002</div><strong>102동 대형거푸집구역 <span class="status stop">작업중지</span></strong><p>신호수 미배치 · 85%</p></a>
+        <a class="tc-card" href="monitor-camera.html?cam=3"><div class="code">CAM_0003</div><strong>Sector A 토공 <span class="status warn">현장점검</span></strong><p>지반침하 의심 · 96%</p></a>
+        <a class="tc-card" href="monitor-camera.html?cam=4"><div class="code">CAM_0004</div><strong>외곽 야적장 <span class="status ok">정상</span></strong><p>이상 없음</p></a>
+        <div class="label">2페이지 · TC 관제 CAM</div>
+        <a class="tc-card" href="monitor-camera.html?cam=tc1"><div class="code">CAM_TC01 · 1호기</div><strong>101동 갱폼 인양구역 <span class="status ok">정상</span></strong><p>T-CRN-01 · 갱폼 인양</p></a>
+        <a class="tc-card" href="monitor-camera.html?cam=tc2"><div class="code">CAM_TC02 · 2호기</div><strong>102동 대형거푸집구역 <span class="status warn">대기</span></strong><p>T-CRN-02 · 신호수 미배치</p></a>
+        <a class="tc-card" href="monitor-camera.html?cam=tc3"><div class="code">CAM_TC03 · 3호기</div><strong>중앙 자재하역장 <span class="status stop">작업중지</span></strong><p>M-CRN-01 · 인양물 직하부 작업자</p></a>
+        <a class="tc-card" href="monitor-camera.html?cam=tc4"><div class="code">CAM_TC04 · 4호기</div><strong>103동 외벽 인양구역 <span class="status ok">정상</span></strong><p>T-CRN-03 · 작업 없음</p></a>
+          </div>
+        </div>
+      </section>
+      <section class="cell cam">
+        <div class="scene red" id="scene">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+          <div class="cable" style="left:76%; top:18%; height:36%;"></div>
+          <svg class="roi" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <polygon points="52,48 92,46 96,84 46,86" fill="rgba(255,93,93,0.16)" stroke="#ff5d5d" stroke-width="0.4" stroke-dasharray="1.5 1" />
+          </svg>
+          <div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em>신호수 없음 85%</em></div>
+          <div class="box" style="left:22%; top:46%; width:8%; height:24%;"><em>작업자 92%</em></div>
+          <div class="box info" style="left:72%; top:52%; width:7%; height:12%;"><em>인양물</em></div>
+        </div>
+        <div class="cam-tag" id="cam-tag">CAM_0002</div>
+        <div class="cam-time js-cam-time"></div>
+        <div class="cam-zone" id="cam-zone">102동 대형거푸집구역 · 빨간 점선 = ROI</div>
+      </section>
+      <section class="cell controls">
+        <button class="btn" data-toast="실시간 영상은 카메라 연결 후 재생됩니다.">⏸ 일시정지</button>
+        <button class="btn" data-toast="스냅샷을 저장했습니다. (예시)">📷 스냅샷 저장</button>
+        <span class="chips" data-single>
+          <span class="chip on">탐지 박스</span><span class="chip">박스 숨기기</span>
+        </span>
+        <span class="chips">
+          <span class="chip on">ROI 표시</span>
+        </span>
+        <span class="grow"></span>
+        <a class="btn" href="roi-draw.html" data-need="MANAGER">ROI 수정</a>
+        <a class="btn primary" href="event-detail.html">이 경보 상세 보기</a>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">지금 탐지된 객체 <span>실시간</span></div>
+        <div class="check stop"><div><b>신호수</b><small>인양 중인데 신호수 없음</small></div><span class="status stop">0명</span></div>
+        <div class="check"><div><b>작업자</b><small>안전모 · 조끼 착용</small></div><span class="status ok">1명</span></div>
+        <div class="check info"><div><b>타워크레인</b><small>T-CRN-02 인양 중</small></div><span class="status info">작업중</span></div>
+
+        <div class="label" style="margin-top:6px">이 카메라의 최근 이벤트 <span>오늘</span></div>
+        <a class="item stop" href="event-detail.html"><div class="item-top"><b>신호수 미배치</b><span class="status stop">높음</span></div><div class="desc">14:32:10 · 미처리</div></a>
+        <a class="item ok" href="event-detail.html"><div class="item-top"><b>펌프카 붐 하부 출입</b><span class="status stop">높음</span></div><div class="desc">10:12:47 · 처리완료</div></a>
+        <a class="item ok" href="event-detail.html"><div class="item-top"><b>안전모 미착용</b><span class="status ok">낮음</span></div><div class="desc">08:41:02 · 처리완료</div></a>
+        <a class="btn block" href="events.html">이 카메라 이벤트 전체 보기</a>
+      </div>
+    </aside>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+    // ?cam=번호 로 들어오면 그 카메라 이름으로 바꾼다 (화면 그림은 예시라 같다)
+    const CAMS = {
+      1: ["CAM_0001", "101동 갱폼 인양구역", ""],
+      2: ["CAM_0002", "102동 대형거푸집구역", "red"],
+      3: ["CAM_0003", "Sector A 토공 / EXC_01", "green"],
+      4: ["CAM_0004", "외곽 야적장", "teal"],
+      tc1: ["CAM_TC01", "1호기 · 101동 갱폼 인양구역", ""],
+      tc2: ["CAM_TC02", "2호기 · 102동 대형거푸집구역", ""],
+      tc3: ["CAM_TC03", "3호기 · 중앙 자재하역장", "red"],
+      tc4: ["CAM_TC04", "4호기 · 103동 외벽 인양구역", ""],
+    };
+    const n = new URLSearchParams(location.search).get("cam") || "2";
+    const cam = CAMS[n] || CAMS[2];
+    document.getElementById("cam-tag").textContent = cam[0];
+    document.getElementById("cam-zone").textContent = cam[1] + " · 빨간 점선 = ROI";
+    document.getElementById("scene").className = "scene " + cam[2];
+    document.getElementById("now").innerHTML = `${cam[0]}<small>${cam[1]}</small>`;
+    document.querySelectorAll("#pick .tc-card").forEach((el) => el.classList.toggle("active", el.getAttribute("href") === "monitor-camera.html?cam=" + n));
+  </script>
+</body>
+</html>

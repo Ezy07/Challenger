@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>장비 상세 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: minmax(0, 1fr) auto; }
+    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .info-row > span { color: var(--muted); font-weight: 700; }
+    .run { position: relative; height: 34px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+    .run i { position: absolute; top: 6px; bottom: 6px; border-radius: 6px; background: var(--green); }
+    .run i.stop { background: var(--red); }
+    .run i.idle { background: #3a4554; }
+    .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="cell left">
+      <div class="pad">
+        <div class="label">장비 정보 <span id="e-reg"></span></div>
+        <div style="font-size:22px; font-weight:800" id="e-title">-</div>
+        <div id="e-info"></div>
+        <div class="label" style="margin-top:6px">오늘 점검</div>
+        <div id="e-check"></div>
+        <div class="row" data-need="MANAGER">
+          <button class="btn grow" id="edit">정보 수정</button>
+          <button class="btn" id="del" style="color:var(--red)">삭제</button>
+        </div>
+        <a class="btn block" href="equipment.html">← 장비 목록</a>
+      </div>
+    </aside>
+
+    <header class="cell head"></header>
+
+    <main class="main">
+      <a class="cell cam" id="cam-link" href="monitor.html">
+        <div class="scene">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+        </div>
+        <div class="cam-tag" id="cam-tag">-</div>
+        <div class="cam-time js-cam-time"></div>
+        <div class="cam-zone" id="cam-zone">누르면 관제화면으로</div>
+      </a>
+      <section class="cell"><div class="pad">
+        <div class="label">일일 기록 <span>최근 14일 · 아침 조회 때 한 번</span></div>
+        <form class="row" id="log-form" style="align-items:flex-end; flex-wrap:wrap" data-need="MANAGER">
+          <label class="field">날짜<input class="input" type="date" id="l-date" style="width:150px" /></label>
+          <label class="field">상태<select class="input" id="l-status" style="width:110px"><option value="RUNNING">가동</option><option value="IDLE">대기</option><option value="MAINTENANCE">점검</option><option value="BROKEN">고장</option></select></label>
+          <label class="field">운전 전 점검<input class="input" type="time" id="l-time" style="width:120px" /></label>
+          <label class="field grow">메모<input class="input" id="l-note" maxlength="500" placeholder="예: 유압 호스 교체" /></label>
+          <button class="btn primary">기록 저장</button>
+        </form>
+        <table class="tbl">
+          <thead><tr><th>날짜</th><th>상태</th><th>운전 전 점검</th><th>메모</th><th>기록한 사람</th></tr></thead>
+          <tbody id="logs"></tbody>
+        </table>
+      </div></section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">관련 이벤트 <span>연결 카메라 · 투입 구역</span></div>
+        <div id="events"></div>
+        <div class="label" style="margin-top:6px">이번 주</div>
+        <div id="week"></div>
+        <a class="btn block" id="all-events" href="events.html">이벤트 목록에서 보기</a>
+      </div>
+    </aside>
+  </div>
+
+  <div class="pop" id="pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="role">장비</span><h2>장비 정보 수정</h2><p>투입 구역 · 운전원 · 상태는 장비 등록 및 배정 화면에서 바꿉니다</p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <form class="pop-body" id="form">
+        <label class="field">장비 이름<input class="input" id="f-name" required maxlength="100" /></label>
+        <div class="two">
+          <label class="field">종류<select class="input" id="f-type"></select></label>
+          <label class="field">등록번호<input class="input" id="f-reg" maxlength="50" placeholder="차량번호 또는 장비 등록번호" /></label>
+        </div>
+        <div class="two">
+          <label class="field">제원<input class="input" id="f-spec" maxlength="200" placeholder="예: T형 · 지브 55m, 15t" /></label>
+          <label class="field">소속 회사<input class="input" id="f-company" maxlength="100" /></label>
+        </div>
+        <div class="row end"><button class="btn" type="button" data-close>취소</button><button class="btn primary">저장</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const id = Number(new URLSearchParams(location.search).get("id"));
+    let eq = null;
+
+    function render(e) {
+      eq = e;
+      const row = (k, v) => `<div class="info-row"><span>${k}</span><b>${v}</b></div>`;
+      $("e-reg").textContent = e.reg_no || "";
+      $("e-title").textContent = `${EQUIP_ICON[e.equip_type]} ${e.name}`;
+      $("e-info").innerHTML = row("종류", esc(labelOf("equipType", e.equip_type))) + row("제원", esc(e.spec || "-"))
+        + row("소속", esc(e.company || "-")) + row("위치", esc(e.work_zone_name || "미투입"))
+        + row("보는 카메라", esc(e.cameras.map((c) => c.name).join(", ") || "-"))
+        + row("조종", esc(e.operator_name ? `${e.operator_name}${e.operator_company ? ` (${e.operator_company})` : ""}` : "-"))
+        + row("지금 상태", badge("equipStatus", e.status));
+      const log = e.today_log;
+      $("e-check").innerHTML = log && log.inspected_at
+        ? `<div class="check"><div><b>운전 전 점검</b><small>${fmtTime(log.inspected_at, { date: false }).slice(0, 5)} 완료 · ${esc(log.recorded_by_name || "")}</small></div><span class="status ok">완료</span></div>`
+        : `<div class="check warn"><div><b>운전 전 점검</b><small>오늘 기록이 없습니다</small></div><span class="status warn">미기록</span></div>`;
+
+      const cam = e.cameras[0];
+      $("cam-tag").textContent = cam ? `${cam.name} · ${e.name}` : `${e.name} · 연결된 카메라 없음`;
+      $("cam-zone").textContent = e.work_zone_name ? `${e.work_zone_name} · 누르면 관제화면으로` : "누르면 관제화면으로";
+
+      $("logs").innerHTML = e.logs.length ? e.logs.map((l) => `<tr><td class="num">${l.log_date.replaceAll("-", ".")}</td><td>${badge("equipStatus", l.status)}</td>
+        <td class="num">${l.inspected_at ? fmtTime(l.inspected_at, { date: false }).slice(0, 5) : "-"}</td><td>${esc(l.note || "-")}</td><td>${esc(l.recorded_by_name || "-")}</td></tr>`).join("")
+        : '<tr><td colspan="5" class="muted" style="text-align:center; padding:20px">기록이 없습니다</td></tr>';
+      fillLog($("l-date").value || todayStr());
+
+      $("events").innerHTML = e.events.length ? e.events.map((v) => {
+        const tone = { NEW: "stop", ACK: "warn", DONE: "ok", FALSE: "" }[v.status];
+        return `<a class="item ${tone}" href="event-detail.html?id=${v.id}"><div class="item-top"><b>${esc(v.detection_label)}</b>${badge("severity", v.severity)}</div>
+          <div class="desc">${fmtTime(v.detected_at)} · ${esc(v.camera_name || "-")} · ${LABEL.eventStatus[v.status][1]}</div></a>`;
+      }).join("") : '<p class="muted">관련 이벤트가 없습니다</p>';
+      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const week = e.events.filter((v) => v.detected_at.slice(0, 10) >= weekAgo);
+      const workDays = e.logs.filter((l) => l.log_date >= weekAgo && l.status === "RUNNING").length;
+      $("week").innerHTML = `<div class="check info"><div><b>가동한 날</b><small>최근 7일 일일 기록 기준</small></div><span class="status info">${workDays}일</span></div>
+        <div class="check ${week.length ? "warn" : ""}"><div><b>관련 이벤트</b><small>최근 7일 (최대 10건까지 표시)</small></div><span class="status ${week.length ? "warn" : "ok"}">${week.length}건</span></div>`;
+    }
+
+    // 날짜를 고르면 그날 기록을 칸에 채운다 (없으면 지금 상태로)
+    function fillLog(day) {
+      const l = eq.logs.find((x) => x.log_date === day);
+      $("l-date").value = day;
+      $("l-status").value = l ? l.status : eq.status;
+      $("l-time").value = l && l.inspected_at ? fmtTime(l.inspected_at, { date: false }).slice(0, 5) : "";
+      $("l-note").value = l ? l.note || "" : "";
+    }
+
+    $("l-date").max = todayStr();
+    $("l-date").addEventListener("change", () => fillLog($("l-date").value));
+    $("log-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const day = $("l-date").value, time = $("l-time").value;
+      try {
+        render(await api(`/api/equipment/${id}/logs/${day}`, { method: "PUT", body: {
+          status: $("l-status").value, inspected_at: time ? `${day}T${time}:00` : null, note: $("l-note").value.trim() || null,
+        } }));
+        toast(`${day.replaceAll("-", ".")} 기록을 저장했습니다.`);
+      } catch (err) { toast(err.message); }
+    });
+
+    $("edit").addEventListener("click", () => {
+      $("f-name").value = eq.name;
+      $("f-type").innerHTML = Object.keys(LABEL.equipType).map((t) => `<option value="${t}"${t === eq.equip_type ? " selected" : ""}>${labelOf("equipType", t)}</option>`).join("");
+      $("f-reg").value = eq.reg_no || "";
+      $("f-spec").value = eq.spec || "";
+      $("f-company").value = eq.company || "";
+      $("pop").hidden = false;
+    });
+    $("form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      try {
+        render(await api(`/api/equipment/${id}`, { method: "PATCH", body: {
+          name: $("f-name").value.trim(), equip_type: $("f-type").value, reg_no: $("f-reg").value.trim() || null,
+          spec: $("f-spec").value.trim() || null, company: $("f-company").value.trim() || null,
+        } }));
+        $("pop").hidden = true;
+        toast("장비 정보를 저장했습니다.");
+      } catch (err) { toast(err.message); }
+    });
+    $("del").addEventListener("click", async () => {
+      if (!confirm(`${eq.name} 장비를 삭제할까요? 일일 기록도 함께 지워집니다.`)) return;
+      try {
+        await api(`/api/equipment/${id}`, { method: "DELETE" });
+        location.href = "equipment.html";
+      } catch (err) { toast(err.message); }
+    });
+
+    (async () => {
+      if (!id) { // 목록을 거치지 않고 들어오면 첫 장비로
+        const first = (await api("/api/equipment"))[0];
+        if (first) location.replace("equipment-detail.html?id=" + first.id);
+        return;
+      }
+      render(await api(`/api/equipment/${id}`));
+    })().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

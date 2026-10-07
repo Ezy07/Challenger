@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>이벤트 상세 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto minmax(0, 1fr) auto; }
+    .info-bar { padding: 12px 16px; display: flex; align-items: center; gap: 14px 22px; flex-wrap: wrap; overflow: hidden; }
+    .info-grid { flex: 1; display: flex; flex-wrap: wrap; gap: 8px 22px; min-width: 0; }
+    .info-item > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .info-item > b { font-size: 14px; white-space: nowrap; }
+    .info-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .clip { padding: 12px 14px; display: grid; gap: 10px; overflow: hidden; }
+    .scrub { position: relative; height: 6px; border-radius: 99px; background: #2a3342; }
+    .scrub i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: inherit; background: var(--orange); }
+    .scrub b { position: absolute; left: 50%; top: -5px; width: 3px; height: 16px; background: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="page no-left">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell info-bar">
+        <div class="info-grid" id="info"></div>
+        <div class="info-acts">
+          <a class="btn" href="events.html">← 이벤트 목록</a>
+          <a class="btn" id="snap-link" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a>
+          <a class="btn primary" id="handle-link" href="event-handle.html" data-need="MANAGER">처리 기록 쓰기</a>
+        </div>
+      </section>
+      <section class="cell cam">
+        <div class="scene" id="scene">
+          <div class="ground-line"></div>
+          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+          <div class="mast" style="left:48%; height:64%;"></div>
+          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+          <div class="box stop" style="left:56%; top:34%; width:16%; height:36%;"><em id="box-label"></em></div>
+        </div>
+        <img id="snap" alt="탐지 순간 스냅샷" hidden style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000" />
+        <div class="cam-tag" id="cam-tag"></div>
+        <div class="cam-time" id="cam-time"></div>
+        <div class="cam-zone" id="cam-zone"></div>
+      </section>
+      <section class="cell clip">
+        <div class="row between">
+          <div class="label">앞뒤 영상 클립 <span>탐지 전 10초 ~ 후 10초</span></div>
+          <div class="row">
+            <button class="btn sm" data-toast="영상 재생은 저장 서버 연결 후 동작합니다.">▶ 재생</button>
+            <button class="btn sm" data-toast="클립 저장은 저장 서버 연결 후 동작합니다.">⬇ 클립 저장</button>
+          </div>
+        </div>
+        <div class="scrub"><i></i><b></b></div>
+        <div class="hint">영상 클립은 저장 위치(서버)를 정한 뒤 붙입니다. 스냅샷 파일이 없는 이벤트는 위에 예시 그림이 보입니다.</div>
+      </section>
+    </main>
+
+    <aside class="cell right">
+      <div class="pad">
+        <div class="label">탐지 결과</div>
+        <div id="detected"></div>
+
+        <div class="label" style="margin-top:6px">해제 전에 허가할 항목 <span id="check-count"></span></div>
+        <div id="checks"></div>
+
+        <div class="label" style="margin-top:6px">같은 구역의 최근 이벤트</div>
+        <div id="similar"></div>
+      </div>
+    </aside>
+  </div>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const id = Number(new URLSearchParams(location.search).get("id"));
+    const SCENE = { HIGH: "red", MEDIUM: "", LOW: "green" };
+
+    async function load() {
+      if (!id) {
+        // 목록을 거치지 않고 들어오면 가장 최근 이벤트를 보여 준다
+        const first = (await api("/api/events", { query: { size: 1 } })).items[0];
+        if (first) location.replace("event-detail.html?id=" + first.id);
+        else $("info").innerHTML = '<p class="muted">이벤트가 없습니다.</p>';
+        return;
+      }
+      const e = await api(`/api/events/${id}`);
+      const conf = e.confidence == null ? "-" : Math.round(e.confidence * 100) + "%";
+      const row = (k, v) => `<div class="info-item"><span>${k}</span><b>${v}</b></div>`;
+
+      $("info").innerHTML = row("번호", "EV-" + e.id) + row("발생 시각", fmtTime(e.detected_at))
+        + row("카메라", esc(e.camera_name || "없음")) + row("구역", esc(e.work_zone_name || "-"))
+        + (e.roi_name ? row("ROI", esc(e.roi_name)) : "")
+        + row("종류", esc(e.detection_label)) + row("심각도", badge("severity", e.severity))
+        + row("신뢰도", conf) + row("처리 상태", badge("eventStatus", e.status));
+      $("handle-link").href = "event-handle.html?id=" + e.id;
+      $("snap-link").href = "event-snapshot.html?id=" + e.id;
+      $("handle-link").textContent = e.status === "DONE" || e.status === "FALSE" ? "처리 기록 보기" : "처리 기록 쓰기";
+
+      $("scene").className = "scene " + SCENE[e.severity];
+      $("box-label").textContent = `${e.detection_label} ${conf}`;
+      $("cam-tag").textContent = (e.camera_name || "카메라 없음") + " · 탐지 순간";
+      $("cam-time").textContent = fmtTime(e.detected_at, { date: false });
+      $("cam-zone").textContent = e.work_zone_name || "";
+      if (e.snapshots.length) {
+        // 스냅샷이 열리면 예시 그림 대신 보여 주고, 못 열면 예시 그림을 그대로 둔다
+        $("snap").onload = () => { $("snap").hidden = false; $("scene").hidden = true; };
+        $("snap").src = e.snapshots[0];
+      }
+
+      const [cls] = LABEL.severity[e.severity];
+      $("detected").innerHTML = `<div class="check ${cls}"><div><b>${esc(e.detection_label)}</b><small>${esc(e.detection_code)}${e.bbox ? " · 위치 " + e.bbox.map(Math.round).join(", ") : ""}</small></div><span class="status ${cls}">${conf}</span></div>`;
+
+      const done = e.check_items.filter((c) => c.permitted).length;
+      $("check-count").textContent = e.check_items.length ? `${done} / ${e.check_items.length}` : "";
+      $("checks").innerHTML = e.check_items.length
+        ? e.check_items.map((c) => `<div class="check ${c.permitted ? "ok" : "stop"}"><div><b>${esc(c.title)}</b><small>${c.permitted ? "허가됨" : "아직 허가 안 됨"}</small></div><span class="status ${c.permitted ? "ok" : "stop"}">${c.permitted ? "✓" : "대기"}</span></div>`).join("")
+        : '<div class="hint">이 종류는 해제 항목이 없어서 확인 후 바로 처리완료할 수 있습니다.</div>';
+
+      if (e.work_zone_id) {
+        const near = (await api("/api/events", { query: { work_zone_id: e.work_zone_id, size: 6 } })).items.filter((x) => x.id !== e.id).slice(0, 5);
+        const tone = { NEW: "stop", ACK: "warn", DONE: "ok", FALSE: "" };
+        $("similar").innerHTML = near.length
+          ? near.map((x) => `<a class="item ${tone[x.status]}" href="event-detail.html?id=${x.id}"><div class="item-top"><b>EV-${x.id} ${esc(x.detection_label)}</b></div><div class="desc">${fmtTime(x.detected_at)} · ${LABEL.eventStatus[x.status][1]}</div></a>`).join("")
+          : '<div class="hint">같은 구역의 다른 이벤트가 없습니다.</div>';
+      } else {
+        $("similar").innerHTML = '<div class="hint">구역이 없는 이벤트입니다.</div>';
+      }
+    }
+
+    load().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>내보내기 · 안전관제</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="common.css" />
+  <style>
+    .main { grid-template-rows: auto auto minmax(0, 1fr); }
+    .formats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .formats .tc-card { padding: 14px; }
+    .formats .tc-card strong { font-size: 17px; }
+    .cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  </style>
+</head>
+<body>
+  <div class="page full">
+    <header class="cell head"></header>
+
+    <main class="main">
+      <section class="cell searchbar">
+        <div class="searchbar-row">
+          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="range">내보낼 범위 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <span class="muted" id="count-hint">조건에 맞는 이벤트를 세는 중…</span>
+          <span class="grow"></span>
+          <a class="btn" href="events.html">← 이벤트 목록</a>
+        </div>
+        <div class="search-panel" id="range" hidden>
+          <div class="search-fields">
+            <label class="field">시작 날짜<input class="input" type="date" id="f-from" /></label>
+            <label class="field">끝 날짜<input class="input" type="date" id="f-to" /></label>
+            <label class="field">구역<select class="input" id="f-zone"><option value="">전체 구역</option></select></label>
+            <div class="field">심각도
+              <div class="chips" id="f-severity"><span class="chip on" data-v="HIGH">높음</span><span class="chip on" data-v="MEDIUM">중간</span><span class="chip on" data-v="LOW">낮음</span></div>
+            </div>
+            <div class="field">처리 상태
+              <div class="chips" id="f-status"><span class="chip on" data-v="NEW">미처리</span><span class="chip on" data-v="ACK">확인중</span><span class="chip on" data-v="DONE">처리완료</span><span class="chip" data-v="FALSE">오탐</span></div>
+            </div>
+            <div class="field wide">이벤트 종류<div class="chips" id="f-type"></div></div>
+          </div>
+          <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
+        </div>
+      </section>
+      <section class="cell">
+        <div class="pad">
+          <div class="label">파일 형식</div>
+          <div class="formats" id="formats">
+            <button class="tc-card active" data-fmt="csv"><div class="code">.csv</div><strong>CSV</strong><p>엑셀 · 파이썬 어디서나 열림. 분석용</p></button>
+            <button class="tc-card" data-fmt="xlsx"><div class="code">.xlsx</div><strong>엑셀</strong><p>머리글 고정 · 필터 · 심각도 색이 들어간 보고용 파일</p></button>
+            <button class="tc-card" data-fmt="zip"><div class="code">.zip</div><strong>스냅샷 묶음</strong><p>CSV + 이벤트별 탐지 이미지</p></button>
+          </div>
+          <div class="label" style="margin-top:6px">넣을 항목</div>
+          <div class="cols" id="cols">
+            <label class="opt"><input type="checkbox" value="id" checked /> 번호</label>
+            <label class="opt"><input type="checkbox" value="time" checked /> 시각</label>
+            <label class="opt"><input type="checkbox" value="camera" checked /> 카메라</label>
+            <label class="opt"><input type="checkbox" value="zone" checked /> 구역</label>
+            <label class="opt"><input type="checkbox" value="type" checked /> 종류</label>
+            <label class="opt"><input type="checkbox" value="severity" checked /> 심각도</label>
+            <label class="opt"><input type="checkbox" value="confidence" checked /> 신뢰도</label>
+            <label class="opt"><input type="checkbox" value="status" checked /> 처리 상태</label>
+            <label class="opt"><input type="checkbox" value="handler" /> 처리 담당자</label>
+            <label class="opt"><input type="checkbox" value="memo" /> 조치 메모</label>
+            <label class="opt"><input type="checkbox" value="snapshot" /> 스냅샷 경로</label>
+          </div>
+        </div>
+      </section>
+      <section class="cell" style="overflow:auto">
+        <div class="pad">
+          <div class="row between">
+            <div class="label">미리보기 <span>앞 5줄</span></div>
+            <button class="btn primary" id="download">⬇ 파일 내려받기</button>
+          </div>
+          <table class="tbl">
+            <thead id="p-head"></thead>
+            <tbody id="p-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="api.js"></script>
+  <script src="common.js"></script>
+  <script>
+    requireLogin();
+    const $ = (id) => document.getElementById(id);
+    const picked = (id) => [...document.querySelectorAll(`#${id} .chip.on`)].map((c) => c.dataset.v);
+    const allChips = (id) => document.querySelectorAll(`#${id} .chip`).length;
+    let total = 0, timer = 0;
+
+    // 조건 → API 검색어. 칩을 전부 고른 조건은 보내지 않는다 (= 전체)
+    function query() {
+      const q = { date_from: $("f-from").value, date_to: $("f-to").value, work_zone_id: $("f-zone").value,
+                  columns: [...document.querySelectorAll("#cols input:checked")].map((c) => c.value) };
+      [["severity", "f-severity"], ["status", "f-status"], ["detection_type", "f-type"]].forEach(([key, id]) => {
+        const on = picked(id);
+        q[key] = on.length === allChips(id) ? undefined : on;
+      });
+      return q;
+    }
+    // 심각도 · 상태 · 종류 중 하나라도 아무것도 안 고르면 내보낼 것이 없다
+    const emptyGroup = () => ["f-severity", "f-status", "f-type"].some((id) => !picked(id).length);
+    const format = () => document.querySelector("#formats .tc-card.active").dataset.fmt;
+
+    async function preview() {
+      const q = query();
+      const zone = $("f-zone").value ? $("f-zone").selectedOptions[0].textContent : "";
+      searchSummary([`${q.date_from.replaceAll("-", ".")} ~ ${q.date_to.replaceAll("-", ".").slice(5)}`, zone].filter(Boolean).join(" · "));
+      if (!q.columns.length) { $("p-head").innerHTML = ""; $("p-body").innerHTML = '<tr><td class="muted">넣을 항목을 하나 이상 고르세요</td></tr>'; return; }
+      if (emptyGroup()) {
+        total = 0;
+        $("p-head").innerHTML = "";
+        $("p-body").innerHTML = '<tr><td class="muted" style="padding:20px">심각도 · 처리 상태 · 이벤트 종류를 각각 하나 이상 고르세요</td></tr>';
+        $("count-hint").innerHTML = "조건에 맞는 이벤트 <b>0건</b>";
+        $("download").textContent = "⬇ 파일 내려받기 (0건)";
+        $("download").disabled = true;
+        return;
+      }
+      const res = await api("/api/events/export/preview", { query: q });
+      total = res.total;
+      $("p-head").innerHTML = "<tr>" + res.columns.map((c) => `<th>${esc(c.label)}</th>`).join("") + "</tr>";
+      $("p-body").innerHTML = total ? res.rows.map((r) => "<tr>" + r.map((v) => `<td>${esc(v)}</td>`).join("") + "</tr>").join("")
+        : `<tr><td colspan="${res.columns.length}" class="muted" style="text-align:center; padding:20px">조건에 맞는 이벤트가 없습니다</td></tr>`;
+      $("count-hint").innerHTML = `조건에 맞는 이벤트 <b>${total}건</b>이 파일로 만들어집니다.`;
+      $("download").textContent = `⬇ ${format().toUpperCase()} 내려받기 (${total}건)`;
+      $("download").disabled = !total;
+    }
+    const later = () => { clearTimeout(timer); timer = setTimeout(() => preview().catch((err) => toast(err.message)), 150); };
+
+    $("download").addEventListener("click", async () => {
+      $("download").disabled = true;
+      try {
+        const name = await apiDownload("/api/events/export", { ...query(), format: format() });
+        toast(`${name} 을(를) 내려받았습니다.`);
+      } catch (err) { toast(err.message); }
+      $("download").disabled = !total;
+    });
+    $("formats").addEventListener("click", (e) => {
+      const card = e.target.closest("[data-fmt]");
+      if (!card) return;
+      document.querySelectorAll("#formats .tc-card").forEach((c) => c.classList.toggle("active", c === card));
+      if (card.dataset.fmt === "zip") document.querySelector('#cols input[value="snapshot"]').checked = true;
+      later();
+    });
+    $("cols").addEventListener("change", later);
+    $("range").addEventListener("change", later);
+    $("range").addEventListener("click", (e) => { if (e.target.closest(".chip")) later(); });
+    $("f-type").addEventListener("click", (e) => { const c = e.target.closest(".chip"); if (c) c.classList.toggle("on"); });
+
+    // 이벤트 목록에서 [내보내기]로 오면 그 화면의 조건을 그대로 받는다 (?date_from=…&severity=…)
+    (async () => {
+      const p = new URLSearchParams(location.search);
+      const [zones, types] = await Promise.all([api("/api/work-zones"), api("/api/detection-types")]);
+      $("f-zone").insertAdjacentHTML("beforeend", zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join(""));
+      $("f-type").innerHTML = types.map((t) => `<span class="chip on" data-v="${t.code}">${esc(t.label)}</span>`).join("");
+      const weekAgo = new Date(Date.now() - 6 * 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      $("f-from").value = p.get("date_from") || weekAgo;
+      $("f-to").value = p.get("date_to") || todayStr();
+      $("f-zone").value = p.get("work_zone_id") || "";
+      [["severity", "f-severity"], ["status", "f-status"], ["detection_type", "f-type"]].forEach(([key, id]) => {
+        const want = p.getAll(key);
+        if (want.length) document.querySelectorAll(`#${id} .chip`).forEach((c) => c.classList.toggle("on", want.includes(c.dataset.v)));
+      });
+      await preview();
+    })().catch((err) => toast(err.message));
+  </script>
+</body>
+</html>
