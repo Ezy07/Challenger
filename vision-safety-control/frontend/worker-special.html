@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page no-left rail-hidden rail-over">
 
     <header class="cell head"></header>
 
@@ -57,7 +57,8 @@
       </section>
     </main>
 
-    <aside class="cell right">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell right" id="rail">
       <div class="pad" data-lacks="MANAGER"><div class="label">특별관리 지정</div>
         <div class="hint">조회 전용 계정은 특별관리 지정 · 해제를 할 수 없습니다. 바꿔야 하면 안전관리자에게 요청하세요.</div></div>
       <form class="pad" id="form" data-need="MANAGER">

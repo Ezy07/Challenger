@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page no-left rail-hidden rail-over">
 
     <header class="cell head"></header>
 
@@ -68,7 +68,8 @@
       </section>
     </main>
 
-    <aside class="cell right">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="label">미리보기</div>
         <div class="cell cam" style="height:180px; box-shadow:none">

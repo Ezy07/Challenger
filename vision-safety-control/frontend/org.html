@@ -25,8 +25,9 @@
   </style>
 </head>
 <body>
-  <div class="page no-right">
-    <aside class="cell left">
+  <div class="page no-right left-hidden rail-over">
+    <button type="button" class="rail-toggle rail-left" data-rail="left" aria-controls="side-rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell left" id="side-rail">
       <div class="pad">
         <div class="label">조직도 <span>organization</span></div>
         <div class="tree" id="tree"></div>

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .main { grid-template-columns: minmax(0, 1fr); }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .pick { display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
     .pick .person { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
@@ -19,14 +19,8 @@
   </style>
 </head>
 <body>
-  <div class="page no-right">
-    <aside class="cell left">
-      <div class="pad">
-        <div class="row between"><div class="label">작업 <span id="n-works">0건</span></div><button class="btn sm primary" id="new" data-need="MANAGER">＋ 새 작업</button></div>
-        <div class="chips" id="scope" data-single><span class="chip on" data-v="today">오늘</span><span class="chip" data-v="upcoming">진행 · 예정 전체</span></div>
-        <div id="list" style="display:grid; gap:8px"></div>
-      </div>
-    </aside>
+  <div class="page no-left rail-hidden rail-over">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
 
     <header class="cell head"></header>
 
@@ -49,8 +43,9 @@
           <button class="btn primary">저장</button>
         </div>
       </form></section>
+    </main>
 
-      <section class="cell"><div class="pad" id="assign-box">
+    <aside class="cell right" id="rail"><div class="pad" id="assign-box">
         <div class="label">작업자 배정 <span id="cnt">0명 배정</span></div>
         <div class="pick" id="assigned"></div>
         <div data-need="MANAGER" style="display:grid; gap:inherit">
@@ -62,8 +57,13 @@
         </div>
         <div class="hint" data-lacks="MANAGER">조회 전용 계정은 작업 등록 · 수정과 작업자 배정을 할 수 없습니다.</div>
         <a class="btn block" id="to-workers" href="work-workers.html">작업별 장비 · 작업자 목록에서 보기 →</a>
-      </div></section>
-    </main>
+      </div>
+      <div class="pad">
+        <div class="row between"><div class="label">작업 <span id="n-works">0건</span></div><button class="btn sm primary" id="new" data-need="MANAGER">＋ 새 작업</button></div>
+        <div class="chips" id="scope" data-single><span class="chip on" data-v="today">오늘</span><span class="chip" data-v="upcoming">진행 · 예정 전체</span></div>
+        <div id="list" style="display:grid; gap:8px"></div>
+      </div>
+    </aside>
   </div>
   <script src="api.js"></script>
   <script src="common.js"></script>

@@ -18,21 +18,8 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad">
-        <div class="label">장비 정보 <span id="e-reg"></span></div>
-        <div style="font-size:22px; font-weight:800" id="e-title">-</div>
-        <div id="e-info"></div>
-        <div class="label" style="margin-top:6px">오늘 점검</div>
-        <div id="e-check"></div>
-        <div class="row" data-need="MANAGER">
-          <button class="btn grow" id="edit">정보 수정</button>
-          <button class="btn" id="del" style="color:var(--red)">삭제</button>
-        </div>
-        <a class="btn block" href="equipment.html">← 장비 목록</a>
-      </div>
-    </aside>
+  <div class="page no-left rail-hidden rail-over">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
 
     <header class="cell head"></header>
 
@@ -65,13 +52,25 @@
       </div></section>
     </main>
 
-    <aside class="cell right">
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="label">관련 이벤트 <span>연결 카메라 · 투입 구역</span></div>
         <div id="events"></div>
         <div class="label" style="margin-top:6px">이번 주</div>
         <div id="week"></div>
         <a class="btn block" id="all-events" href="events.html">이벤트 목록에서 보기</a>
+      </div>
+      <div class="pad">
+        <div class="label">장비 정보 <span id="e-reg"></span></div>
+        <div style="font-size:22px; font-weight:800" id="e-title">-</div>
+        <div id="e-info"></div>
+        <div class="label" style="margin-top:6px">오늘 점검</div>
+        <div id="e-check"></div>
+        <div class="row" data-need="MANAGER">
+          <button class="btn grow" id="edit">정보 수정</button>
+          <button class="btn" id="del" style="color:var(--red)">삭제</button>
+        </div>
+        <a class="btn block" href="equipment.html">← 장비 목록</a>
       </div>
     </aside>
   </div>

@@ -20,7 +20,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page no-left rail-hidden rail-over">
     <header class="cell head"></header>
 
     <main class="main">
@@ -49,7 +49,8 @@
       <section class="cell" id="list"></section>
     </main>
 
-    <aside class="cell right">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="label">승인 전에 확인할 것</div>
         <div class="check info"><div><b>소속 확인</b><small>협력사 신청자는 해당 회사 담당자에게 확인</small></div><span class="status info">1</span></div>

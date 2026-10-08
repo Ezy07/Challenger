@@ -534,6 +534,35 @@ function wireCommon() {
   document.querySelectorAll(".pop").forEach((pop) => {
     pop.addEventListener("click", (e) => { if (e.target === pop || e.target.closest("[data-close]")) pop.hidden = true; });
   });
+  document.querySelectorAll("[data-rail]").forEach(wireSideRail);
+}
+
+// 좌우 패널 화살표. 기본은 접힘. 이 화면에서 한 번 열어 두면 그 상태를 기억한다
+function openSideRail(side) {
+  const btn = document.querySelector(`[data-rail="${side}"]`);
+  if (!btn) return;
+  const hiddenClass = side === "left" ? "left-hidden" : "rail-hidden";
+  if (btn.closest(".page").classList.contains(hiddenClass)) btn.click();
+}
+function wireSideRail(btn) {
+  const side = btn.dataset.rail;
+  const page = btn.closest(".page");
+  const hiddenClass = side === "left" ? "left-hidden" : "rail-hidden";
+  const key = `safety.rail.${currentFile()}.${side}`;
+  const openMark = "▷";
+  const shutMark = "◁";
+  const label = "오른쪽 패널";
+  function setHidden(hidden, remember) {
+    page.classList.toggle(hiddenClass, hidden);
+    btn.textContent = hidden ? shutMark : openMark;
+    btn.title = hidden ? `${label} 열기` : `${label} 닫기`;
+    btn.setAttribute("aria-expanded", hidden ? "false" : "true");
+    if (remember) { try { localStorage.setItem(key, hidden ? "1" : "0"); } catch (e) { /* 무시 */ } }
+  }
+  let hidden = true;
+  try { hidden = localStorage.getItem(key) !== "0"; } catch (e) { /* 저장을 못 읽으면 접어 둔다 */ }
+  setHidden(hidden, false);
+  btn.addEventListener("click", () => setHidden(!page.classList.contains(hiddenClass), true));
 }
 
 (function init() {

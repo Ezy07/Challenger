@@ -16,17 +16,8 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad" data-pick>
-        <div class="label">받는 사람 묶음</div>
-        <button class="tc-card active"><strong>전체 <span class="muted">7명</span></strong></button>
-        <button class="tc-card"><strong>관리자 <span class="muted">2명</span></strong><p>안전관리자 · 현장소장</p></button>
-        <button class="tc-card"><strong>안전관리자 <span class="muted">2명</span></strong><p>관제실 교대 근무</p></button>
-        <button class="tc-card"><strong>조회 전용 <span class="muted">3명</span></strong><p>양중 · 토공 · 타설</p></button>
-        <div class="hint">조회 전용은 <b>자기 구역</b>에서 생긴 알림만 받습니다.</div>
-      </div>
-    </aside>
+  <div class="page no-left rail-hidden rail-over">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
 
     <header class="cell head"></header>
 
@@ -58,7 +49,7 @@
       </section>
     </main>
 
-    <aside class="cell right">
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="label">테스트 발송</div>
         <label class="field" data-need="ADMIN">받는 사람<select class="input"><option>최동현 과장</option><option>박진우 차장</option><option>전체</option></select></label>
@@ -67,6 +58,14 @@
         <div class="label" style="margin-top:8px">조용한 시간</div>
         <div class="check"><div><b>야간 문자 끄기</b><small>22:00 ~ 06:00 · 높음은 예외</small></div><span class="switch on"></span></div>
         <div class="hint"><b>높음</b> 알림은 조용한 시간에도 꼭 보냅니다.</div>
+      </div>
+      <div class="pad" data-pick>
+        <div class="label">받는 사람 묶음</div>
+        <button class="tc-card active"><strong>전체 <span class="muted">7명</span></strong></button>
+        <button class="tc-card"><strong>관리자 <span class="muted">2명</span></strong><p>안전관리자 · 현장소장</p></button>
+        <button class="tc-card"><strong>안전관리자 <span class="muted">2명</span></strong><p>관제실 교대 근무</p></button>
+        <button class="tc-card"><strong>조회 전용 <span class="muted">3명</span></strong><p>양중 · 토공 · 타설</p></button>
+        <div class="hint">조회 전용은 <b>자기 구역</b>에서 생긴 알림만 받습니다.</div>
       </div>
     </aside>
   </div>

@@ -203,6 +203,65 @@ body.nav-open .drawer { transform: none; visibility: visible; box-shadow: 12px 0
 .page > .main { grid-area: main; }
 .page > .right { grid-area: right; }
 
+/* 좌우 패널은 접혀 있다가 본문 가장자리 화살표로 나온다 (2-1 · 2-2 · 2-3) */
+.page { position: relative; transition: grid-template-columns .25s ease; }
+.page.left-hidden:not(.no-left):not(.full) { grid-template-columns: 0px minmax(0, 1fr) 312px; }
+.page.rail-hidden:not(.no-left):not(.full) { grid-template-columns: 272px minmax(0, 1fr) 0px; }
+.page.left-hidden.rail-hidden:not(.no-left):not(.full) { grid-template-columns: 0px minmax(0, 1fr) 0px; }
+.page.no-left.rail-hidden { grid-template-columns: minmax(0, 1fr) 0px; }
+.page.rail-hidden > .right,
+.page.left-hidden > .left { min-width: 0; overflow: hidden; border-color: transparent; background: transparent; box-shadow: none; }
+.page.rail-hidden:not(.rail-over) > .right > .pad,
+.page.left-hidden:not(.rail-over) > .left > .pad { display: none; }
+/* 패널은 본문 위에 겹친다. 가운데 칸 너비는 그대로라 도면 · 표 · 영상이 줄며 잘리지 않는다 */
+.page.rail-over { --rail-w: min(312px, 36vw); --left-w: min(272px, 32vw); }
+.page.rail-over.no-left { grid-template-columns: minmax(0, 1fr) 0px; }
+.page.rail-over.no-right:not(.no-left):not(.full) { grid-template-columns: 0px minmax(0, 1fr); }
+.page.rail-over:not(.no-left):not(.no-right):not(.full) { grid-template-columns: 0px minmax(0, 1fr) 0px; }
+.page.rail-over > .left,
+.page.rail-over > .right {
+  position: absolute; z-index: 5; top: calc(72px + 10px); bottom: 0;
+  display: flex; flex-direction: column; transition: transform .25s ease;
+}
+.page.rail-over > .right { right: 12px; width: var(--rail-w); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35); }
+.page.rail-over > .left { left: 12px; width: var(--left-w); box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35); }
+.page.rail-over.rail-hidden > .right,
+.page.rail-over.left-hidden > .left {
+  border-color: var(--line); background: var(--panel); overflow: hidden; pointer-events: none;
+}
+.page.rail-over.rail-hidden > .right { transform: translateX(calc(100% + 20px)); }
+.page.rail-over.left-hidden > .left { transform: translateX(calc(-100% - 20px)); }
+.page.rail-over > .left > .pad,
+.page.rail-over > .right > .pad { display: flex; flex: 1; min-height: 0; overflow: auto; }
+.page.rail-over > .rail-right { right: 12px; }
+.page.rail-over:not(.rail-hidden) > .rail-right { right: calc(var(--rail-w) + 12px); }
+.page.rail-over > .rail-left { left: 12px; }
+.page.rail-over:not(.left-hidden) > .rail-left { left: calc(var(--left-w) + 12px); }
+/* 왼쪽만 있던 패널은 오른쪽으로 둔다. 둘 다 있던 화면은 오른쪽 패널 안에 아래쪽으로 붙인다 */
+.page.rail-over.no-right > .left {
+  left: auto; right: 12px; width: var(--rail-w); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+}
+.page.rail-over.no-right.left-hidden > .left { transform: translateX(calc(100% + 20px)); }
+.page.rail-over.no-right > .rail-left {
+  left: auto; right: 12px; border-right: 0; border-left: 1px solid rgba(255, 154, 31, 0.85); border-radius: 10px 0 0 10px;
+}
+.page.rail-over.no-right:not(.left-hidden) > .rail-left { left: auto; right: calc(var(--rail-w) + 12px); }
+.page.rail-over > .right > .pad + .pad { border-top: 1px solid var(--line); }
+.page > .rail-toggle {
+  position: absolute; z-index: 6; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 72px; padding: 0; background: rgba(18, 24, 32, 0.92); color: var(--orange);
+  border: 1px solid rgba(255, 154, 31, 0.85); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.35); transition: left .25s ease, right .25s ease;
+}
+.page > .rail-toggle:hover { color: var(--ink); background: #243044; }
+.page > .rail-toggle:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.page > .rail-right { right: calc(312px + 12px); border-right: 0; border-radius: 10px 0 0 10px; }
+.page.rail-hidden > .rail-right { right: 12px; }
+.page:not(.rail-hidden) > .rail-right { color: var(--muted); border-color: var(--line); }
+.page > .rail-left { left: calc(272px + 12px); border-left: 0; border-radius: 0 10px 10px 0; }
+.page.left-hidden > .rail-left { left: 12px; }
+.page:not(.left-hidden) > .rail-left { color: var(--muted); border-color: var(--line); }
+
 .main { min-height: 0; display: grid; gap: 10px; grid-auto-rows: minmax(0, auto); }
 .main.fill { grid-template-rows: minmax(0, 1fr); }
 /* 내용이 길어 본문 전체를 스크롤하는 화면: 카드가 줄어들어 잘리지 않게 한다 */
@@ -471,9 +530,21 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
   body.nav-open .gnb > .brand { display: flex; }
   .scrim { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(6, 8, 12, 0.6); opacity: 0; pointer-events: none; transition: opacity .24s; }
   body.nav-open .scrim { opacity: 1; pointer-events: auto; }
+  .page > .rail-toggle { display: none; }
+  .page.rail-over.no-right { grid-template-areas: "head" "main" "left"; }
+  .page.rail-hidden, .page.left-hidden, .page.left-hidden.rail-hidden, .page.no-left.rail-hidden,
+  .page.rail-over, .page.rail-over.no-left, .page.rail-over:not(.no-left),
+  .page.rail-over.no-right:not(.no-left):not(.full) { grid-template-columns: minmax(0, 1fr); }
+  .page.rail-over > .left, .page.rail-over > .right {
+    position: static; inset: auto; width: auto; transform: none; pointer-events: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  }
+  .page.rail-hidden > .right, .page.left-hidden > .left {
+    border-color: var(--line); background: var(--panel); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22); overflow: auto;
+  }
+  .page.rail-hidden > .right > .pad, .page.left-hidden > .left > .pad { display: flex; }
 }
 @media (prefers-reduced-motion: reduce) {
-  body, .drawer, .menu-btn span, .scrim { transition: none !important; }
+  body, .drawer, .menu-btn span, .scrim, .page, .page > .rail-toggle { transition: none !important; }
 }
 
 /* 입력 칸 두 개를 나란히 */

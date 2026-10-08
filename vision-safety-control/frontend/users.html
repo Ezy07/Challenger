@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page no-left rail-hidden rail-over">
     <header class="cell head"></header>
 
     <main class="main">
@@ -53,7 +53,8 @@
       </section>
     </main>
 
-    <aside class="cell right">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="label">역할별로 할 수 있는 일</div>
         <div class="check"><div><b>관리자</b><small>모든 화면 · 회원 · 카메라 · 알림 규칙 관리</small></div><span class="role">ADMIN</span></div>

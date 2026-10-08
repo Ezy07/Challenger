@@ -17,7 +17,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page no-left rail-hidden rail-over">
     <header class="cell head"></header>
 
     <main class="main">
@@ -44,7 +44,8 @@
       </section>
     </main>
 
-    <aside class="cell right">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="label">이 화면은</div>
         <div class="hint">위의 [작업구역]에서 구역 하나를 고르면 그 구역에서 진행 중이거나 예정된 <b>작업</b>을 보여 줍니다. 줄을 누르면 <b>작업별 장비 · 작업자 목록</b>으로 이동합니다.</div>

@@ -50,7 +50,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left">
+  <div class="page no-left rail-hidden rail-over">
     <header class="cell head"></header>
 
     <main class="main">
@@ -73,7 +73,8 @@
       </section>
     </main>
 
-    <aside class="cell right">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="row" style="flex-wrap:nowrap">
           <select class="input grow" id="z-pick" aria-label="구역 고르기"></select>
@@ -266,8 +267,8 @@
       return [r4(clamp((ev.clientX - r.left) / r.width)), r4(clamp((ev.clientY - r.top) / r.height))];
     }
 
-    $("tags").addEventListener("click", (e) => { const b = e.target.closest("[data-z]"); if (b && mode === "view") show(Number(b.dataset.z)); });
-    $("shapes").addEventListener("click", (e) => { const g = e.target.closest(".zone"); if (g && !draft) show(Number(g.dataset.z)); });
+    $("tags").addEventListener("click", (e) => { const b = e.target.closest("[data-z]"); if (b && mode === "view") { show(Number(b.dataset.z)); openSideRail("right"); } });
+    $("shapes").addEventListener("click", (e) => { const g = e.target.closest(".zone"); if (g && !draft) { show(Number(g.dataset.z)); openSideRail("right"); } });
     $("shapes").addEventListener("pointerdown", (e) => {
       if (!draft || e.button !== 0) return;
       const v = e.target.closest(".vtx"), m = e.target.closest(".mid");

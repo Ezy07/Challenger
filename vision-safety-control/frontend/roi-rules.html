@@ -21,18 +21,8 @@
   </style>
 </head>
 <body>
-  <div class="page">
-    <aside class="cell left">
-      <div class="pad" data-pick>
-        <div class="label">구역 <span>6개</span></div>
-        <button class="tc-card active"><div class="code">CAM_0002 · ROI</div><strong>102동 인양 하부</strong><p>규칙 2개 켜짐</p></button>
-        <button class="tc-card"><div class="code">CAM_0001 · ROI</div><strong>101동 갱폼 인양 하부</strong><p>규칙 1개 켜짐</p></button>
-        <button class="tc-card"><div class="code">CAM_0001 · 안전 통로</div><strong>101동 안전 통로</strong><p>규칙 1개 켜짐</p></button>
-        <button class="tc-card"><div class="code">CAM_0003 · 장비 작업반경</div><strong>EXC_01 작업반경</strong><p>규칙 1개 켜짐</p></button>
-        <button class="tc-card"><div class="code">CAM_0003 · 출입금지</div><strong>토공 지반침하 감시</strong><p>규칙 2개 켜짐</p></button>
-        <button class="tc-card"><div class="code">CAM_0004 · ROI</div><strong>야적장 적치 구역</strong><p>꺼짐</p></button>
-      </div>
-    </aside>
+  <div class="page no-left rail-hidden rail-over">
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
 
     <header class="cell head"></header>
 
@@ -72,7 +62,7 @@
       </div></section>
     </main>
 
-    <aside class="cell right">
+    <aside class="cell right" id="rail">
       <div class="pad">
         <div class="label">구역 미리보기</div>
         <div class="preview">
@@ -85,6 +75,15 @@
         <button class="btn primary block" data-need="MANAGER" data-toast="규칙을 저장했습니다. (예시)">규칙 저장</button>
         <a class="btn block" href="roi-draw.html" data-need="MANAGER">구역 모양 고치기</a>
         <a class="btn block" href="alert-severity.html">기본값 보기 (심각도 기준)</a>
+      </div>
+      <div class="pad" data-pick>
+        <div class="label">구역 <span>6개</span></div>
+        <button class="tc-card active"><div class="code">CAM_0002 · ROI</div><strong>102동 인양 하부</strong><p>규칙 2개 켜짐</p></button>
+        <button class="tc-card"><div class="code">CAM_0001 · ROI</div><strong>101동 갱폼 인양 하부</strong><p>규칙 1개 켜짐</p></button>
+        <button class="tc-card"><div class="code">CAM_0001 · 안전 통로</div><strong>101동 안전 통로</strong><p>규칙 1개 켜짐</p></button>
+        <button class="tc-card"><div class="code">CAM_0003 · 장비 작업반경</div><strong>EXC_01 작업반경</strong><p>규칙 1개 켜짐</p></button>
+        <button class="tc-card"><div class="code">CAM_0003 · 출입금지</div><strong>토공 지반침하 감시</strong><p>규칙 2개 켜짐</p></button>
+        <button class="tc-card"><div class="code">CAM_0004 · ROI</div><strong>야적장 적치 구역</strong><p>꺼짐</p></button>
       </div>
     </aside>
   </div>
