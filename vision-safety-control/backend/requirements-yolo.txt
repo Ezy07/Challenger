@@ -1,0 +1,5 @@
+# YOLO 탐지 영상 (관제화면 1-1 · 단일 카메라 확대 1-2). requirements.txt 다음에 설치합니다.
+# 설치하지 않아도 서버는 돌고, 관제화면은 원본 영상을 보여 줍니다.
+#   pip install -r requirements-yolo.txt
+# 그래픽카드(NVIDIA)로 돌리려면 https://pytorch.org 에서 CUDA 용 torch 를 먼저 설치하세요.
+ultralytics>=8.3      # YOLO (torch · opencv · numpy · pillow 를 함께 설치)

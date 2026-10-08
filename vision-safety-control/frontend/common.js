@@ -257,6 +257,27 @@ function authToken() {
 }
 const escHtml = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+// YOLO 탐지 영상: 서버가 탐지 박스 · ROI 를 그려 넣은 MJPEG. 관제화면(1-1) · 단일 카메라 확대(1-2)만 쓰고,
+// 나머지 화면은 원본 영상(/videos/...)을 튼다. 서버에 YOLO 가 없으면 enabled = false
+let detectStatusOnce = null;
+function detectStatus() {
+  return (detectStatusOnce ||= alertFetch("/api/stream/status").catch(() => ({ enabled: false, reason: "탐지 영상 상태를 확인하지 못했습니다." })));
+}
+// <img> 는 헤더를 못 붙여서 로그인 토큰을 주소에 붙인다
+const detectSrc = (cam, roi = true) => `/api/stream/${cam.id}.mjpg?roi=${roi ? 1 : 0}&token=${encodeURIComponent(authToken() || "")}`;
+// MJPEG 는 브라우저마다 load 이벤트가 달라서, 첫 장면이 들어왔는지 그림 크기로 확인한다
+function waitFirstFrame(img, ms = 20000) {
+  return new Promise((resolve, reject) => {
+    const until = Date.now() + ms;
+    img.addEventListener("error", () => reject(new Error("error")), { once: true });
+    (function check() {
+      if (img.naturalWidth) return resolve(img);
+      if (!img.getAttribute("src") || Date.now() > until) return reject(new Error("timeout"));
+      setTimeout(check, 200);
+    })();
+  });
+}
+
 async function alertFetch(path, options = {}) {
   const token = authToken();
   if (!token) throw new Error("login");

@@ -34,5 +34,15 @@ class Settings(BaseSettings):
     roi_zones_file: Path = ROOT_DIR / "storage" / "roi-zones.json"  # ROI 그리기 화면이 그린 구역 (AI 탐지 프로그램이 읽음)
     video_dir: Path = ROOT_DIR / "storage" / "videos"  # 시연 · 개발용 영상 (카메라 대신)  # event_snapshot.image_path 는 이 폴더 기준 "snapshots/..." 경로
 
+    # YOLO 탐지 영상 (관제화면 1-1 · 단일 카메라 확대 1-2). 패키지는 requirements-yolo.txt
+    yolo_enabled: bool = True
+    yolo_model: str = "yolo11n.pt"  # 이름만 쓰면 처음 실행할 때 내려받는다. 직접 학습한 모델은 파일 경로
+    yolo_conf: float = 0.35         # 이 confidence 미만인 탐지 박스는 그리지 않음
+    yolo_imgsz: int = 640
+    yolo_device: str = ""           # 비우면 자동 (그래픽카드가 있으면 cuda:0, 없으면 cpu)
+    stream_fps: int = 8             # 화면으로 보내는 초당 장수 (탐지는 CPU 가 되는 만큼만). 노트북 기준으로 낮춤
+    stream_max_width: int = 960     # 이보다 큰 영상은 줄여서 보냄 (탐지도 줄인 영상으로 함)
+    stream_jpeg_quality: int = 80
+
 
 settings = Settings()

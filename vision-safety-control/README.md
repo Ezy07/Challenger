@@ -65,6 +65,22 @@ uvicorn app.main:app --reload
 > MySQL 없이 빨리 보고 싶으면 `.env` 에 `DATABASE_URL=sqlite:///./dev.db` 를 넣고
 > `python -m app.seed --create-tables --admin-password "..." --demo` 로 시작할 수 있습니다.
 
+### YOLO 탐지 영상 (선택)
+
+관제화면(1-1)과 단일 카메라 확대(1-2)는 서버가 **YOLO 탐지 박스와 ROI 를 그려 넣은 영상**을 보여 줍니다. 나머지 화면(ROI 그리기 · 카메라 등록 등)은 원본 영상을 그대로 틉니다.
+
+```bash
+cd backend
+pip install -r requirements-yolo.txt   # ultralytics (torch · opencv 포함, 용량이 큼)
+```
+
+- 처음 관제화면을 열 때 `yolo11n.pt` 모델을 내려받습니다 (인터넷 필요, 약 5MB). 직접 학습한 모델은 `.env` 에 `YOLO_MODEL=모델파일.pt` 경로로 지정합니다.
+- 설치하지 않았거나 `.env` 에 `YOLO_ENABLED=false` 를 넣으면, 1-1 · 1-2 도 원본 영상을 보여 줍니다. 단일 카메라 확대의 카메라 정보 `화면` 줄에 그 이유가 나옵니다.
+- 그 밖의 설정: `YOLO_CONF`(이 confidence 미만 박스는 안 그림, 기본 0.35), `YOLO_DEVICE`(비우면 자동, `cpu` · `cuda:0`), `STREAM_FPS`(화면으로 보내는 초당 장수, 기본 8) · `STREAM_MAX_WIDTH`(보내는 영상 최대 가로 크기, 기본 960). 성능이 좋은 PC 는 12 · 1280 정도로 올려도 됩니다
+- 탐지는 지금 보고 있는 카메라만 합니다. 관제화면은 보이는 페이지(1페이지 현장 CAM / 2페이지 TC CAM)의 4대만 받습니다. CPU 에서는 카메라 4대가 탐지 한 번씩을 나눠 쓰므로 박스가 영상보다 조금 늦게 따라옵니다.
+- 발밑(박스 아래 가운데)이 ROI 안에 있으면 박스를 그 구역 색으로 그리고 `· 위험구역` 처럼 구역 이름을 붙입니다.
+- 영상 주소: `GET /api/stream/{카메라번호}.mjpg?token=로그인토큰&roi=1` (`roi=0` 이면 박스만). RTSP 카메라도 이 주소로 볼 수 있습니다.
+
 ### 3. 테스트
 
 코드가 제대로 동작하는지 자동으로 확인합니다. MySQL · `.env` 없이 임시 SQLite DB 로 돌아갑니다.
@@ -159,6 +175,7 @@ ALTER TABLE camera
 - [ ] 관제화면 패널(TC/작업구역 · 섹터 감지경보 · 특별관리근로자)을 실제 데이터로 (알림 팝업은 30초 조회로 연결됨)
 - [x] 이벤트 내보내기(CSV · 엑셀 · 스냅샷 묶음) · 스냅샷 조회 · 통계(요약 · 추이 · 리포트 PDF) 화면 연결
 - [ ] 카메라 배치도 · 단일 카메라 확대 화면 연결
-- [ ] YOLO 탐지 파이프라인 → `POST /api/events` 연동
+- [x] YOLO 탐지 영상 (관제화면 · 단일 카메라 확대에 탐지 박스 · ROI 표시)
+- [ ] YOLO 탐지 결과 → `POST /api/events` 연동 (ROI 침범 · 체류 판정 후 이벤트 만들기)
 - [ ] 스냅샷 이미지 업로드 · 저장 위치 정하기
 - [ ] DB 변경 이력 관리 (Alembic)
