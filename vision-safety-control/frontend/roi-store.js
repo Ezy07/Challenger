@@ -1,6 +1,6 @@
 /* ROI 그리기 · ROI 목록이 같이 쓰는 감지 구역 데이터 (api.js 다음에 넣는다)
    - 서버: /api/roi-zones (storage/roi-zones.json). 한 줄 = 카메라 · 구역 번호 · 그 모양이 시작되는 프레임
-   - 화면 안: 영상 파일별 구역 목록 books = { "파일.mp4": [{ uid, no, kind, enabled, schedule, keys: [{ frame, pts, time }] }] }
+   - 화면 안: 영상 파일별 구역 목록 books = { "파일.mp4": [{ uid, no, kind, enabled, schedule, dwell, targets, keys: [{ frame, pts, time }] }] }
    - 카메라는 DB(/api/cameras) 기준. 카메라의 stream_url 이 "videos/파일" 이면 그 파일 위에 그린다
    - 카메라 · 영상 파일을 못 찾은 줄도 지우지 않도록 "cam:카메라이름" 열쇠로 들고 있다가 그대로 다시 저장한다 */
 
@@ -11,6 +11,16 @@ const ROI_KINDS = {
   safe: { label: "안전구역", color: "#3ddc84" },
 };
 const ROI_ORPHAN = "cam:"; // 영상 파일이 없는 줄의 books 열쇠 앞머리
+const ROI_TARGETS = [
+  { id: "person", label: "사람" },
+  { id: "truck", label: "트럭" },
+];
+
+function roiTargets(list) {
+  if (!Array.isArray(list)) return null;
+  const allowed = ROI_TARGETS.map((item) => item.id);
+  return allowed.filter((id) => list.includes(id));
+}
 
 const roiFileOf = (cam) => (cam && cam.stream_url && cam.stream_url.startsWith("videos/") ? cam.stream_url.slice(7) : "");
 
@@ -43,10 +53,12 @@ async function loadRoiBooks(cams) {
       if (r.schedule) roi.schedule = r.schedule;
       if (Number.isInteger(r.dwell)) roi.dwell = r.dwell;
       if (typeof r.intrusion === "boolean") roi.intrusion = r.intrusion;
+      if (Array.isArray(r.targets)) roi.targets = roiTargets(r.targets);
       list.push(roi);
     }
     if (Number.isInteger(r.dwell)) roi.dwell = r.dwell;
     if (typeof r.intrusion === "boolean") roi.intrusion = r.intrusion;
+    if (Array.isArray(r.targets)) roi.targets = roiTargets(r.targets);
     roi.keys.push({ frame: r.frame - 1, pts: r.points, time: r.time });
   });
   Object.values(books).forEach((list) => list.forEach((roi) => roi.keys.sort((a, b) => a.frame - b.frame)));
@@ -76,6 +88,7 @@ function roiRows(books, cams) {
         };
         if (Number.isInteger(roi.dwell) && roi.dwell >= 0) row.dwell = roi.dwell;
         if (typeof roi.intrusion === "boolean") row.intrusion = roi.intrusion;
+        if (Array.isArray(roi.targets)) row.targets = roi.targets;
         if (roi.schedule) row.schedule = roi.schedule;
         rows.push(row);
       });

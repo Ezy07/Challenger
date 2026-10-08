@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from ..clock import now_kst
 from ..config import settings
@@ -20,6 +20,7 @@ from ..deps import CurrentUser, Manager
 router = APIRouter(prefix="/api/roi-zones", tags=["ROI 구역"])
 
 Day = Literal["월", "화", "수", "목", "금", "토", "일"]
+TargetClass = Literal["person", "truck"]  # 침입 탐지 대상. 목록이 늘면 여기도 함께 늘린다
 HHMM = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
@@ -42,7 +43,19 @@ class RoiZoneRow(BaseModel):
     enabled: bool = True
     dwell: int | None = Field(default=None, ge=0, le=24 * 60 * 60)  # 작업자가 이 초 이상 머무르면 경고. 저장 전이면 없음
     intrusion: bool | None = None  # false 면 침입 알림을 띄우지 않음 (체류 시간의 사용안함)
+    targets: list[TargetClass] | None = Field(default=None, max_length=8)  # 이 구역에서 침입으로 볼 대상. 여러 개 가능
     schedule: Schedule | None = None
+
+    @field_validator("targets")
+    @classmethod
+    def unique_targets(cls, value: list[TargetClass] | None) -> list[TargetClass] | None:
+        if value is None:
+            return None
+        seen: list[TargetClass] = []
+        for item in value:
+            if item not in seen:
+                seen.append(item)
+        return seen
 
 
 def check_points(rows: list[RoiZoneRow]) -> None:

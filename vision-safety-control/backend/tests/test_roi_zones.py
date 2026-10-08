@@ -66,6 +66,15 @@ def test_dwell_seconds_round_trip(client, manager):
     assert muted[0]["intrusion"] is False
 
 
+def test_targets_round_trip(client, manager):
+    saved = client.put("/api/roi-zones", json=[{**ROW, "targets": ["truck", "person", "person"]}], headers=manager).json()
+    assert saved[0]["targets"] == ["truck", "person"]
+    assert client.get("/api/roi-zones", headers=manager).json()[0]["targets"] == ["truck", "person"]
+    empty = client.put("/api/roi-zones", json=[{**ROW, "targets": []}], headers=manager).json()
+    assert empty[0]["targets"] == []
+    assert client.put("/api/roi-zones", json=[{**ROW, "targets": ["bus"]}], headers=manager).status_code == 422
+
+
 def test_schedule_toggles_enabled(client, manager, monkeypatch):
     def at(moment):
         monkeypatch.setattr("app.routers.roi_zones.now_kst", lambda: (moment, "local"))
