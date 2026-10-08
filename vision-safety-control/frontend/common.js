@@ -600,6 +600,8 @@ function wireSideRail(btn) {
     btn.title = hidden ? `${label} 열기` : `${label} 닫기`;
     btn.setAttribute("aria-expanded", hidden ? "false" : "true");
     if (remember) { try { localStorage.setItem(key, hidden ? "1" : "0"); } catch (e) { /* 무시 */ } }
+    requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+    setTimeout(() => window.dispatchEvent(new Event("resize")), 280);
   }
   let hidden = true;
   try { hidden = localStorage.getItem(key) !== "0"; } catch (e) { /* 저장을 못 읽으면 접어 둔다 */ }

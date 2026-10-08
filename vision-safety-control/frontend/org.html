@@ -25,19 +25,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-right left-hidden rail-over">
-    <button type="button" class="rail-toggle rail-left" data-rail="left" aria-controls="side-rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
-    <aside class="cell left" id="side-rail">
-      <div class="pad">
-        <div class="label">조직도 <span>organization</span></div>
-        <div class="tree" id="tree"></div>
-        <div class="row" data-need="ADMIN">
-          <button class="btn sm" id="add-dept">＋ 하위 부서</button>
-          <button class="btn sm" id="add-co">＋ 협력사</button>
-        </div>
-      </div>
-    </aside>
-
+  <div class="page no-left rail-hidden rail-over">
     <header class="cell head"></header>
 
     <main class="main">
@@ -67,6 +55,17 @@
       </form></section>
     </main>
 
+    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
+    <aside class="cell right" id="rail">
+      <div class="pad">
+        <div class="label">조직도 <span>organization</span></div>
+        <div class="tree" id="tree"></div>
+        <div class="row" data-need="ADMIN">
+          <button class="btn sm" id="add-dept">＋ 하위 부서</button>
+          <button class="btn sm" id="add-co">＋ 협력사</button>
+        </div>
+      </div>
+    </aside>
   </div>
 
   <div class="pop" id="rule-pop" hidden>
