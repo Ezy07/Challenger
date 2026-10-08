@@ -23,7 +23,10 @@
           <a class="btn" href="events.html">← 표로 보기</a>
         </div>
         <div class="search-panel" id="pick" hidden>
-          <div class="search-fields"><label class="field">날짜<input class="input" type="date" id="f-date" /></label></div>
+          <div class="search-fields">
+            <label class="field">시작일<input class="input" type="date" id="f-from" /></label>
+            <label class="field">끝일<input class="input" type="date" id="f-to" /></label>
+          </div>
           <div class="search-cards" id="list"></div>
         </div>
       </section>
@@ -65,14 +68,14 @@
     let events = [], current = null;
 
     async function load() {
-      const day = $("f-date").value;
-      const page = await api("/api/events", { query: { date_from: day, date_to: day, size: 100 } });
+      const from = $("f-from").value, to = $("f-to").value;
+      const page = await api("/api/events", { query: { date_from: from, date_to: to, size: 200 } }); // 최근 200건까지
       events = page.items.filter((e) => e.snapshot);
       $("n-list").textContent = `${events.length}건 · 눌러서 미리보기`;
       $("list").innerHTML = events.length ? events.map((e) => `
-        <button class="tc-card" data-id="${e.id}"><div class="code">EV-${e.id} · ${fmtTime(e.detected_at, { date: false })}</div>
+        <button class="tc-card" data-id="${e.id}"><div class="code">EV-${e.id} · ${fmtTime(e.detected_at).slice(5, 16)}</div>
           <strong>${esc(e.detection_label)} ${badge("severity", e.severity)}</strong><p>${esc(e.camera_name || "-")} · ${esc(e.work_zone_name || "-")}</p></button>`).join("")
-        : '<p class="muted">이 날짜에 스냅샷이 있는 이벤트가 없습니다</p>';
+        : '<p class="muted">이 기간에 스냅샷이 있는 이벤트가 없습니다</p>';
       const want = Number(new URLSearchParams(location.search).get("id"));
       show(events.find((e) => e.id === want) || events[0]);
     }
@@ -118,13 +121,15 @@
     $("save").addEventListener("click", (ev) => {
       if ($("save").classList.contains("disabled")) { ev.preventDefault(); toast("저장할 스냅샷 파일이 없습니다."); }
     });
-    $("f-date").addEventListener("change", () => load().catch((err) => toast(err.message)));
+    const syncRange = linkDateRange($("f-from"), $("f-to"));
+    ["f-from", "f-to"].forEach((id) => $(id).addEventListener("change", () => load().catch((err) => toast(err.message))));
 
     // ?id= 로 열면 그 이벤트가 난 날짜의 목록을 연다 (지난 날짜 이벤트도 보이게)
     async function start() {
       const want = Number(new URLSearchParams(location.search).get("id"));
       const ev = want ? await api("/api/events/" + want).catch(() => null) : null;
-      $("f-date").value = ev ? ev.detected_at.slice(0, 10) : todayStr();
+      $("f-from").value = $("f-to").value = ev ? ev.detected_at.slice(0, 10) : todayStr();
+      syncRange();
       await load();
     }
     start().catch((err) => toast(err.message));

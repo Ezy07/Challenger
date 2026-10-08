@@ -13,12 +13,22 @@ DB = Annotated[Session, Depends(get_db)]
 bearer = HTTPBearer(auto_error=False)
 
 
-def current_user(db: DB, cred: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> User:
-    user_id = decode_access_token(cred.credentials) if cred else None
+def user_from_token(db: Session, token: str | None) -> User:
+    user_id = decode_access_token(token) if token else None
     user = db.get(User, user_id) if user_id else None
     if not user or user.status != UserStatus.ACTIVE:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "로그인이 필요합니다.")
     return user
+
+
+def current_user(db: DB, cred: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]) -> User:
+    return user_from_token(db, cred.credentials if cred else None)
+
+
+def stream_user(db: DB, cred: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
+                token: str | None = None) -> User:
+    """<img> 로 여는 영상 주소는 헤더를 붙일 수 없어서 ?token= 으로 로그인 토큰을 받는다"""
+    return user_from_token(db, cred.credentials if cred else token)
 
 
 def require_roles(*roles: Role):
@@ -31,6 +41,7 @@ def require_roles(*roles: Role):
 
 
 CurrentUser = Annotated[User, Depends(current_user)]
+StreamUser = Annotated[User, Depends(stream_user)]
 Admin = Annotated[User, Depends(require_roles(Role.ADMIN))]
 Manager = Annotated[User, Depends(require_roles(Role.ADMIN, Role.MANAGER))]  # 이벤트 처리 · 작업자 관리
 

@@ -28,8 +28,8 @@
         </div>
         <div class="search-panel" id="range" hidden>
           <div class="search-fields">
-            <label class="field">시작 날짜<input class="input" type="date" id="f-from" /></label>
-            <label class="field">끝 날짜<input class="input" type="date" id="f-to" /></label>
+            <label class="field">시작일<input class="input" type="date" id="f-from" /></label>
+            <label class="field">끝일<input class="input" type="date" id="f-to" /></label>
             <label class="field">구역<select class="input" id="f-zone"><option value="">전체 구역</option></select></label>
             <div class="field">심각도
               <div class="chips" id="f-severity"><span class="chip on" data-v="HIGH">높음</span><span class="chip on" data-v="MEDIUM">중간</span><span class="chip on" data-v="LOW">낮음</span></div>
@@ -157,6 +157,7 @@
       const weekAgo = new Date(Date.now() - 6 * 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
       $("f-from").value = p.get("date_from") || weekAgo;
       $("f-to").value = p.get("date_to") || todayStr();
+      linkDateRange($("f-from"), $("f-to"));
       $("f-zone").value = p.get("work_zone_id") || "";
       [["severity", "f-severity"], ["status", "f-status"], ["detection_type", "f-type"]].forEach(([key, id]) => {
         const want = p.getAll(key);

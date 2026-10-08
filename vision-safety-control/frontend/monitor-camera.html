@@ -11,7 +11,7 @@
     .controls { padding: 12px 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow: hidden; }
     /* 영상 비율 그대로 칸 가운데에 (ROI 좌표가 ROI 그리기 화면과 같은 기준이 되게) */
     .stage { position: absolute; z-index: 1; }
-    .stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; background: #000; }
+    .stage video, .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; background: #000; }
     .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
     .no-video { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; text-align: center; padding: 20px; color: #c5d0dc; font-size: 14px; font-weight: 700; background: rgba(8, 12, 18, 0.55); }
     .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
@@ -44,6 +44,7 @@
         </div>
         <div class="stage" id="stage" hidden>
           <video id="video" muted loop playsinline autoplay></video>
+          <img id="live" alt="YOLO 탐지 영상" hidden />
           <svg id="rois" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-label="ROI 구역"></svg>
         </div>
         <div class="no-video" id="no-video" hidden></div>
@@ -84,6 +85,8 @@
     const $ = (id) => document.getElementById(id);
     const TONE = { NEW: "stop", ACK: "warn", DONE: "ok", FALSE: "" };
     let cams = [], books = {}, cam = null;
+    // live = 서버가 YOLO 탐지 박스 · ROI 를 그려 넣은 영상(MJPEG)을 보는 중. 못 쓰면 원본 영상 + 화면에서 ROI 를 그림
+    let yolo = { enabled: false }, live = false, livePaused = false;
 
     // ?camera=번호, ?cam=CAM_0001 (이름), 관제화면의 ?cam=1~4 (1페이지 칸) · ?cam=tc1~4 (2페이지 칸)
     function wanted() {
@@ -112,20 +115,21 @@
 
     // ---------------- 영상 + ROI
     function fitStage() {
-      const v = $("video"), box = $("cam-box").getBoundingClientRect();
-      if (!v.videoWidth || !box.width) return;
-      const s = Math.min(box.width / v.videoWidth, box.height / v.videoHeight), w = v.videoWidth * s, h = v.videoHeight * s;
+      const box = $("cam-box").getBoundingClientRect();
+      const [vw, vh] = live ? [$("live").naturalWidth, $("live").naturalHeight] : [$("video").videoWidth, $("video").videoHeight];
+      if (!vw || !box.width) return;
+      const s = Math.min(box.width / vw, box.height / vh), w = vw * s, h = vh * s;
       Object.assign($("stage").style, { width: w + "px", height: h + "px", left: (box.width - w) / 2 + "px", top: (box.height - h) / 2 + "px" });
     }
     new ResizeObserver(fitStage).observe($("cam-box"));
 
-    // 지금 영상 시각에 맞는 모양 (ROI 그리기에서 프레임마다 바꿔 둔 경우)
+    // 지금 영상 시각에 맞는 모양 (ROI 그리기에서 프레임마다 바꿔 둔 경우). 탐지 영상은 서버가 ROI 를 그려서 보낸다
     function drawRois() {
       const list = (cam && books[roiFileOf(cam)]) || [];
       const show = $("roi-toggle").classList.contains("on");
       const t = $("video").currentTime || 0;
       $("roi-sum").textContent = list.length ? `ROI ${list.length}개${list.some((r) => r.enabled === false) ? ` (꺼짐 ${list.filter((r) => r.enabled === false).length})` : ""}` : "그려진 ROI 없음";
-      $("rois").innerHTML = !show ? "" : list.filter((r) => r.enabled !== false).map((r) => {
+      $("rois").innerHTML = !show || live ? "" : list.filter((r) => r.enabled !== false).map((r) => {
         let key = r.keys[0];
         r.keys.forEach((k) => { if ((k.time ?? k.frame / 30) <= t) key = k; });
         if (!key || key.pts.length < 3) return "";
@@ -142,6 +146,7 @@
     $("video").addEventListener("error", () => noVideo("영상을 재생할 수 없습니다. 이 PC 의 브라우저가 못 여는 형식(H.265 등)일 수 있습니다."));
 
     function noVideo(text) {
+      stopLive();
       const v = $("video");
       v.pause();
       v.removeAttribute("src");
@@ -155,10 +160,69 @@
     }
 
     function play(c) {
+      stopLive();
+      if (yolo.enabled && c.stream_url) return playLive(c);
+      playFile(c);
+    }
+
+    // ---------------- YOLO 탐지 영상
+    function stopLive() {
+      live = livePaused = false;
+      $("live").removeAttribute("src"); // 주소를 빼면 서버와의 연결이 끊긴다
+      $("live").hidden = true;
+      $("video").hidden = false;
+    }
+
+    function playLive(c) {
+      const v = $("video");
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+      v.hidden = true;
+      $("live").hidden = false;
+      $("no-video").hidden = true;
+      $("stage").hidden = false;
+      $("pause").disabled = $("snap").disabled = false;
+      live = true;
+      connectLive();
+      drawRois();
+    }
+
+    // 새 <img> 로 바꿔 끼워 연결한다 (같은 <img> 는 이전 영상 크기가 남아 첫 장면을 알 수 없음)
+    function connectLive() {
+      const old = $("live"), img = old.cloneNode();
+      old.removeAttribute("src");
+      old.replaceWith(img);
+      livePaused = false;
+      $("pause").textContent = "⏸ 일시정지";
+      img.src = detectSrc(cam, $("roi-toggle").classList.contains("on"));
+      const forCam = cam;
+      waitFirstFrame(img).then(() => { fitStage(); $("scene").style.visibility = "hidden"; }).catch(() => {
+        if (cam !== forCam || $("live") !== img || !img.getAttribute("src")) return; // 그 사이 다른 카메라 · 다시 연결
+        stopLive();
+        drawRois();
+        playFile(cam, "탐지 영상을 받지 못해 원본 영상을 보여 줍니다.");
+      });
+    }
+
+    // 일시정지: 지금 장면을 그림으로 바꿔 두고 연결을 끊는다. 다시 재생하면 새로 연결
+    function pauseLive() {
+      const img = $("live");
+      if (!img.naturalWidth) return;
+      const canvas = Object.assign(document.createElement("canvas"), { width: img.naturalWidth, height: img.naturalHeight });
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      img.src = canvas.toDataURL("image/jpeg", 0.92);
+      livePaused = true;
+      $("pause").textContent = "▶ 다시 재생";
+    }
+
+    function playFile(c, why) {
       const src = videoSrc(c.stream_url);
       if (!src) {
-        return noVideo(c.stream_url ? "RTSP 카메라는 영상 서버를 붙인 뒤 여기서 볼 수 있습니다. 지금은 카메라 등록에서 '영상 파일'로 연결하면 재생됩니다." : "이 카메라에는 영상 소스가 없습니다. 카메라 등록에서 연결하세요.");
+        return noVideo(!c.stream_url ? "이 카메라에는 영상 소스가 없습니다. 카메라 등록에서 연결하세요."
+          : `RTSP 카메라는 YOLO 탐지 영상으로만 볼 수 있습니다. ${why || yolo.reason || ""}`);
       }
+      if (why) toast(why);
       $("no-video").hidden = true;
       $("stage").hidden = false;
       $("pause").disabled = $("snap").disabled = false;
@@ -174,6 +238,7 @@
         + row("종류", c.camera_type === "TC" ? "TC CAM (크레인 부착)" : "현장 CAM")
         + row("관제화면", c.view_slot ? `${c.view_page}페이지 ${c.view_slot}번 칸` : "표시 안 함")
         + row("영상", videoSrc(c.stream_url) ? "📁 " + esc(c.stream_url.slice(7)) : c.stream_url ? "RTSP" : "-")
+        + row("화면", yolo.enabled ? `YOLO 탐지 영상 (${esc(yolo.model)})` : `원본 영상 <small class="muted">${esc(yolo.reason || "")}</small>`)
         + row("사용", c.is_active ? '<span class="status ok">사용</span>' : '<span class="status mute">사용 안 함</span>');
       $("to-edit").href = "camera-edit.html?id=" + c.id;
       $("roi-edit").href = "roi-draw.html?camera=" + c.id;
@@ -204,13 +269,21 @@
       const b = e.target.closest("[data-id]");
       if (b) { show(cams.find((c) => c.id === Number(b.dataset.id))); closeSearch(); }
     });
-    $("roi-toggle").addEventListener("click", drawRois); // 칩 켜고 끄기는 common.js 가 한다
-    $("pause").addEventListener("click", () => { const v = $("video"); if (v.paused) v.play().catch(() => {}); else v.pause(); });
-    // 스냅샷: 지금 화면(영상 원래 크기)을 PNG 로 내려받기. ROI 를 켜 두었으면 함께 그린다
-    $("snap").addEventListener("click", async () => {
+    $("roi-toggle").addEventListener("click", () => { // 칩 켜고 끄기는 common.js 가 한다
+      drawRois();
+      if (live && !livePaused) connectLive(); // 탐지 영상은 ROI 를 넣고 빼서 다시 받는다
+    });
+    $("pause").addEventListener("click", () => {
+      if (live) return livePaused ? connectLive() : pauseLive();
       const v = $("video");
-      if (!v.videoWidth) return toast("영상이 아직 열리지 않았습니다.");
-      const canvas = Object.assign(document.createElement("canvas"), { width: v.videoWidth, height: v.videoHeight });
+      if (v.paused) v.play().catch(() => {}); else v.pause();
+    });
+    // 스냅샷: 지금 화면(영상 원래 크기)을 PNG 로 내려받기. ROI 를 켜 두었으면 함께 그린다 (탐지 영상은 이미 들어 있음)
+    $("snap").addEventListener("click", async () => {
+      const v = live ? $("live") : $("video");
+      const [vw, vh] = live ? [v.naturalWidth, v.naturalHeight] : [v.videoWidth, v.videoHeight];
+      if (!vw) return toast("영상이 아직 열리지 않았습니다.");
+      const canvas = Object.assign(document.createElement("canvas"), { width: vw, height: vh });
       const ctx = canvas.getContext("2d");
       ctx.drawImage(v, 0, 0);
       if ($("rois").innerHTML) {
@@ -233,7 +306,7 @@
     });
 
     (async () => {
-      cams = await api("/api/cameras");
+      [cams, yolo] = await Promise.all([api("/api/cameras"), detectStatus()]);
       books = await loadRoiBooks(cams).catch(() => ({})); // ROI 를 못 불러와도 영상은 본다
       if (!cams.length) {
         $("now").textContent = "등록된 카메라가 없습니다";

@@ -257,6 +257,27 @@ function authToken() {
 }
 const escHtml = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+// YOLO 탐지 영상: 서버가 탐지 박스 · ROI 를 그려 넣은 MJPEG. 관제화면(1-1) · 단일 카메라 확대(1-2)만 쓰고,
+// 나머지 화면은 원본 영상(/videos/...)을 튼다. 서버에 YOLO 가 없으면 enabled = false
+let detectStatusOnce = null;
+function detectStatus() {
+  return (detectStatusOnce ||= alertFetch("/api/stream/status").catch(() => ({ enabled: false, reason: "탐지 영상 상태를 확인하지 못했습니다." })));
+}
+// <img> 는 헤더를 못 붙여서 로그인 토큰을 주소에 붙인다
+const detectSrc = (cam, roi = true) => `/api/stream/${cam.id}.mjpg?roi=${roi ? 1 : 0}&token=${encodeURIComponent(authToken() || "")}`;
+// MJPEG 는 브라우저마다 load 이벤트가 달라서, 첫 장면이 들어왔는지 그림 크기로 확인한다
+function waitFirstFrame(img, ms = 20000) {
+  return new Promise((resolve, reject) => {
+    const until = Date.now() + ms;
+    img.addEventListener("error", () => reject(new Error("error")), { once: true });
+    (function check() {
+      if (img.naturalWidth) return resolve(img);
+      if (!img.getAttribute("src") || Date.now() > until) return reject(new Error("timeout"));
+      setTimeout(check, 200);
+    })();
+  });
+}
+
 async function alertFetch(path, options = {}) {
   const token = authToken();
   if (!token) throw new Error("login");
@@ -448,6 +469,27 @@ function searchSummary(text) {
     el.textContent = text || "";
     el.hidden = !text;
   });
+}
+
+/* 기간 고르기: 시작일 · 끝일 달력 두 칸을 묶는다. 끝일이 시작일보다 앞서지 않게 서로 min · max 를 맞추고,
+   한쪽을 반대쪽 너머로 옮기면 다른 쪽을 같은 날로 따라 옮긴다 */
+function linkDateRange(fromEl, toEl) {
+  const sync = () => {
+    toEl.min = fromEl.value || "";
+    fromEl.max = toEl.value || "";
+  };
+  fromEl.addEventListener("change", () => { if (fromEl.value && toEl.value && toEl.value < fromEl.value) toEl.value = fromEl.value; sync(); });
+  toEl.addEventListener("change", () => { if (fromEl.value && toEl.value && fromEl.value > toEl.value) fromEl.value = toEl.value; sync(); });
+  sync();
+  return sync; // 값을 코드로 바꾼 뒤 다시 맞출 때 부른다
+}
+
+// "2026.10.01 ~ 10.07" (같은 날이면 하루만)
+function rangeText(from, to) {
+  const d = (s) => s.replaceAll("-", ".");
+  if (!from && !to) return "";
+  if (!from || !to || from === to) return d(from || to);
+  return `${d(from)} ~ ${from.slice(0, 4) === to.slice(0, 4) ? d(to).slice(5) : d(to)}`;
 }
 
 function closeSearch() {

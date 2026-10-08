@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from .clock import now_kst
 from .config import DEV_JWT_SECRET, settings
 from .deps import CurrentUser
-from .routers import auth, cameras, equipment, events, meta, roi_zones, site_plan, stats, users, videos, workers, works, zones
+from . import vision
+from .routers import auth, cameras, equipment, events, meta, roi_zones, site_plan, stats, stream, users, videos, workers, works, zones
 from .routers.roi_zones import sync_stored_zones
 
 
@@ -27,6 +28,7 @@ async def _watch_roi_schedule():
 async def lifespan(_app):
     task = asyncio.create_task(_watch_roi_schedule())
     yield
+    vision.shutdown()
     task.cancel()
     try:
         await task
@@ -39,7 +41,7 @@ app = FastAPI(title="비전AI 안전관제 API", version="0.1.0", lifespan=lifes
 if settings.jwt_secret == DEV_JWT_SECRET:
     logging.getLogger("uvicorn.error").warning("JWT_SECRET 이 개발용 기본값입니다. 운영 전에 .env 에서 꼭 바꾸세요.")
 
-for r in (auth, users, meta, zones, site_plan, cameras, roi_zones, videos, workers, works, equipment, events, stats):
+for r in (auth, users, meta, zones, site_plan, cameras, roi_zones, videos, stream, workers, works, equipment, events, stats):
     app.include_router(r.router)
 
 

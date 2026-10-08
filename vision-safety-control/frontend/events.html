@@ -28,7 +28,8 @@
         </div>
         <form class="search-panel" id="filter" hidden>
           <div class="search-fields">
-            <label class="field">날짜<input class="input" type="date" id="f-date" /></label>
+            <label class="field">시작일<input class="input" type="date" id="f-from" /></label>
+            <label class="field">끝일<input class="input" type="date" id="f-to" /></label>
             <label class="field">구역
               <select class="input" id="f-zone"><option value="">전체 구역</option></select>
             </label>
@@ -85,7 +86,7 @@
     function summary() {
       const type = chipText("f-type"), sev = chipText("f-severity"), st = chipText("f-status");
       return [
-        ($("f-date").value || "전체 기간").replaceAll("-", "."),
+        rangeText($("f-from").value, $("f-to").value) || "전체 기간",
         $("f-zone").value && $("f-zone").selectedOptions[0].textContent,
         type && "종류 " + type,
         sev && "심각도 " + sev,
@@ -97,17 +98,18 @@
       searchSummary(summary());
       const types = picked("f-type"), sev = picked("f-severity"), st = picked("f-status");
       if (!types.length || !sev.length || !st.length) return render({ total: 0, items: [] });
-      const date = $("f-date").value;
+      const from = $("f-from").value, to = $("f-to").value;
       // 내보내기 화면으로 지금 조건을 넘긴다 (칩을 전부 고른 조건은 생략)
       const pass = new URLSearchParams();
-      if (date) { pass.append("date_from", date); pass.append("date_to", date); }
+      if (from) pass.append("date_from", from);
+      if (to) pass.append("date_to", to);
       if ($("f-zone").value) pass.append("work_zone_id", $("f-zone").value);
       [["detection_type", "f-type", types], ["severity", "f-severity", sev], ["status", "f-status", st]].forEach(([key, id, on]) => {
         if (on.length !== chips(id).length) on.forEach((v) => pass.append(key, v));
       });
       $("to-export").href = "event-export.html?" + pass;
       const data = await api("/api/events", { query: {
-        date_from: date, date_to: date, work_zone_id: $("f-zone").value,
+        date_from: from, date_to: to, work_zone_id: $("f-zone").value,
         detection_type: types, severity: sev, status: st,
         sort: $("sort").value, page, size: SIZE,
       } });
@@ -118,7 +120,7 @@
       $("count").textContent = `검색 결과 ${total}건`;
       $("rows").innerHTML = items.length ? items.map((e) => {
         const conf = e.confidence == null ? "-" : Math.round(e.confidence * 100) + "%";
-        return `<tr data-href="event-detail.html?id=${e.id}"><td class="num">EV-${e.id}</td><td class="num">${fmtTime(e.detected_at, { date: false })}</td>
+        return `<tr data-href="event-detail.html?id=${e.id}"><td class="num">EV-${e.id}</td><td class="num">${fmtTime(e.detected_at).slice(5)}</td>
           <td>${esc(e.camera_name || "-")}</td><td>${esc(e.work_zone_name || "-")}</td><td>${esc(e.detection_label)}</td>
           <td>${badge("severity", e.severity)}</td><td class="num">${conf}</td><td>${badge("eventStatus", e.status)}</td></tr>`;
       }).join("") : `<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">조건에 맞는 이벤트가 없습니다</td></tr>`;
@@ -139,12 +141,14 @@
       load().catch((err) => toast(err.message));
     });
     $("reset").addEventListener("click", () => {
-      $("f-date").value = today();
+      $("f-from").value = $("f-to").value = today();
+      syncRange();
       $("f-zone").value = "";
       document.querySelectorAll("#filter .chip").forEach((c) => c.classList.toggle("on", c.dataset.v !== "FALSE"));
     });
 
-    $("f-date").value = today();
+    $("f-from").value = $("f-to").value = today();
+    const syncRange = linkDateRange($("f-from"), $("f-to"));
     loadOptions().then(load).catch((err) => toast(err.message));
   </script>
 </body>

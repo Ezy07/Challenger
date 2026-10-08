@@ -7,18 +7,14 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; align-content: start; overflow: auto; }
-    .eq { display: grid; gap: 10px; padding: 14px; }
-    .eq:hover { border-color: rgba(255, 154, 31, 0.7); }
-    .eq-top { display: flex; align-items: center; gap: 10px; }
-    .eq-ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 22px; background: var(--panel-2); flex: none; }
-    .eq-top b { display: block; font-size: 15px; }
-    .eq-top small { color: var(--muted); font-size: 12px; }
-    .eq-top .status { margin-left: auto; }
-    .eq dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 12.5px; }
-    .eq dt { color: var(--muted); font-weight: 700; }
-    .eq dd { text-align: right; font-weight: 700; }
-    .sum-strip { grid-column: 1 / -1; }
+    .main { grid-template-rows: auto auto minmax(0, 1fr); }
+    .tbl-wrap { padding: 0 6px 6px; overflow: auto; }
+    .tbl td { vertical-align: middle; }
+    .tbl tbody tr { cursor: pointer; }
+    .eq-name { display: flex; align-items: center; gap: 10px; }
+    .eq-ico { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 20px; background: var(--panel-2); flex: none; }
+    .eq-name b { display: block; font-size: 13.5px; }
+    .eq-name small { display: block; color: var(--muted); font-size: 11.5px; }
   </style>
 </head>
 <body>
@@ -26,12 +22,14 @@
     <header class="cell head"></header>
 
     <main class="main scroll" id="main">
-      <section class="cell searchbar" style="grid-column: 1 / -1">
+      <section class="cell searchbar">
         <div class="searchbar-row">
           <input class="input" id="q" style="width:220px" placeholder="장비명 · 등록번호로 찾기" />
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <b id="n-shown"></b>
+          <span class="muted">줄을 누르면 장비 상세로 이동</span>
           <span class="grow"></span>
+          <select class="input" id="sort" style="width:150px" aria-label="정렬"><option value="status">상태 (고장 · 점검 먼저)</option><option value="name">이름순</option><option value="type">종류순</option><option value="zone">구역순</option></select>
           <a class="btn" href="equipment-assign.html" data-need="MANAGER">장비 등록 및 배정 →</a>
         </div>
         <div class="search-panel" id="filter" hidden>
@@ -50,6 +48,12 @@
         <div class="sum-list" id="alerts"></div>
         <div class="sum-acts"><a class="btn" href="monitor.html">실시간 화면에서 보기</a></div>
       </section>
+      <section class="cell tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>장비</th><th>종류</th><th>등록번호</th><th>위치</th><th>운전원 · 소속</th><th>운전 전 점검</th><th>구역 오늘 이벤트</th><th>상태</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </section>
     </main>
   </div>
   <script src="api.js"></script>
@@ -59,14 +63,18 @@
     const $ = (id) => document.getElementById(id);
     let items = [];
 
-    function card(e) {
-      const who = e.operator_name ? ["조종", e.operator_name] : ["소속", e.company || "-"];
+    const ORDER = { BROKEN: 0, MAINTENANCE: 1, IDLE: 2, RUNNING: 3 }; // 손볼 장비가 위로
+
+    function row(e) {
+      const who = e.operator_name ? `${e.operator_name}${e.operator_company ? ` (${e.operator_company})` : ""}` : e.company ? `소속 ${e.company}` : "-";
       const ev = e.zone_events_today;
-      return `<a class="cell eq" href="equipment-detail.html?id=${e.id}">
-        <div class="eq-top"><span class="eq-ico">${EQUIP_ICON[e.equip_type]}</span><div><b>${esc(e.name)}</b><small>${esc(labelOf("equipType", e.equip_type))}${e.spec ? " · " + esc(e.spec) : ""}</small></div>${badge("equipStatus", e.status)}</div>
-        <dl><dt>위치</dt><dd>${esc(e.work_zone_name || "미투입")}</dd><dt>${who[0]}</dt><dd>${esc(who[1])}</dd>
-          <dt>운전 전 점검</dt><dd>${e.today_log && e.today_log.inspected_at ? fmtTime(e.today_log.inspected_at, { date: false }).slice(0, 5) + " 완료" : '<span style="color:var(--amber)">기록 없음</span>'}</dd>
-          <dt>구역 오늘 이벤트</dt><dd${ev ? ' style="color:var(--red)"' : ""}>${e.work_zone_id ? ev + "건" : "-"}</dd></dl></a>`;
+      const check = e.today_log && e.today_log.inspected_at ? `${fmtTime(e.today_log.inspected_at, { date: false }).slice(0, 5)} 완료` : '<span style="color:var(--amber)">기록 없음</span>';
+      return `<tr data-href="equipment-detail.html?id=${e.id}">
+        <td><div class="eq-name"><span class="eq-ico">${EQUIP_ICON[e.equip_type]}</span><div><b>${esc(e.name)}</b><small>${esc(e.spec || "-")}</small></div></div></td>
+        <td>${esc(labelOf("equipType", e.equip_type))}</td><td class="num">${esc(e.reg_no || "-")}</td>
+        <td>${esc(e.work_zone_name || "미투입")}</td><td>${esc(who)}</td><td class="num">${check}</td>
+        <td class="num"${ev ? ' style="color:var(--red); font-weight:800"' : ""}>${e.work_zone_id ? ev + "건" : "-"}</td>
+        <td>${badge("equipStatus", e.status)}</td></tr>`;
     }
 
     function render() {
@@ -74,13 +82,22 @@
       const typeChip = document.querySelector("#f-type .chip.on"), type = typeChip ? typeChip.dataset.v : "";
       const stChip = document.querySelector("#f-status .chip.on"), st = stChip.dataset.v;
       searchSummary([type && labelOf("equipType", type), st && stChip.textContent].filter(Boolean).join(" · "));
+      const by = $("sort").value, ko = (a, b) => a.localeCompare(b, "ko");
+      const cmp = {
+        status: (a, b) => ORDER[a.status] - ORDER[b.status] || ko(a.name, b.name),
+        name: (a, b) => ko(a.name, b.name),
+        type: (a, b) => ko(labelOf("equipType", a.equip_type), labelOf("equipType", b.equip_type)) || ko(a.name, b.name),
+        zone: (a, b) => ko(a.work_zone_name || "힣", b.work_zone_name || "힣") || ko(a.name, b.name), // 미투입은 맨 뒤
+      }[by];
       const shown = items.filter((e) => (!type || e.equip_type === type) && (!st || e.status === st)
-        && (!q || (e.name + " " + (e.reg_no || "")).toLowerCase().includes(q)));
+        && (!q || (e.name + " " + (e.reg_no || "")).toLowerCase().includes(q))).sort(cmp);
       $("n-shown").textContent = shown.length + "대";
-      document.querySelectorAll("#main > .eq, #main > .empty-card").forEach((el) => el.remove());
-      $("main").insertAdjacentHTML("beforeend", shown.length ? shown.map(card).join("")
-        : '<div class="cell empty-card muted" style="grid-column:1/-1; padding:28px; text-align:center">조건에 맞는 장비가 없습니다</div>');
+      $("rows").innerHTML = shown.length ? shown.map(row).join("")
+        : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">조건에 맞는 장비가 없습니다</td></tr>';
     }
+
+    $("rows").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-href]"); if (tr) location.href = tr.dataset.href; });
+    $("sort").addEventListener("change", render);
 
     (async () => {
       items = await api("/api/equipment");

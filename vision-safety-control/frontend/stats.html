@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto auto minmax(0, 1fr); }
-    #periods { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: none; }
     .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
     .keys { display: grid; gap: 7px; font-size: 13px; font-weight: 700; }
     .keys div { display: flex; align-items: center; gap: 8px; }
@@ -31,17 +30,12 @@
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="period-panel">기간 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
         </div>
         <div class="search-panel" id="period-panel" hidden>
-        <div class="search-cards" id="periods">
-          <button class="tc-card active" data-p="today"><div class="code" id="d-today"></div><strong>오늘</strong><p>어제와 비교</p></button>
-          <button class="tc-card" data-p="week"><div class="code" id="d-week"></div><strong>최근 7일</strong><p>그 앞 7일과 비교</p></button>
-          <button class="tc-card" data-p="month"><div class="code" id="d-month"></div><strong>이번 달</strong><p>1일부터 오늘까지</p></button>
-          <button class="tc-card" data-p="custom"><div class="code">직접 고르기</div><strong>기간 선택</strong><p>시작 · 끝 날짜</p></button>
+        <div class="search-fields" style="align-items:flex-end">
+          <label class="field">시작일<input class="input" type="date" id="c-from" /></label>
+          <label class="field">끝일<input class="input" type="date" id="c-to" /></label>
+          <button class="btn primary" type="button" id="c-apply">보기</button>
         </div>
-        <div class="search-fields" id="custom" hidden style="align-items:flex-end">
-          <label class="field">시작 날짜<input class="input" type="date" id="c-from" /></label>
-          <label class="field">끝 날짜<input class="input" type="date" id="c-to" /></label>
-          <button class="btn primary" id="c-apply">보기</button>
-        </div>
+        <div class="hint">고른 기간과 바로 앞 같은 길이의 기간을 비교합니다. (예: 10.01 ~ 10.07 이면 09.24 ~ 09.30 과 비교)</div>
         </div>
       </section>
       <div class="kpis">
@@ -88,14 +82,6 @@
     const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const dot = (s) => s.slice(5).replace("-", ".");
     const today = new Date();
-    const RANGES = {
-      today: [iso(today), iso(today)],
-      week: [iso(new Date(Date.now() - 6 * 86400000)), iso(today)],
-      month: [iso(new Date(today.getFullYear(), today.getMonth(), 1)), iso(today)],
-    };
-    $("d-today").textContent = RANGES.today[0].replaceAll("-", ".");
-    $("d-week").textContent = `${dot(RANGES.week[0])} ~ ${dot(RANGES.week[1])}`;
-    $("d-month").textContent = `${today.getMonth() + 1}월`;
 
     // 앞 기간과 비교한 차이. 건수 · 시간은 줄어드는 게 좋은 방향 (▼ 초록)
     function delta(now, before, unit) {
@@ -132,7 +118,7 @@
       $("k-time").innerHTML = c.avg_handle_min == null ? "-" : `${Math.round(c.avg_handle_min)}<i>분</i>`;
       $("d-time").innerHTML = delta(c.avg_handle_min == null ? null : Math.round(c.avg_handle_min), p.avg_handle_min == null ? null : Math.round(p.avg_handle_min), "분");
       $("type-sub").textContent = `${single ? dot(from) : `${dot(from)} ~ ${dot(to)}`} · ${c.total}건`;
-      searchSummary(single ? dot(from) : `${dot(from)} ~ ${dot(to)}`);
+      searchSummary(rangeText(from, to));
       bars("by-type", s.by_type, c.total);
       bars("by-zone", s.by_zone, c.total);
       table("t-type", "종류", s.by_type, c.total);
@@ -151,21 +137,19 @@
         + (c.open ? '<a class="btn block" href="event-handle.html">처리 기록으로 →</a>' : "");
     }
 
-    $("periods").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-p]");
-      if (!b) return;
-      document.querySelectorAll("#periods .tc-card").forEach((x) => x.classList.toggle("active", x === b));
-      $("custom").hidden = b.dataset.p !== "custom";
-      if (b.dataset.p !== "custom") { closeSearch(); load(...RANGES[b.dataset.p]).catch((err) => toast(err.message)); }
-    });
     $("c-apply").addEventListener("click", () => {
-      if (!$("c-from").value || !$("c-to").value) return toast("시작 · 끝 날짜를 고르세요.");
+      if (!$("c-from").value || !$("c-to").value) return toast("시작일 · 끝일을 고르세요.");
       closeSearch();
       load($("c-from").value, $("c-to").value).catch((err) => toast(err.message));
     });
-    [$("c-from").value, $("c-to").value] = RANGES.week;
+    // 처음에는 오늘 하루 (어제와 비교). 다른 화면에서 ?date_from=&date_to= 로 오면 그 기간
+    const p = new URLSearchParams(location.search);
+    $("c-from").value = p.get("date_from") || iso(today);
+    $("c-to").value = p.get("date_to") || $("c-from").value;
+    $("c-to").max = $("c-from").max = iso(today);
+    linkDateRange($("c-from"), $("c-to"));
     attachTips($("stats-main"));
-    load(...RANGES.today).catch((err) => toast(err.message));
+    load($("c-from").value, $("c-to").value).catch((err) => toast(err.message));
   </script>
 </body>
 </html>

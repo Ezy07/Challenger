@@ -1,0 +1,21 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>ERD 요약</title><style>
+.blue{--bg:#eef1fb;--bd:#c9d2f0;--fg:#3d55b8}.green{--bg:#eaf5ee;--bd:#bfdcc9;--fg:#24804a}.red{--bg:#fbeee9;--bd:#efc6b8;--fg:#c2421b}.purple{--bg:#f3eef9;--bd:#d5c6ea;--fg:#7041a8}.teal{--bg:#e8f4f5;--bd:#b8dadd;--fg:#1d7680}.slate{--bg:#edf1f5;--bd:#c8d2dc;--fg:#3f5468}
+*{box-sizing:border-box;margin:0}
+body{width:1920px;height:1080px;position:relative;background:#f6f5f2;color:#1d232b;
+  font:15px/1.4 "Malgun Gothic","Noto Sans KR",sans-serif;overflow:hidden}
+h1{position:absolute;left:44px;top:40px;font-size:38px;letter-spacing:-1px}
+.sub{position:absolute;left:46px;top:96px;color:#5b6570;font-size:17px}
+.grp{position:absolute;background:var(--bg);border:2px solid var(--bd);border-radius:18px;z-index:2}
+.grp h2{color:var(--fg);font-size:27px;padding:20px 26px 0}
+.chip{position:absolute;width:220px;height:64px;display:flex;align-items:center;justify-content:center;
+  background:#fff;border:1.5px solid var(--bd);border-top:5px solid var(--fg);border-radius:10px;
+  font-size:19px;font-weight:600;text-align:center;line-height:1.2;padding:0 10px;box-shadow:0 1px 3px #0000000d}
+svg{position:absolute;left:0;top:0;z-index:1}
+svg line{stroke:#8a939c;stroke-width:4}
+svg circle{fill:#8a939c}
+</style></head><body>
+<h1>건설현장 안전관제 시스템 데이터베이스 구조</h1>
+<p class="sub">대분류 6개 · 테이블 20개</p>
+<svg width="1920" height="1080"><line x1="960.0" y1="520" x2="960.0" y2="620"/><circle cx="960.0" cy="520" r="6"/><circle cx="960.0" cy="620" r="6"/><line x1="690" y1="340.0" x2="580" y2="340.0"/><circle cx="690" cy="340.0" r="6"/><circle cx="580" cy="340.0" r="6"/><line x1="1190" y1="520" x2="1380" y2="620"/><circle cx="1190" cy="520" r="6"/><circle cx="1380" cy="620" r="6"/><line x1="1230" y1="340.0" x2="1340" y2="340.0"/><circle cx="1230" cy="340.0" r="6"/><circle cx="1340" cy="340.0" r="6"/><line x1="690" y1="810.0" x2="580" y2="810.0"/><circle cx="690" cy="810.0" r="6"/><circle cx="580" cy="810.0" r="6"/><line x1="730" y1="620" x2="540" y2="520"/><circle cx="730" cy="620" r="6"/><circle cx="540" cy="520" r="6"/><line x1="1230" y1="810.0" x2="1340" y2="810.0"/><circle cx="1230" cy="810.0" r="6"/><circle cx="1340" cy="810.0" r="6"/><line x1="310.0" y1="620" x2="310.0" y2="520"/><circle cx="310.0" cy="620" r="6"/><circle cx="310.0" cy="520" r="6"/><line x1="1610.0" y1="620" x2="1610.0" y2="520"/><circle cx="1610.0" cy="620" r="6"/><circle cx="1610.0" cy="520" r="6"/></svg>
+<div class="grp blue" style="left:690px;top:160px;width:540px;height:360px"><h2>회원 · 조직</h2><div class="chip" style="left:37.0px;top:173.0px">조직 · 부서</div><div class="chip" style="left:283.0px;top:173.0px">회원</div></div><div class="grp green" style="left:690px;top:620px;width:540px;height:380px"><h2>구역 · 카메라 · ROI</h2><div class="chip" style="left:37.0px;top:138.0px">작업구역</div><div class="chip" style="left:283.0px;top:138.0px">현장 도면</div><div class="chip" style="left:37.0px;top:228.0px">카메라</div><div class="chip" style="left:283.0px;top:228.0px">ROI 감지 영역</div></div><div class="grp red" style="left:40px;top:160px;width:540px;height:360px"><h2>이벤트</h2><div class="chip" style="left:37.0px;top:128.0px">감지 이벤트</div><div class="chip" style="left:283.0px;top:128.0px">처리 기록</div><div class="chip" style="left:160.0px;top:218.0px">스냅샷</div></div><div class="grp purple" style="left:40px;top:620px;width:540px;height:380px"><h2>감지 규칙</h2><div class="chip" style="left:37.0px;top:138.0px">감지 유형</div><div class="chip" style="left:283.0px;top:138.0px">유형별 기본값</div><div class="chip" style="left:37.0px;top:228.0px">경보 해제 항목</div><div class="chip" style="left:283.0px;top:228.0px">ROI별 덮어쓰기</div></div><div class="grp teal" style="left:1340px;top:160px;width:540px;height:360px"><h2>작업자 · 교육</h2><div class="chip" style="left:37.0px;top:128.0px">현장작업자</div><div class="chip" style="left:283.0px;top:128.0px">안전교육 목록</div><div class="chip" style="left:160.0px;top:218.0px">교육 이수 이력</div></div><div class="grp slate" style="left:1340px;top:620px;width:540px;height:380px"><h2>작업 · 장비</h2><div class="chip" style="left:37.0px;top:138.0px">작업</div><div class="chip" style="left:283.0px;top:138.0px">작업자 배정</div><div class="chip" style="left:37.0px;top:228.0px">중장비</div><div class="chip" style="left:283.0px;top:228.0px">일일 수동 기록</div></div>
+</body></html>

@@ -1414,6 +1414,7 @@
       document.getElementById("live-label").textContent = next === "2" ? "LIVE · TC CAM 4" : "LIVE · CCTV 4";
       document.getElementById("page-label").textContent = next === "2" ? "TC 관제" : "현장";
       document.getElementById("sector-sub").textContent = next === "2" ? "TC CAM · 최근 10분" : "현장 CAM · 최근 10분";
+      syncDetectStreams();
     }
     document.querySelectorAll(".pager").forEach((btn) => btn.addEventListener("click", () => showCamPage(btn.dataset.page)));
 
@@ -1571,35 +1572,69 @@
       });
     }
 
-    // 영상 파일이 연결된 카메라는 그 칸에서 영상을 반복 재생한다 (카메라 등록에서 영상 소스 = 영상 파일)
+    // 카메라 칸에는 서버가 YOLO 탐지 박스 · ROI 를 그려 넣은 영상(MJPEG)을 보여 준다.
+    // 서버에 YOLO 가 없거나 탐지 영상을 못 받으면, 영상 파일 카메라는 원본 영상을 반복 재생한다
     // 영상을 못 여는 경우(로그인 전, H.265 를 못 트는 PC 등)에는 예시 그림을 그대로 둔다
-    alertFetch("/api/cameras").then((cams) => {
-      cams.filter((c) => c.view_slot && c.is_active && c.stream_url && c.stream_url.startsWith("videos/")).forEach((c) => {
+    Promise.all([alertFetch("/api/cameras"), detectStatus()]).then(([cams, yolo]) => {
+      cams.filter((c) => c.view_slot && c.is_active && c.stream_url && (yolo.enabled || c.stream_url.startsWith("videos/"))).forEach((c) => {
         const cell = document.querySelector(`.cam.cam-${c.view_slot}[data-page="${c.view_page}"]`);
         if (!cell) return;
-        // 브라우저는 숨겨진 영상의 자동재생을 시작하지 않으므로, 영상은 처음부터 보이게 두고(첫 화면 전에는 투명)
-        // 재생이 시작되면 뒤의 예시 그림을 숨긴다
-        const video = document.createElement("video");
-        video.className = "cam-video";
-        video.muted = true;
-        video.loop = true;
-        video.playsInline = true;
-        ["muted", "loop", "playsinline", "autoplay"].forEach((a) => video.setAttribute(a, ""));
-        video.src = "/" + encodeURI(c.stream_url);
-        video.addEventListener("playing", () => { cell.querySelector(".scene").style.visibility = "hidden"; });
-        playWhenAllowed(video);
-        video.addEventListener("error", () => {
-          video.remove();
-          const zone = cell.querySelector(".cam-zone");
-          if (zone) zone.textContent += " · 영상을 재생할 수 없음 (형식 확인)";
-        });
-        cell.querySelector(".scene").after(video);
         const tag = cell.querySelector(".cam-tag");
         if (tag) tag.textContent = c.name;
         const zone = cell.querySelector(".cam-zone");
         if (zone && c.work_zone_name) zone.textContent = c.work_zone_name;
+        if (yolo.enabled) showDetectStream(cell, c);
+        else showOriginalVideo(cell, c);
       });
+      syncDetectStreams();
     }).catch(() => { /* 로그인 전이면 예시 화면 그대로 */ });
+
+    // 탐지 영상은 지금 보이는 페이지(1페이지 현장 CAM / 2페이지 TC CAM) 칸만 받는다 (서버 탐지 부담을 줄임)
+    function syncDetectStreams() {
+      document.querySelectorAll("img.cam-video[data-stream]").forEach((img) => {
+        const cell = img.closest(".cam");
+        if (!cell.hidden && !img.getAttribute("src")) connectDetect(img, cell);
+        if (cell.hidden && img.getAttribute("src")) img.removeAttribute("src"); // 주소를 빼면 연결이 끊긴다
+      });
+    }
+
+    function showDetectStream(cell, c) {
+      const img = document.createElement("img");
+      img.className = "cam-video";
+      img.alt = `${c.name} 탐지 영상`;
+      img.dataset.stream = detectSrc(c);
+      img.dataset.file = c.stream_url.startsWith("videos/") ? c.stream_url : "";
+      cell.querySelector(".scene").after(img);
+    }
+
+    function connectDetect(img, cell) {
+      img.src = img.dataset.stream;
+      waitFirstFrame(img).then(() => { cell.querySelector(".scene").style.visibility = "hidden"; }).catch(() => {
+        if (!img.getAttribute("src")) return; // 다른 페이지로 넘겨서 끊은 것
+        img.remove(); // 탐지 영상을 못 받으면 원본 영상으로
+        if (img.dataset.file) showOriginalVideo(cell, { stream_url: img.dataset.file });
+      });
+    }
+
+    function showOriginalVideo(cell, c) {
+      // 브라우저는 숨겨진 영상의 자동재생을 시작하지 않으므로, 영상은 처음부터 보이게 두고(첫 화면 전에는 투명)
+      // 재생이 시작되면 뒤의 예시 그림을 숨긴다
+      const video = document.createElement("video");
+      video.className = "cam-video";
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      ["muted", "loop", "playsinline", "autoplay"].forEach((a) => video.setAttribute(a, ""));
+      video.src = "/" + encodeURI(c.stream_url);
+      video.addEventListener("playing", () => { cell.querySelector(".scene").style.visibility = "hidden"; });
+      playWhenAllowed(video);
+      video.addEventListener("error", () => {
+        video.remove();
+        const zone = cell.querySelector(".cam-zone");
+        if (zone) zone.textContent += " · 영상을 재생할 수 없음 (형식 확인)";
+      });
+      cell.querySelector(".scene").after(video);
+    }
 
     // 오른쪽 패널 전체 숨기기 · 꺼내기 (상태는 이 브라우저에 기억)
     const RAIL_KEY = "safety.monitor-rail";
