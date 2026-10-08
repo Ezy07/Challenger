@@ -32,7 +32,6 @@ const MENU = [
   { icon: "⬠", name: "ROI", pages: [
     ["roi-draw.html", "ROI 그리기", "카메라 화면 위를 클릭해 감지 영역(ROI) 다각형 그리기", 0],
     ["roi-list.html", "ROI 목록", "만든 ROI 전체를 보고 켜고 끄기", 0],
-    ["roi-rules.html", "ROI별 규칙", "ROI마다 알림 규칙 기본값을 덮어쓰기 (침범 · 체류 · 대상 클래스)", 0],
   ] },
   { icon: "⚙", name: "장비 현황", pages: [
     ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
