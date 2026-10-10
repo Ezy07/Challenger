@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from .clock import now_kst
 from .config import DEV_JWT_SECRET, settings
 from .deps import CurrentUser
-from . import vision
+from . import vision, zone_events
 from .routers import auth, cameras, equipment, events, meta, roi_zones, site_plan, stats, stream, users, videos, workers, works, zones
 from .routers.roi_zones import sync_stored_zones
 
@@ -27,6 +27,7 @@ async def _watch_roi_schedule():
 @asynccontextmanager
 async def lifespan(_app):
     task = asyncio.create_task(_watch_roi_schedule())
+    zone_events.start()  # YOLO 탐지 → ROI 침범 · 체류 이벤트 (YOLO 를 못 쓰면 그냥 끝남)
     yield
     vision.shutdown()
     task.cancel()

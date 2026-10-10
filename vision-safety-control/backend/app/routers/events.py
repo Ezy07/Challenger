@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Annotated, Literal
@@ -48,10 +49,10 @@ SEVERITY_KO = {Severity.HIGH: "높음", Severity.MEDIUM: "중간", Severity.LOW:
 
 
 # ---------------------------------------------------------------- AI 탐지 → 이벤트 생성
-@router.post("", response_model=EventIngestOut, dependencies=[Depends(ingest_key)])
-def ingest(body: EventIn, db: DB):
-    """AI 탐지 결과를 받아 규칙(ROI별 덮어쓰기 → 기본값)을 적용하고, 통과하면 이벤트를 만든다.
-    사람이 아니라 탐지 프로그램이 부르므로 X-Ingest-Key 헤더로 인증한다."""
+def create_event(db: DB, body: EventIn, snapshot: Callable[[], str | None] | None = None) -> EventIngestOut:
+    """규칙(ROI별 덮어쓰기 → 판정 기준 화면의 기본값)을 적용하고, 통과하면 이벤트를 만든다.
+    외부 탐지 프로그램(POST /api/events)과 서버 안의 YOLO 판정(zone_events)이 같이 쓴다.
+    snapshot 은 규칙을 통과했을 때만 불러서 스냅샷 파일을 만들고 그 경로("snapshots/...")를 받는다."""
     dtype = db.scalar(select(DetectionType).where(DetectionType.code == body.detection_type))
     if not dtype:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"없는 감지 유형입니다: {body.detection_type}")
@@ -101,11 +102,19 @@ def ingest(body: EventIn, db: DB):
         bbox=body.bbox,
         detected_at=detected_at,
     )
-    if body.snapshot_path:
-        event.snapshots.append(EventSnapshot(image_path=body.snapshot_path))
+    image_path = body.snapshot_path or (snapshot() if snapshot else None)
+    if image_path:
+        event.snapshots.append(EventSnapshot(image_path=image_path))
     db.add(event)
     db.commit()
     return EventIngestOut(created=True, event_id=event.id)
+
+
+@router.post("", response_model=EventIngestOut, dependencies=[Depends(ingest_key)])
+def ingest(body: EventIn, db: DB):
+    """AI 탐지 결과를 받아 규칙을 적용하고, 통과하면 이벤트를 만든다.
+    사람이 아니라 탐지 프로그램이 부르므로 X-Ingest-Key 헤더로 인증한다."""
+    return create_event(db, body)
 
 
 # ---------------------------------------------------------------- 목록 · 내보내기

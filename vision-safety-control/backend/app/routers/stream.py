@@ -45,6 +45,16 @@ async def frames(feed: vision.Feed, camera_name: str, show_roi: bool):
         feed.leave()
 
 
+def source_of(url: str) -> tuple[str, bool] | None:
+    """카메라 stream_url → (OpenCV 가 열 주소, 영상 파일인지). 영상 폴더에 없는 파일이면 None"""
+    if url.startswith(URL_PREFIX):
+        path = video_path(url)
+        if not path or not path.is_file():
+            return None
+        return str(path), True
+    return url, False  # RTSP 등 실시간 주소
+
+
 @router.get("/{camera_id}.mjpg")
 async def stream(camera_id: int, db: DB, _: StreamUser, roi: bool = True):
     """카메라 영상에 YOLO 탐지 박스와 ROI(roi=false 면 박스만)를 그려 보낸다. 주소에 ?token=로그인토큰"""
@@ -53,17 +63,14 @@ async def stream(camera_id: int, db: DB, _: StreamUser, roi: bool = True):
     db.close()  # 영상은 오래 이어지므로 DB 연결을 먼저 돌려준다
     if not url:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "이 카메라에는 영상 소스가 없습니다.")
-    if url.startswith(URL_PREFIX):
-        path = video_path(url)
-        if not path or not path.is_file():
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "영상 폴더(storage/videos)에 없는 파일입니다.")
-        source, is_file = str(path), True
-    else:
-        source, is_file = url, False  # RTSP 등 실시간 주소
+    found = source_of(url)
+    if not found:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "영상 폴더(storage/videos)에 없는 파일입니다.")
+    source, is_file = found
 
     ok, reason = await asyncio.to_thread(vision.status)
     if not ok:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, reason)
-    feed = vision.open_feed(camera_id, source, is_file)
+    feed = vision.open_feed(camera_id, source, is_file, name)
     return StreamingResponse(frames(feed, name, roi), media_type="multipart/x-mixed-replace; boundary=frame",
                              headers={"Cache-Control": "no-store"})

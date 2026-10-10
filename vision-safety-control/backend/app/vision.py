@@ -55,9 +55,10 @@ def roi_rows() -> list:
         return _roi_cache["rows"]
 
 
-def rois_at(rows: list, camera_name: str, t: float) -> list[tuple[int, str, list]]:
-    """영상 t초에 보이는 그 카메라의 구역 [(번호, 종류, 점들)]. 단일 카메라 확대 화면(drawRois)과 같은 규칙:
-    켜진 구역만, 모양이 여러 개면 시작 시각이 t 이하인 것 중 마지막 (없으면 첫 모양)."""
+def zones_at(rows: list, camera_name: str, t: float) -> list[dict]:
+    """영상 t초에 보이는 그 카메라의 구역들. 단일 카메라 확대 화면(drawRois)과 같은 규칙:
+    켜진 구역만, 모양이 여러 개면 시작 시각이 t 이하인 것 중 마지막 (없으면 첫 모양).
+    한 구역 = {no, kind, points, dwell, intrusion, targets} (설정은 그 구역 첫 줄 기준)"""
     by_no: dict[int, list[dict]] = {}
     for r in rows:
         if not isinstance(r, dict) or r.get("kind") not in ROI_COLORS or not isinstance(r.get("no"), int):
@@ -67,17 +68,24 @@ def rois_at(rows: list, camera_name: str, t: float) -> list[tuple[int, str, list
     out = []
     for no in sorted(by_no):
         keys = sorted(by_no[no], key=lambda r: r.get("frame", 1))
-        if keys[0].get("enabled", True) is False:
+        first = keys[0]
+        if first.get("enabled", True) is False:
             continue
-        key = keys[0]
+        key = first
         for k in keys:
             start = k["time"] if isinstance(k.get("time"), (int, float)) else (k.get("frame", 1) - 1) / 30
             if start <= t:
                 key = k
         pts = key.get("points") or []
         if len(pts) >= 3:
-            out.append((no, key["kind"], pts))
+            out.append({"no": no, "kind": key["kind"], "points": pts, "dwell": first.get("dwell"),
+                        "intrusion": first.get("intrusion"), "targets": first.get("targets")})
     return out
+
+
+def rois_at(rows: list, camera_name: str, t: float) -> list[tuple[int, str, list]]:
+    """영상 t초에 보이는 그 카메라의 구역 [(번호, 종류, 점들)] (그리기용)"""
+    return [(z["no"], z["kind"], z["points"]) for z in zones_at(rows, camera_name, t)]
 
 
 # ---------------------------------------------------------------- YOLO
@@ -124,7 +132,9 @@ class Detector:
         return self._model is not None
 
     def detect(self, frame) -> list[Box]:
-        result = self._model.predict(frame, conf=settings.yolo_conf, imgsz=settings.yolo_imgsz,
+        # 판정 기준(8-8)을 화면용 기준보다 낮게 잡았으면 그만큼 낮은 박스도 받아야 이벤트 판정을 할 수 있다
+        conf = min(settings.yolo_conf, min_conf) if min_conf is not None else settings.yolo_conf
+        result = self._model.predict(frame, conf=conf, imgsz=settings.yolo_imgsz,
                                      device=settings.yolo_device or None, verbose=False)[0]
         names = result.names
         return [Box(int(x1), int(y1), int(x2), int(y2), str(names[int(c)]), float(p))
@@ -133,6 +143,7 @@ class Detector:
 
 
 detector = Detector()
+min_conf: float | None = None  # 이벤트 판정에 쓰는 가장 낮은 판정 기준 (zone_events 가 채움)
 
 
 def status() -> tuple[bool, str | None]:
@@ -154,13 +165,15 @@ _feeds_lock = threading.Lock()
 _feeds: dict[tuple, "Feed"] = {}
 _shutdown = threading.Event()
 _detect_thread: threading.Thread | None = None
+listeners: list = []  # 탐지가 끝날 때마다 fn(feed, snap) 을 부른다 (ROI 이벤트 판정 · zone_events)
 
 
 class Feed:
     """카메라 하나의 영상 읽기. 보는 사람이 없으면 IDLE_SECONDS 뒤 스스로 멈춘다."""
 
-    def __init__(self, key: tuple, source: str, is_file: bool):
+    def __init__(self, key: tuple, source: str, is_file: bool, camera_name: str):
         self.key, self.source, self.is_file = key, source, is_file
+        self.camera_id, self.camera_name = key[0], camera_name
         self._lock = threading.Lock()
         self.latest: Snapshot | None = None
         self.detected_seq = -1  # 탐지 스레드가 마지막으로 본 프레임
@@ -291,19 +304,25 @@ def _detect_loop() -> None:
                 failed = True
                 boxes = []
             feed.set_boxes(snap.seq, boxes)
+            done = Snapshot(snap.seq, snap.frame, snap.video_time, boxes)
+            for fn in listeners:
+                try:
+                    fn(feed, done)
+                except Exception:
+                    log.exception("탐지 결과를 처리하지 못했습니다")
             worked = True
         if not worked:
             time.sleep(0.01)
 
 
-def open_feed(camera_id: int, source: str, is_file: bool) -> Feed:
-    """그 카메라 영상을 보는 사람을 하나 늘린다 (다 보면 Feed.leave)."""
+def open_feed(camera_id: int, source: str, is_file: bool, camera_name: str) -> Feed:
+    """그 카메라 영상을 보는 사람을 하나 늘린다 (다 보면 Feed.leave). 이벤트 감시도 보는 사람 하나로 센다."""
     global _detect_thread
     key = (camera_id, source)
     with _feeds_lock:
         feed = _feeds.get(key)
         if feed is None:
-            feed = _feeds[key] = Feed(key, source, is_file)
+            feed = _feeds[key] = Feed(key, source, is_file, camera_name)
             feed.thread.start()
         feed.join()
         if _detect_thread is None or not _detect_thread.is_alive():
@@ -314,6 +333,10 @@ def open_feed(camera_id: int, source: str, is_file: bool) -> Feed:
 
 def shutdown() -> None:
     _shutdown.set()
+
+
+def stopping() -> bool:
+    return _shutdown.is_set()
 
 
 # ---------------------------------------------------------------- 그리기

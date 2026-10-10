@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from ..deps import DB, Admin, CurrentUser
 from ..models import AlertRule, DetectionType, Organization, OrgType, User, UserStatus
 from ..schemas import DetectionTypeOut, OrgIn, OrgOut, OrgUpdate, RuleUpdate
+from ..zone_events import LIVE_CODES
 
 router = APIRouter(prefix="/api", tags=["기준 정보"])
 
@@ -94,6 +95,7 @@ def type_out(t: DetectionType) -> DetectionTypeOut:
         default_severity=r.default_severity if r else None,
         cooldown_sec=r.cooldown_sec if r else None,
         is_active=r.is_active if r else None,
+        live=t.code in LIVE_CODES,
     )
 
 
