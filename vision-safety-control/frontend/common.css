@@ -397,6 +397,9 @@ a.item:hover { border-color: rgba(255, 154, 31, 0.7); }
 }
 textarea.input { resize: vertical; min-height: 90px; line-height: 1.5; }
 .input:focus { outline: none; border-color: rgba(255, 154, 31, 0.7); }
+/* 날짜 칸: 누르면 달력 (common.js). 어두운 화면에 맞춰 달력 아이콘 · 팝업도 어둡게 */
+input[type=date] { color-scheme: dark; accent-color: var(--orange); cursor: pointer; }
+input[type=date]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.8; }
 input[type=range] { accent-color: var(--orange); width: 100%; }
 input[type=checkbox], input[type=radio] { accent-color: var(--orange); }
 .opt { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -420,6 +423,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--orange); }
 .pagers { display: flex; justify-content: center; gap: 6px; padding: 12px 0 2px; }
 .pager { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: #121820; color: var(--muted); display: grid; place-items: center; font-size: 13px; font-weight: 700; cursor: pointer; }
 .pager.on { background: var(--orange); color: #1a1206; border-color: transparent; }
+.pager.off { opacity: 0.35; cursor: default; }
 
 /* ------------------------------------------------ 숫자 카드 · 막대 */
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }

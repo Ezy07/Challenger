@@ -836,6 +836,26 @@ function linkDateRange(fromEl, toEl) {
   return sync; // 값을 코드로 바꾼 뒤 다시 맞출 때 부른다
 }
 
+// 날짜 칸은 어디를 눌러도 달력이 뜬다 (숫자를 직접 고쳐 쓰는 것도 그대로 된다)
+document.addEventListener("click", (e) => {
+  const el = e.target.closest && e.target.closest('input[type="date"]');
+  if (!el || el.disabled || el.readOnly || !el.showPicker) return;
+  try { el.showPicker(); } catch { /* 이미 열려 있거나 브라우저가 막으면 그냥 둔다 */ }
+});
+
+// 목록 하단 페이지 번호. 5개씩 묶어 보여 주고, ◀ ▶ 로 앞뒤 묶음의 첫 페이지로 넘어간다
+// 버튼마다 data-p 에 페이지 번호가 붙는다 (눌리지 않는 화살표에는 없음)
+const PAGER_BLOCK = 5;
+function renderPagers(box, page, total, size) {
+  const pages = Math.max(1, Math.ceil(total / size));
+  const first = Math.floor((page - 1) / PAGER_BLOCK) * PAGER_BLOCK + 1, last = Math.min(first + PAGER_BLOCK - 1, pages);
+  const arrow = (label, p) => p ? `<span class="pager" data-p="${p}">${label}</span>` : `<span class="pager off">${label}</span>`;
+  box.innerHTML = (pages > PAGER_BLOCK ? arrow("◀", first > 1 && first - PAGER_BLOCK) : "")
+    + Array.from({ length: last - first + 1 }, (_, i) =>
+      `<span class="pager${first + i === page ? " on" : ""}" data-p="${first + i}">${first + i}</span>`).join("")
+    + (pages > PAGER_BLOCK ? arrow("▶", last < pages && last + 1) : "");
+}
+
 // "2026.10.01 ~ 10.07" (같은 날이면 하루만)
 function rangeText(from, to) {
   const d = (s) => s.replaceAll("-", ".");

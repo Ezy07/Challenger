@@ -126,9 +126,7 @@
       }).join("") : `<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">조건에 맞는 이벤트가 없습니다</td></tr>`;
       $("rows").querySelectorAll("[data-href]").forEach((tr) => tr.addEventListener("click", () => { location.href = tr.dataset.href; }));
 
-      const pages = Math.max(1, Math.ceil(total / SIZE));
-      $("pagers").innerHTML = Array.from({ length: pages }, (_, i) =>
-        `<span class="pager${i + 1 === page ? " on" : ""}" data-p="${i + 1}">${i + 1}</span>`).join("");
+      renderPagers($("pagers"), page, total, SIZE);
     }
 
     const search = () => { page = 1; load().catch((err) => toast(err.message)); };
