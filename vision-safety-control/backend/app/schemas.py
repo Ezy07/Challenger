@@ -213,6 +213,7 @@ class DetectionTypeOut(Out):
     default_severity: Severity | None = None
     cooldown_sec: int | None = None
     is_active: bool | None = None
+    live: bool = False  # 서버의 YOLO 판정이 실제로 만드는 유형인지 (아니면 외부 탐지 프로그램이 올릴 때만 씀)
 
 
 class RuleUpdate(BaseModel):

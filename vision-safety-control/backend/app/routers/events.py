@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Annotated, Literal
@@ -48,8 +49,11 @@ SEVERITY_KO = {Severity.HIGH: "높음", Severity.MEDIUM: "중간", Severity.LOW:
 
 
 # ---------------------------------------------------------------- AI 탐지 → 이벤트 생성
-def _create_event(body: EventIn, db: DB, cooldown_sec: int | None = None) -> EventIngestOut:
-    """규칙을 적용해 이벤트를 만든다. cooldown_sec 를 주면 그 초만 같은 경보를 건너뛴다."""
+def create_event(db: DB, body: EventIn, snapshot: Callable[[], str | None] | None = None, *, cooldown_sec: int | None = None) -> EventIngestOut:
+    """규칙(ROI별 덮어쓰기 → 판정 기준 화면의 기본값)을 적용하고, 통과하면 이벤트를 만든다.
+    외부 탐지 프로그램(POST /api/events)과 서버 안의 YOLO 판정(zone_events)이 같이 쓴다.
+    snapshot 은 규칙을 통과했을 때만 불러서 스냅샷 파일을 만들고 그 경로("snapshots/...")를 받는다.
+    cooldown_sec 를 주면 판정 기준의 쿨다운 대신 그 초만 같은 경보를 건너뛴다."""
     dtype = db.scalar(select(DetectionType).where(DetectionType.code == body.detection_type))
     if not dtype:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"없는 감지 유형입니다: {body.detection_type}")
@@ -102,8 +106,9 @@ def _create_event(body: EventIn, db: DB, cooldown_sec: int | None = None) -> Eve
         bbox=body.bbox,
         detected_at=detected_at,
     )
-    if body.snapshot_path:
-        event.snapshots.append(EventSnapshot(image_path=body.snapshot_path))
+    image_path = body.snapshot_path or (snapshot() if snapshot else None)
+    if image_path:
+        event.snapshots.append(EventSnapshot(image_path=image_path))
     db.add(event)
     db.commit()
     return EventIngestOut(created=True, event_id=event.id)
@@ -111,22 +116,22 @@ def _create_event(body: EventIn, db: DB, cooldown_sec: int | None = None) -> Eve
 
 @router.post("", response_model=EventIngestOut, dependencies=[Depends(ingest_key)])
 def ingest(body: EventIn, db: DB):
-    """AI 탐지 결과를 받아 규칙(ROI별 덮어쓰기 → 기본값)을 적용하고, 통과하면 이벤트를 만든다.
+    """AI 탐지 결과를 받아 규칙을 적용하고, 통과하면 이벤트를 만든다.
     사람이 아니라 탐지 프로그램이 부르므로 X-Ingest-Key 헤더로 인증한다."""
-    return _create_event(body, db)
+    return create_event(db, body)
 
 
 @router.post("/tc-hook", response_model=EventIngestOut)
 def tc_hook_overlap(db: DB, _: CurrentUser):
     """관제 화면 TC 패널을 연 뒤 1~4호기 후크가 약 5초 뒤 겹칠 때. 어느 화면에서든 로그인한 브라우저가 만든다."""
-    return _create_event(EventIn(detection_type="TC_HOOK_PROXIMITY", confidence=0.95), db)
+    return create_event(db, EventIn(detection_type="TC_HOOK_PROXIMITY", confidence=0.95))
 
 
 @router.post("/wind-gust", response_model=EventIngestOut)
 def wind_gust(db: DB, _: CurrentUser):
     """순간풍속 10m/s 경고가 뜰 때마다 이벤트 로그에 남긴다.
     창이 여러 개여도 같은 강풍은 한 줄이고, 다음 강풍은 다시 남긴다. 기상 경보 기본 쿨다운(30분)은 쓰지 않는다."""
-    return _create_event(EventIn(detection_type="WEATHER", confidence=1), db, cooldown_sec=10)
+    return create_event(db, EventIn(detection_type="WEATHER", confidence=1), cooldown_sec=10)
 
 
 # ---------------------------------------------------------------- 목록 · 내보내기

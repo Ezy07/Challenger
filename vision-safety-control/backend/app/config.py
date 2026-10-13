@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     stream_fps: int = 8             # 화면으로 보내는 초당 장수 (탐지는 CPU 가 되는 만큼만). 노트북 기준으로 낮춤
     stream_max_width: int = 960     # 이보다 큰 영상은 줄여서 보냄 (탐지도 줄인 영상으로 함)
     stream_jpeg_quality: int = 80
+    event_watch: bool = True        # 보는 사람이 없어도 ROI 를 판정할 카메라는 계속 탐지해 이벤트를 남김 (false 면 화면을 볼 때만)
 
 
 settings = Settings()

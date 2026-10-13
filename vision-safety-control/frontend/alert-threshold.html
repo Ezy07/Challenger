@@ -16,6 +16,7 @@
     .scale-demo div { display: grid; grid-template-columns: 54px 1fr; gap: 8px; align-items: center; }
     .tbl tr.changed td { background: rgba(255, 154, 31, 0.07); }
     .switch:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+    .live-tag { margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 750; color: var(--green); border: 1px solid currentColor; }
   </style>
 </head>
 <body>
@@ -52,7 +53,7 @@
       </div>
       <div class="pop-body">
         <div class="check info"><div><b>판정 기준 (confidence)</b><small>모델이 "이건 OO이다"라고 얼마나 확신해야 경보로 볼지. 높이면 경보가 줄고, 낮추면 놓치는 게 줄어요.</small></div></div>
-        <div class="check info"><div><b>쿨다운</b><small>같은 카메라 · 같은 ROI 에서 같은 경보를 다시 울리기까지 기다리는 시간. 짧으면 알림이 너무 자주 와요.</small></div></div>
+        <div class="check info"><div><b>쿨다운</b><small>같은 카메라 · 같은 ROI 에서 같은 경보를 다시 울리기까지 기다리는 시간. 짧으면 알림이 너무 자주 와요. (YOLO 판정은 한 번 머무는 동안 한 번만 울리고, 나갔다 다시 들어와도 쿨다운 동안은 다시 울리지 않아요)</small></div></div>
         <div class="check info"><div><b>사용</b><small>끄면 이 유형은 탐지돼도 이벤트를 만들지 않아요.</small></div></div>
         <div class="label" style="margin-top:6px">기준값에 따라 (예: 안전모)</div>
         <div class="scale-demo">
@@ -60,7 +61,7 @@
           <div><span class="status warn">60%</span><span class="muted">보통 (추천)</span></div>
           <div><span class="status stop">90%</span><span class="muted">확실할 때만, 놓칠 수 있음</span></div>
         </div>
-        <div class="hint">YOLO 모델의 클래스 이름(person, helmet …)과 감지 유형을 잇는 표는 탐지 프로그램 작업 때 정합니다.</div>
+        <div class="hint"><b>YOLO 판정</b> 표시가 붙은 유형(ROI 침범 · ROI 체류 초과)은 서버의 YOLO 탐지가 ROI 목록의 탐지 대상 · 체류 시간과 이 기준으로 바로 판정해 이벤트와 스냅샷을 남깁니다. 저장하면 5초 안에 반영됩니다.<br>나머지 유형은 외부 탐지 프로그램이 <code>POST /api/events</code> 로 올릴 때 이 기준을 적용합니다.</div>
       </div>
     </div>
   </div>
@@ -82,7 +83,7 @@
         const pct = Math.round((v.min_confidence ?? 0.5) * 100);
         const cds = COOLDOWNS.some(([s]) => s === v.cooldown_sec) ? COOLDOWNS : [...COOLDOWNS, [v.cooldown_sec, secText(v.cooldown_sec)]].sort((a, b) => a[0] - b[0]);
         return `<tr data-id="${t.id}"${draft.has(t.id) ? ' class="changed"' : ""}>
-          <td><span class="dotc" style="background:${DOT[v.default_severity] || "#8e9aab"}"></span><b>${esc(t.label)}</b> <span class="muted">${esc(t.code)}</span></td>
+          <td><span class="dotc" style="background:${DOT[v.default_severity] || "#8e9aab"}"></span><b>${esc(t.label)}</b> <span class="muted">${esc(t.code)}</span>${t.live ? ' <span class="live-tag" title="서버의 YOLO 탐지가 ROI 설정과 이 기준으로 바로 판정합니다">YOLO 판정</span>' : ""}</td>
           <td><div class="rng"><input type="range" min="0" max="100" step="1" value="${pct}" data-f="min_confidence" /><b>${pct}%</b></div></td>
           <td><select class="input" style="width:110px" data-f="cooldown_sec">${cds.map(([s, txt]) => `<option value="${s}"${s === v.cooldown_sec ? " selected" : ""}>${txt}</option>`).join("")}</select></td>
           <td><span class="switch${v.is_active ? " on" : ""}" data-f="is_active" role="switch" aria-checked="${v.is_active}" tabindex="0"></span></td></tr>`;
