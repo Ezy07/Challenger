@@ -16,6 +16,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
+from pathlib import Path
 
 from .config import settings
 
@@ -121,8 +122,14 @@ class Detector:
                 self.error = "YOLO 패키지가 설치되지 않았습니다 (backend 에서 pip install -r requirements-yolo.txt)."
                 return
             try:
-                self._model = YOLO(settings.yolo_model)
-                log.info("YOLO 모델을 열었습니다: %s", settings.yolo_model)
+                path = settings.yolo_model.rstrip("/\\")
+                if path.endswith("_openvino_model") and not Path(path).exists():
+                    # OpenVINO 모델 폴더가 없으면 같은 이름의 .pt 를 (없으면 내려받아) 한 번 변환해 둔다
+                    pt = path[: -len("_openvino_model")] + ".pt"
+                    log.info("OpenVINO 모델이 없어 %s 를 변환합니다 (처음 한 번, 1분쯤)", pt)
+                    path = YOLO(pt).export(format="openvino", imgsz=settings.yolo_imgsz)
+                self._model = YOLO(path, task="detect")
+                log.info("YOLO 모델을 열었습니다: %s", path)
             except Exception as exc:  # 모델 파일이 없거나 내려받지 못함
                 log.exception("YOLO 모델을 열지 못했습니다")
                 self.error = f"YOLO 모델({settings.yolo_model})을 열지 못했습니다: {exc}"
@@ -134,8 +141,10 @@ class Detector:
     def detect(self, frame) -> list[Box]:
         # 판정 기준(8-8)을 화면용 기준보다 낮게 잡았으면 그만큼 낮은 박스도 받아야 이벤트 판정을 할 수 있다
         conf = min(settings.yolo_conf, min_conf) if min_conf is not None else settings.yolo_conf
-        result = self._model.predict(frame, conf=conf, imgsz=settings.yolo_imgsz,
-                                     device=settings.yolo_device or None, verbose=False)[0]
+        device = settings.yolo_device or None
+        if device and device.startswith("intel") and "openvino" not in str(self._model.model_name):
+            device = None  # intel:gpu 는 OpenVINO 모델에서만 (.pt 로 바꿨으면 자동)
+        result = self._model.predict(frame, conf=conf, imgsz=settings.yolo_imgsz, device=device, verbose=False)[0]
         names = result.names
         return [Box(int(x1), int(y1), int(x2), int(y2), str(names[int(c)]), float(p))
                 for (x1, y1, x2, y2), p, c in zip(result.boxes.xyxy.tolist(), result.boxes.conf.tolist(),

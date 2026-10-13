@@ -71,12 +71,17 @@ uvicorn app.main:app --reload
 
 ```bash
 cd backend
-pip install -r requirements-yolo.txt   # ultralytics (torch · opencv 포함, 용량이 큼)
+pip install -r requirements-yolo.txt   # ultralytics (torch · opencv 포함, 용량이 큼) · openvino
 ```
 
-- 처음 관제화면을 열 때 `yolo11n.pt` 모델을 내려받습니다 (인터넷 필요, 약 5MB). 직접 학습한 모델은 `.env` 에 `YOLO_MODEL=모델파일.pt` 경로로 지정합니다.
+- 기본 모델은 **OpenVINO 로 변환한 `yolov8n`** 입니다 (Intel 내장 그래픽에서 PyTorch CPU 보다 2~3배 빠름. i3-1315U 기준 17ms vs 42ms). 처음 관제화면을 열 때 `yolov8n.pt` 를 내려받아 `backend/yolov8n_openvino_model/` 로 한 번 변환합니다 (인터넷 필요, 1분쯤). 이 폴더는 git 에 올리지 않습니다.
+  - 직접 변환하려면: `yolo export model=yolov8n.pt format=openvino imgsz=640`
+  - `YOLO_IMGSZ` 를 바꾸면 변환할 때 크기가 고정되므로 `yolov8n_openvino_model/` 폴더를 지우고 다시 변환되게 합니다.
+  - `YOLO_DEVICE` 기본값 `intel:gpu` 는 Intel 내장 그래픽을 씁니다. 없는 PC(AMD 등)는 경고 한 줄 뒤 알아서 CPU 로 돕니다. 다만 CPU 만 쓸 때는 OpenVINO 가 PyTorch 보다 빠르지 않을 수 있으니, 그런 PC 는 `.env` 에 `YOLO_MODEL=yolov8n.pt` 를 넣어 비교해 보세요.
+  - NVIDIA 그래픽카드가 있으면 PyTorch 가 더 빠릅니다: `.env` 에 `YOLO_MODEL=yolov8n.pt`, `YOLO_DEVICE=cuda:0`.
+- 직접 학습한 모델은 `.env` 에 `YOLO_MODEL=모델파일.pt` (또는 변환한 `..._openvino_model` 폴더) 경로로 지정합니다.
 - 설치하지 않았거나 `.env` 에 `YOLO_ENABLED=false` 를 넣으면, 1-1 · 1-2 도 원본 영상을 보여 줍니다. 단일 카메라 확대의 카메라 정보 `화면` 줄에 그 이유가 나옵니다.
-- 그 밖의 설정: `YOLO_CONF`(이 confidence 미만 박스는 안 그림, 기본 0.35), `YOLO_DEVICE`(비우면 자동, `cpu` · `cuda:0`), `STREAM_FPS`(화면으로 보내는 초당 장수, 기본 8) · `STREAM_MAX_WIDTH`(보내는 영상 최대 가로 크기, 기본 960). 성능이 좋은 PC 는 12 · 1280 정도로 올려도 됩니다
+- 그 밖의 설정: `YOLO_CONF`(이 confidence 미만 박스는 안 그림, 기본 0.35), `STREAM_FPS`(화면으로 보내는 초당 장수, 기본 8) · `STREAM_MAX_WIDTH`(보내는 영상 최대 가로 크기, 기본 960). 성능이 좋은 PC 는 12 · 1280 정도로 올려도 됩니다
 - 탐지는 지금 보고 있는 카메라만 합니다. 관제화면은 보이는 페이지(1페이지 현장 CAM / 2페이지 TC CAM)의 4대만 받습니다. CPU 에서는 카메라 4대가 탐지 한 번씩을 나눠 쓰므로 박스가 영상보다 조금 늦게 따라옵니다.
 - 발밑(박스 아래 가운데)이 ROI 안에 있으면 박스를 그 구역 색으로 그리고 `· 위험구역` 처럼 구역 이름을 붙입니다.
 - 영상 주소: `GET /api/stream/{카메라번호}.mjpg?token=로그인토큰&roi=1` (`roi=0` 이면 박스만). RTSP 카메라도 이 주소로 볼 수 있습니다.
