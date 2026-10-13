@@ -1379,7 +1379,8 @@
     function tickTc(now) {
       if (tcPop.hidden) { tcTimer = 0; return; }
       if (now - tcLast >= 25) {
-        tcFrame += 1;
+        const shared = tcFrameNow();
+        tcFrame = shared == null ? tcFrame + 1 : shared;
         tcLast = now;
         drawCranes();
       }
@@ -1387,6 +1388,7 @@
     }
 
     function openTc(index) {
+      startTcWatch();
       tcSelected = index;
       document.querySelectorAll(".tc-card").forEach((el, i) => el.classList.toggle("active", i === index));
       closeAlerts();

@@ -11,6 +11,40 @@ def cam_id(db_session, name="CAM_0001"):
         return db.scalar(select(Camera.id).where(Camera.name == name))
 
 
+def test_tc_hook_overlap_creates_event(client, manager):
+    made = client.post("/api/events/tc-hook", headers=manager)
+    assert made.status_code == 200, made.text
+    body = made.json()
+    assert body["created"] is True
+    detail = client.get(f"/api/events/{body['event_id']}", headers=manager).json()
+    assert detail["detection_code"] == "TC_HOOK_PROXIMITY"
+    assert detail["detection_label"] == "TC 후크 근접"
+    assert detail["severity"] == "HIGH"
+    again = client.post("/api/events/tc-hook", headers=manager).json()
+    assert again["created"] is False and again["reason"].startswith("쿨다운")
+    assert client.post("/api/events/tc-hook").status_code == 401
+
+
+def test_wind_gust_creates_event(client, manager, db_session):
+    made = client.post("/api/events/wind-gust", headers=manager)
+    assert made.status_code == 200, made.text
+    body = made.json()
+    assert body["created"] is True
+    detail = client.get(f"/api/events/{body['event_id']}", headers=manager).json()
+    assert detail["detection_code"] == "WEATHER"
+    assert detail["detection_label"] == "기상 경보"
+    assert detail["severity"] == "MEDIUM"
+    same = client.post("/api/events/wind-gust", headers=manager).json()
+    assert same["created"] is False and same["reason"].startswith("쿨다운")
+    with db_session() as db:
+        ev = db.get(Event, body["event_id"])
+        ev.detected_at = datetime.now() - timedelta(seconds=30)
+        db.commit()
+    nxt = client.post("/api/events/wind-gust", headers=manager).json()
+    assert nxt["created"] is True and nxt["event_id"] != body["event_id"]
+    assert client.post("/api/events/wind-gust").status_code == 401
+
+
 def test_ingest_requires_key(client):
     assert client.post("/api/events", json={"detection_type": "NO_HELMET"}).status_code == 401
 

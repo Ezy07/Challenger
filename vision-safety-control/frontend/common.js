@@ -372,8 +372,230 @@ function closeAlerts() {
   document.getElementById("gnb-alert").setAttribute("aria-expanded", "false");
 }
 
+// 관제 화면 TC / 작업구역 패널을 누르면 1~4호기 후크가 움직이기 시작한다.
+// 그 시각은 이 브라우저에 남아, 다른 화면을 보고 있어도 약 5초 뒤 겹칠 때 같은 경고창과 이벤트가 생긴다.
+// 위치 계산은 monitor.html 의 craneGeometry 와 같다 (T형 트롤리 · 러핑 지브 끝).
+const TC_HOOKS = [
+  { id: "1호기", kind: "T", x: -8, y: -8, jib: 55, speed: 0.08, phase: 300, trolleyPhase: 0 },
+  { id: "2호기", kind: "L", x: 42, y: 52, jib: 50, speed: -0.05, minLuff: 15, maxLuff: 80 },
+  { id: "3호기", kind: "T", x: 80, y: -8, jib: 55, speed: -0.08, phase: 240, trolleyPhase: 0.9 },
+  { id: "4호기", kind: "L", x: 14, y: 90, jib: 46, speed: 0.042, minLuff: 15, maxLuff: 80 },
+];
+const TC_HOOK_HIT = 14;
+const TC_HOOK_CLEAR = 18;
+const TC_HOOK_AHEAD = 200; // 한 프레임 25ms × 200 = 5초 뒤 위치
+const TC_WATCH_KEY = "safety.tcWatch";
+let tcHookSeen = null;
+
+function readTcWatch() {
+  try { return JSON.parse(localStorage.getItem(TC_WATCH_KEY)) || null; } catch (e) { return null; }
+}
+function writeTcWatch(state) {
+  try { localStorage.setItem(TC_WATCH_KEY, JSON.stringify(state)); } catch (e) { /* 저장을 못 해도 이 화면에서는 동작 */ }
+}
+function startTcWatch() {
+  const prev = readTcWatch();
+  if (prev && prev.on) return;
+  writeTcWatch({ on: 1, t0: Date.now(), latched: false, seq: 0 });
+}
+function tcFrameNow() {
+  const watch = readTcWatch();
+  if (!watch || !watch.on) return null;
+  return Math.max(0, Math.floor((Date.now() - watch.t0) / 25));
+}
+function tcHookPoint(spec, frame) {
+  const turn = (n, m) => ((n % m) + m) % m;
+  if (spec.kind === "L") {
+    const angle = turn(180 + frame * spec.speed, 360);
+    const range = spec.maxLuff - spec.minLuff;
+    const luff = spec.minLuff + range / 2 + (range / 2) * Math.sin(frame * 0.006);
+    const horiz = spec.jib * Math.cos(luff * Math.PI / 180);
+    const rad = angle * Math.PI / 180;
+    return [spec.x + horiz * Math.cos(rad), spec.y + horiz * Math.sin(rad)];
+  }
+  const angle = turn((spec.phase || 0) + frame * spec.speed, 360);
+  const trolley = spec.jib * (0.55 + 0.30 * Math.sin(frame * 0.008 + (spec.trolleyPhase || 0)));
+  const rad = angle * Math.PI / 180;
+  return [spec.x + trolley * Math.cos(rad), spec.y + trolley * Math.sin(rad)];
+}
+function tcHookGap(frame) {
+  const pts = TC_HOOKS.map((spec) => tcHookPoint(spec, frame));
+  let best = { d: Infinity, a: 0, b: 1 };
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]);
+      if (d < best.d) best = { d, a: i, b: j };
+    }
+  }
+  return best;
+}
+function hookWarnHtml() {
+  return `
+    <div class="pop" id="hook-warn" hidden>
+      <div class="pop-card" role="alertdialog" aria-modal="true" aria-labelledby="hook-warn-title">
+        <div class="pop-head">
+          <div>
+            <span class="status stop">다가옴</span>
+            <h2 id="hook-warn-title">후크 겹침 예정</h2>
+            <p id="hook-warn-text">타워크레인 후크가 약 5초 뒤 겹칩니다. 인양을 멈추세요.</p>
+          </div>
+        </div>
+        <div class="row end" style="margin-top:16px">
+          <a class="btn" id="hook-warn-event" href="events.html">이벤트 보기</a>
+          <button type="button" class="btn primary" id="hook-warn-close">확인</button>
+        </div>
+      </div>
+    </div>`;
+}
+function showHookWarn(eventId) {
+  const pop = document.getElementById("hook-warn");
+  if (!pop) return;
+  const names = (readTcWatch() || {}).names;
+  if (names && names.length === 2) {
+    document.getElementById("hook-warn-title").textContent = names[0] + " · " + names[1] + " 후크 겹침 예정";
+    document.getElementById("hook-warn-text").textContent = names[0] + " 후크와 " + names[1] + " 후크가 약 5초 뒤 겹칩니다. 인양을 멈추세요.";
+  }
+  const link = document.getElementById("hook-warn-event");
+  link.href = eventId ? `event-detail.html?id=${eventId}` : "events.html";
+  link.textContent = eventId ? `EV-${eventId} 보기` : "이벤트 보기";
+  pop.hidden = false;
+  document.getElementById("hook-warn-close").focus();
+}
+async function postHookEvent() {
+  const token = authToken();
+  if (!token) return null;
+  try {
+    const res = await fetch("/api/events/tc-hook", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    if (body.created) loadAlerts();
+    return body.created ? body.event_id : null;
+  } catch (e) { return null; }
+}
+function stepTcHooks() {
+  const frame = tcFrameNow();
+  if (frame == null) return;
+  const now = tcHookGap(frame);
+  const ahead = tcHookGap(frame + TC_HOOK_AHEAD);
+  const state = readTcWatch() || { on: 1, t0: Date.now(), latched: false, seq: 0 };
+  const soon = now.d > TC_HOOK_HIT && ahead.d <= TC_HOOK_HIT && ahead.d < now.d - 1;
+  if (soon && !state.latched) {
+    state.latched = true;
+    state.seq = (state.seq || 0) + 1;
+    state.names = [TC_HOOKS[ahead.a].id, TC_HOOKS[ahead.b].id];
+    writeTcWatch(state);
+    tcHookSeen = state.seq;
+    showHookWarn(null);
+    postHookEvent().then((id) => {
+      const pop = document.getElementById("hook-warn");
+      if (id && pop && !pop.hidden) showHookWarn(id);
+    });
+    return;
+  }
+  if (now.d > TC_HOOK_CLEAR && ahead.d > TC_HOOK_HIT && state.latched) {
+    state.latched = false;
+    writeTcWatch(state);
+  }
+  if (tcHookSeen == null) tcHookSeen = state.seq || 0;
+  else if (state.latched && (state.seq || 0) > tcHookSeen) {
+    tcHookSeen = state.seq;
+    showHookWarn(null);
+  }
+}
+
+// 순간풍속 10m/s. monitor.html 과 같이 1000프레임마다 200~519프레임 동안 강풍.
+// TC 패널을 누른 시각을 같이 써서, 다른 화면에서도 그 구간에 들어가면 경고창과 이벤트가 생긴다.
+const WIND_WATCH_KEY = "safety.windWatch";
+let windSeen = null;
+
+function readWindWatch() {
+  try { return JSON.parse(localStorage.getItem(WIND_WATCH_KEY)) || null; } catch (e) { return null; }
+}
+function writeWindWatch(state) {
+  try { localStorage.setItem(WIND_WATCH_KEY, JSON.stringify(state)); } catch (e) { /* 저장을 못 해도 이 화면에서는 동작 */ }
+}
+function windWarnHtml() {
+  return `
+    <div class="pop" id="wind-warn" hidden>
+      <div class="pop-card" role="alertdialog" aria-modal="true" aria-labelledby="wind-warn-title">
+        <div class="pop-head">
+          <div>
+            <span class="status info">강풍</span>
+            <h2 id="wind-warn-title">순간풍속 10m/s</h2>
+            <p id="wind-warn-text">순간풍속 10m/s. 인양을 멈추세요.</p>
+          </div>
+        </div>
+        <div class="row end" style="margin-top:16px">
+          <a class="btn" id="wind-warn-event" href="events.html">이벤트 보기</a>
+          <button type="button" class="btn primary" id="wind-warn-close">확인</button>
+        </div>
+      </div>
+    </div>`;
+}
+function showWindWarn(eventId) {
+  const pop = document.getElementById("wind-warn");
+  if (!pop) return;
+  const link = document.getElementById("wind-warn-event");
+  link.href = eventId ? `event-detail.html?id=${eventId}` : "events.html";
+  link.textContent = eventId ? `EV-${eventId} 보기` : "이벤트 보기";
+  pop.hidden = false;
+  document.getElementById("wind-warn-close").focus();
+}
+async function postWindEvent() {
+  const token = authToken();
+  if (!token) return null;
+  try {
+    const res = await fetch("/api/events/wind-gust", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    if (body.created) loadAlerts();
+    return body.created ? body.event_id : null;
+  } catch (e) { return null; }
+}
+function stepWindGust() {
+  const frame = tcFrameNow();
+  if (frame == null) return;
+  const phase = frame % 1000;
+  const gust = phase >= 200 && phase < 520;
+  const state = readWindWatch() || { latched: false, seq: 0 };
+  if (gust && !state.latched) {
+    state.latched = true;
+    state.seq = (state.seq || 0) + 1;
+    writeWindWatch(state);
+    windSeen = state.seq;
+    showWindWarn(null);
+    postWindEvent().then((id) => {
+      const pop = document.getElementById("wind-warn");
+      if (id && pop && !pop.hidden) showWindWarn(id);
+    });
+    return;
+  }
+  if (!gust && state.latched) {
+    state.latched = false;
+    writeWindWatch(state);
+  }
+  if (windSeen == null) windSeen = state.seq || 0;
+  else if (state.latched && (state.seq || 0) > windSeen) {
+    windSeen = state.seq;
+    showWindWarn(null);
+  }
+}
+
 function wireAlerts() {
-  document.body.insertAdjacentHTML("beforeend", alertPopHtml());
+  document.body.insertAdjacentHTML("beforeend", alertPopHtml() + hookWarnHtml() + windWarnHtml());
+  document.getElementById("hook-warn").addEventListener("click", (e) => {
+    if (e.target.id === "hook-warn" || e.target.closest("#hook-warn-close")) document.getElementById("hook-warn").hidden = true;
+  });
+  document.getElementById("wind-warn").addEventListener("click", (e) => {
+    if (e.target.id === "wind-warn" || e.target.closest("#wind-warn-close")) document.getElementById("wind-warn").hidden = true;
+  });
+  setInterval(() => { stepTcHooks(); stepWindGust(); }, 200);
   const pop = document.getElementById("alert-pop");
   pop.addEventListener("click", async (e) => {
     if (e.target === pop || e.target.closest("#alert-close")) return closeAlerts();
@@ -388,7 +610,14 @@ function wireAlerts() {
       ack.disabled = false;
     }
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAlerts(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const wind = document.getElementById("wind-warn");
+    if (wind && !wind.hidden) { wind.hidden = true; return; }
+    const hook = document.getElementById("hook-warn");
+    if (hook && !hook.hidden) { hook.hidden = true; return; }
+    closeAlerts();
+  });
   loadAlerts();
   alertTimer = setInterval(loadAlerts, ALERT_POLL_MS);
   if (location.hash === "#alerts") openAlerts();

@@ -48,10 +48,8 @@ SEVERITY_KO = {Severity.HIGH: "높음", Severity.MEDIUM: "중간", Severity.LOW:
 
 
 # ---------------------------------------------------------------- AI 탐지 → 이벤트 생성
-@router.post("", response_model=EventIngestOut, dependencies=[Depends(ingest_key)])
-def ingest(body: EventIn, db: DB):
-    """AI 탐지 결과를 받아 규칙(ROI별 덮어쓰기 → 기본값)을 적용하고, 통과하면 이벤트를 만든다.
-    사람이 아니라 탐지 프로그램이 부르므로 X-Ingest-Key 헤더로 인증한다."""
+def _create_event(body: EventIn, db: DB, cooldown_sec: int | None = None) -> EventIngestOut:
+    """규칙을 적용해 이벤트를 만든다. cooldown_sec 를 주면 그 초만 같은 경보를 건너뛴다."""
     dtype = db.scalar(select(DetectionType).where(DetectionType.code == body.detection_type))
     if not dtype:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"없는 감지 유형입니다: {body.detection_type}")
@@ -80,17 +78,20 @@ def ingest(body: EventIn, db: DB):
     detected_at = body.detected_at or now
     if detected_at > now + FUTURE_SLACK:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "감지 시각이 서버 시각보다 미래입니다. AI 프로그램 PC 시계를 확인하세요.")
-    recent = db.scalar(
-        select(Event.id).where(
-            Event.detection_type_id == dtype.id,
-            Event.camera_id.is_not_distinct_from(body.camera_id),
-            Event.roi_id.is_not_distinct_from(body.roi_id),
-            Event.detected_at > detected_at - timedelta(seconds=rule.cooldown_sec),
-            Event.detected_at <= detected_at,
-        ).limit(1)
-    )
+    cool = rule.cooldown_sec if cooldown_sec is None else cooldown_sec
+    recent = None
+    if cool > 0:
+        recent = db.scalar(
+            select(Event.id).where(
+                Event.detection_type_id == dtype.id,
+                Event.camera_id.is_not_distinct_from(body.camera_id),
+                Event.roi_id.is_not_distinct_from(body.roi_id),
+                Event.detected_at > detected_at - timedelta(seconds=cool),
+                Event.detected_at <= detected_at,
+            ).limit(1)
+        )
     if recent:
-        return EventIngestOut(created=False, reason=f"쿨다운 중 ({rule.cooldown_sec}초 안에 같은 경보 EV-{recent})")
+        return EventIngestOut(created=False, reason=f"쿨다운 중 ({cool}초 안에 같은 경보 EV-{recent})")
 
     event = Event(
         camera_id=body.camera_id,
@@ -106,6 +107,26 @@ def ingest(body: EventIn, db: DB):
     db.add(event)
     db.commit()
     return EventIngestOut(created=True, event_id=event.id)
+
+
+@router.post("", response_model=EventIngestOut, dependencies=[Depends(ingest_key)])
+def ingest(body: EventIn, db: DB):
+    """AI 탐지 결과를 받아 규칙(ROI별 덮어쓰기 → 기본값)을 적용하고, 통과하면 이벤트를 만든다.
+    사람이 아니라 탐지 프로그램이 부르므로 X-Ingest-Key 헤더로 인증한다."""
+    return _create_event(body, db)
+
+
+@router.post("/tc-hook", response_model=EventIngestOut)
+def tc_hook_overlap(db: DB, _: CurrentUser):
+    """관제 화면 TC 패널을 연 뒤 1~4호기 후크가 약 5초 뒤 겹칠 때. 어느 화면에서든 로그인한 브라우저가 만든다."""
+    return _create_event(EventIn(detection_type="TC_HOOK_PROXIMITY", confidence=0.95), db)
+
+
+@router.post("/wind-gust", response_model=EventIngestOut)
+def wind_gust(db: DB, _: CurrentUser):
+    """순간풍속 10m/s 경고가 뜰 때마다 이벤트 로그에 남긴다.
+    창이 여러 개여도 같은 강풍은 한 줄이고, 다음 강풍은 다시 남긴다. 기상 경보 기본 쿨다운(30분)은 쓰지 않는다."""
+    return _create_event(EventIn(detection_type="WEATHER", confidence=1), db, cooldown_sec=10)
 
 
 # ---------------------------------------------------------------- 목록 · 내보내기
