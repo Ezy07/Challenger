@@ -146,6 +146,8 @@ class CameraIn(BaseModel):
     plan_y: float | None = Field(default=None, ge=0, le=1)
     plan_dir: int | None = Field(default=None, ge=0, le=359)
     plan_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    plan_fov: int | None = Field(default=None, ge=10, le=360)
+    plan_range: int | None = Field(default=None, ge=30, le=500)
 
 
 class CameraUpdate(BaseModel):
@@ -162,6 +164,8 @@ class CameraUpdate(BaseModel):
     plan_y: float | None = Field(default=None, ge=0, le=1)
     plan_dir: int | None = Field(default=None, ge=0, le=359)
     plan_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")  # null 이면 기본색
+    plan_fov: int | None = Field(default=None, ge=10, le=360)    # 화각 폭 (360 = 돌면서 전체를 봄, null 이면 기본 60°)
+    plan_range: int | None = Field(default=None, ge=30, le=500)  # 화각 길이 (도면 너비 1000 기준, null 이면 기본 110)
 
 
 class CameraOut(Out):
@@ -180,6 +184,8 @@ class CameraOut(Out):
     plan_y: float | None = None
     plan_dir: int | None = None
     plan_color: str | None = None
+    plan_fov: int | None = None
+    plan_range: int | None = None
 
 
 # ---------------------------------------------------------------- 현장 도면

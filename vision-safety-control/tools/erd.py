@@ -63,7 +63,7 @@ CHANGED = {
     "education": None,
     "worker_education": None,
     "site_plan": None,
-    "camera": {"plan_x", "plan_y", "plan_dir", "plan_color"},
+    "camera": {"plan_x", "plan_y", "plan_dir", "plan_color", "plan_fov", "plan_range"},
     "users": {"status", "failed_login_count", "locked_until"},
     "worker": {"start_date", "special_reasons", "special_memo", "special_since", "special_by", "is_active"},
     "equipment": {"equip_type", "reg_no", "spec", "company", "status"},

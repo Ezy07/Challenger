@@ -109,3 +109,14 @@ def test_camera_plan_color(client, admin):
     for bad in ("red", "#12345", "#gggggg", "3ddc84"):
         assert client.patch(f"/api/cameras/{cam['id']}", json={"plan_color": bad}, headers=admin).status_code == 422, bad
     assert client.patch(f"/api/cameras/{cam['id']}", json={"plan_color": None}, headers=admin).json()["plan_color"] is None
+
+
+def test_camera_plan_fov_range(client, admin):
+    cam = next(c for c in client.get("/api/cameras", headers=admin).json() if c["name"] == "CAM_0001")
+    assert (cam["plan_fov"], cam["plan_range"]) == (None, None)  # 기본 부채꼴
+    res = client.patch(f"/api/cameras/{cam['id']}", json={"plan_fov": 360, "plan_range": 250}, headers=admin).json()
+    assert (res["plan_fov"], res["plan_range"]) == (360, 250)  # 회전 카메라는 원
+    for bad in ({"plan_fov": 5}, {"plan_fov": 361}, {"plan_range": 10}, {"plan_range": 600}):
+        assert client.patch(f"/api/cameras/{cam['id']}", json=bad, headers=admin).status_code == 422, bad
+    res = client.patch(f"/api/cameras/{cam['id']}", json={"plan_fov": None, "plan_range": None}, headers=admin).json()
+    assert (res["plan_fov"], res["plan_range"]) == (None, None)

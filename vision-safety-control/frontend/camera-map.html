@@ -15,7 +15,9 @@
     .map-cell { display: flex; flex-direction: column; }
     .map-cell .pad { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
     .edit-bar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(255, 154, 31, 0.6); background: rgba(255, 154, 31, 0.06); font-size: 13px; }
-    .edit-bar input[type=range] { width: 180px; }
+    #edit-cam { width: 220px; }
+    .sliders { display: grid; gap: 4px; }
+    .sliders label { display: grid; grid-template-columns: 30px 150px 60px; align-items: center; gap: 8px; }
     .swatches { display: flex; align-items: center; gap: 5px; }
     .swatches button { width: 22px; height: 22px; border-radius: 6px; border: 2px solid transparent; background: var(--c); cursor: pointer; padding: 0; }
     .swatches button.on { border-color: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); }
@@ -39,7 +41,7 @@
     <main class="main">
       <section class="cell cam-list">
         <div class="row between"><div class="label">카메라 위치 <span id="n-cams">0대</span></div>
-          <div class="row"><span class="muted"><b style="color:var(--ink)">부채꼴</b>은 카메라가 보는 방향입니다. 도면에서 비어 있는 곳은 카메라를 더 달아야 할 곳입니다.</span>
+          <div class="row"><span class="muted"><b style="color:var(--ink)">부채꼴</b>은 카메라의 시야, <b style="color:var(--ink)">원</b>은 돌면서 전체를 보는 카메라입니다. 도면에서 비어 있는 곳은 카메라를 더 달아야 할 곳입니다.</span>
           <a class="btn sm primary" href="camera-edit.html" data-need="ADMIN">＋ 카메라 추가</a></div></div>
         <div class="cam-items" id="cams"></div>
       </section>
@@ -50,14 +52,18 @@
             <div class="label"><span id="plan-title" style="all:unset">현장 배치도</span> <span id="plan-sub">카메라를 누르면 그 카메라 정보로 이동</span></div>
             <div class="row" data-need="ADMIN">
               <button class="btn sm" type="button" data-open="plan-pop">🖼 도면 관리</button>
-              <button class="btn sm" type="button" id="edit-toggle">✥ 위치 옮기기</button>
+              <button class="btn sm" type="button" id="edit-toggle">✥ 카메라 배치 수정</button>
             </div>
           </div>
           <div class="edit-bar" id="edit-bar" hidden>
-            <b id="edit-name">위 목록에서 카메라를 고르세요</b>
-            <span class="muted" id="edit-help">고른 뒤 도면을 누르면 그 자리에 놓이고, 아이콘은 끌어서 옮길 수 있습니다. 바꾸면 바로 저장됩니다.</span>
+            <select class="input" id="edit-cam" aria-label="배치할 카메라"></select>
+            <span class="muted" id="edit-help"></span>
             <span class="grow"></span>
-            <label class="row" style="gap:8px">보는 방향 <input type="range" id="dir" min="0" max="355" step="5" value="0" disabled /> <b id="dir-out" style="width:44px">0°</b></label>
+            <div class="sliders">
+              <label title="카메라가 보는 방향">시야 <input type="range" id="dir" min="0" max="355" step="5" value="0" disabled /> <b id="dir-out">0°</b></label>
+              <label title="끝까지 넓히면 360° 원 (회전 카메라)">화각 <input type="range" id="fov" min="10" max="360" step="5" value="60" disabled /> <b id="fov-out">60°</b></label>
+              <label title="부채꼴 · 원의 크기">크기 <input type="range" id="range" min="30" max="500" step="10" value="110" disabled /> <b id="range-out">110</b></label>
+            </div>
             <span class="swatches" id="swatches" aria-label="화각 색">색
               <button type="button" data-color="" title="기본색 (현장 주황 · TC 파랑)" style="--c:conic-gradient(#ff9a1f 0 50%, #6cb6ff 0)"></button>
               <button type="button" data-color="#ff5d5d" title="빨강" style="--c:#ff5d5d"></button>
@@ -69,7 +75,7 @@
               <input type="color" id="color-pick" title="다른 색 고르기" value="#ff9a1f" />
             </span>
             <button class="btn sm" type="button" id="unplace" disabled>배치도에서 빼기</button>
-            <button class="btn sm primary" type="button" id="edit-done">끝내기</button>
+            <button class="btn sm primary" type="button" id="edit-done">저장</button>
           </div>
           <div class="plan-area">
             <div class="plan" id="plan">
@@ -110,18 +116,21 @@
     requireLogin();
     const $ = (id) => document.getElementById(id);
     const W = 1000; // 표시 좌표계 너비. 높이는 도면 비율에 맞춘다
-    const CONE_R = 110, CONE_HALF = 30; // 부채꼴 반지름 · 반쪽 각도
+    const FOV = 60, RANGE = 110; // 화각 폭 · 길이 기본값 (plan_fov · plan_range 가 null 일 때)
     let plan = null, cams = [], H = W / PLAN_RATIO, editing = false, picked = null, drag = null;
 
     const placed = (c) => c.plan_x != null && c.plan_y != null;
     // 화각 색: 카메라마다 고른 색(plan_color) → 없으면 현장 주황 · TC 파랑. 사용 안 함은 회색
     const baseColor = (c) => c.plan_color || (c.camera_type === "TC" ? "#6cb6ff" : "#ff9a1f");
     const color = (c) => (!c.is_active ? "#8e9aab" : baseColor(c));
+    const fovOf = (c) => c.plan_fov ?? FOV, rangeOf = (c) => c.plan_range ?? RANGE;
 
-    function cone(x, y, dir) {
-      const pt = (deg) => [x + CONE_R * Math.sin(deg * Math.PI / 180), y - CONE_R * Math.cos(deg * Math.PI / 180)];
-      const [x1, y1] = pt(dir - CONE_HALF), [x2, y2] = pt(dir + CONE_HALF);
-      return `M${x},${y} L${x1.toFixed(1)},${y1.toFixed(1)} A${CONE_R},${CONE_R} 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`;
+    // 화각 모양: 360° 면 원(돌면서 전체를 보는 카메라), 아니면 부채꼴
+    function cone(x, y, dir, fov, r) {
+      if (fov >= 360) return `M${x - r},${y} a${r},${r} 0 1 0 ${2 * r},0 a${r},${r} 0 1 0 ${-2 * r},0 Z`;
+      const pt = (deg) => [x + r * Math.sin(deg * Math.PI / 180), y - r * Math.cos(deg * Math.PI / 180)];
+      const [x1, y1] = pt(dir - fov / 2), [x2, y2] = pt(dir + fov / 2);
+      return `M${x},${y} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${fov > 180 ? 1 : 0} 1 ${x2.toFixed(1)},${y2.toFixed(1)} Z`;
     }
 
     function drawMarks() {
@@ -131,7 +140,7 @@
         const ty = y + 34 > H ? y - 18 : y + 30; // 도면 아래 끝이면 이름을 점 위에
         const label = c.name + (c.is_active ? "" : " (사용 안 함)");
         return `<g class="cam${picked === c.id ? " on" : ""}" data-id="${c.id}">
-          ${c.plan_dir == null ? "" : `<path d="${cone(x, y, c.plan_dir)}" fill="${col}" fill-opacity="0.42" stroke="${col}" stroke-opacity="0.95" stroke-width="2.5" stroke-linejoin="round" />`}
+          ${c.plan_dir == null ? "" : `<path d="${cone(x, y, c.plan_dir, fovOf(c), rangeOf(c))}" fill="${col}" fill-opacity="${fovOf(c) >= 360 ? 0.22 : 0.42}" stroke="${col}" stroke-opacity="0.95" stroke-width="2.5" stroke-linejoin="round" />`}
           <circle cx="${x}" cy="${y}" r="10" fill="${col}" stroke="#0c1016" stroke-width="3" />
           <text x="${x}" y="${ty}" fill="#fff" font-size="18" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#0c1016" stroke-width="4">${esc(label)}</text></g>`;
       }).join("");
@@ -140,7 +149,7 @@
     function drawList() {
       $("n-cams").textContent = `${cams.length}대 · 배치 ${cams.filter(placed).length}대`;
       $("cams").innerHTML = cams.map((c) => {
-        const where = placed(c) ? `${c.plan_dir == null ? "방향 없음" : c.plan_dir + "° 방향"}` : "배치도에 없음";
+        const where = !placed(c) ? "배치도에 없음" : c.plan_dir == null ? "방향 없음" : fovOf(c) >= 360 ? "360° 회전" : `${c.plan_dir}° 방향 · 화각 ${fovOf(c)}°`;
         return `<button class="item ${c.is_active ? "ok" : ""}${picked === c.id ? " on" : ""}" type="button" data-id="${c.id}">
           <div class="item-top"><b><i class="dot" style="background:${color(c)}"></i>${esc(c.name)}</b><span class="status ${c.is_active ? (placed(c) ? "ok" : "warn") : "mute"}">${c.is_active ? (placed(c) ? "배치됨" : "위치 없음") : "사용 안 함"}</span></div>
           <div class="desc">${esc([c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "설치 위치 없음")} · ${where}</div></button>`;
@@ -166,12 +175,22 @@
       $("map-box").classList.toggle("editing", editing);
       $("edit-bar").hidden = !editing;
       $("edit-toggle").classList.toggle("primary", editing);
-      $("plan-sub").textContent = editing ? "위치 옮기는 중" : "카메라를 누르면 그 카메라 정보로 이동";
+      $("plan-sub").textContent = editing ? "카메라 배치 수정 중" : "카메라를 누르면 그 카메라 정보로 이동";
       const c = cams.find((x) => x.id === picked);
-      $("edit-name").textContent = c ? `${c.name} ${placed(c) ? "" : "· 도면을 눌러 놓으세요"}` : "위 목록에서 카메라를 고르세요";
-      $("dir").disabled = $("unplace").disabled = !(c && placed(c));
+      $("edit-cam").innerHTML = '<option value="">카메라 선택</option>'
+        + cams.map((x) => `<option value="${x.id}">${esc(x.name)}${placed(x) ? "" : " · 위치 없음"}</option>`).join("");
+      $("edit-cam").value = c ? c.id : "";
+      $("edit-help").textContent = !c ? "카메라를 고른 뒤 도면을 누르면 그 자리에 놓입니다."
+        : placed(c) ? "아이콘을 끌어서 옮길 수 있습니다. 바꾸면 바로 저장됩니다." : "도면을 눌러 놓으세요.";
+      const on = Boolean(c && placed(c));
+      $("unplace").disabled = $("fov").disabled = $("range").disabled = !on;
+      $("dir").disabled = !on || fovOf(c) >= 360; // 원이면 방향이 의미 없음
       $("dir").value = c && c.plan_dir != null ? c.plan_dir : 0;
       $("dir-out").textContent = $("dir").value + "°";
+      $("fov").value = c ? fovOf(c) : FOV;
+      $("fov-out").textContent = $("fov").value >= 360 ? "360° 원" : $("fov").value + "°";
+      $("range").value = c ? rangeOf(c) : RANGE;
+      $("range-out").textContent = $("range").value;
       document.querySelectorAll("#swatches button").forEach((b) => {
         b.disabled = !c;
         b.classList.toggle("on", Boolean(c) && b.dataset.color === (c.plan_color || "").toLowerCase());
@@ -203,6 +222,10 @@
       picked = Number(b.dataset.id) === picked && !editing ? null : Number(b.dataset.id);
       redraw();
     });
+    $("edit-cam").addEventListener("change", () => {
+      picked = Number($("edit-cam").value) || null;
+      redraw();
+    });
     $("marks").addEventListener("click", (e) => {
       if (editing) return;
       const g = e.target.closest(".cam");
@@ -219,7 +242,7 @@
         return;
       }
       const c = cams.find((x) => x.id === picked);
-      if (!c) return toast("먼저 위 목록에서 놓을 카메라를 고르세요.");
+      if (!c) return toast("먼저 놓을 카메라를 고르세요.");
       const [x, y] = toPlan(e);
       save(c, { plan_x: round4(x), plan_y: round4(y), plan_dir: c.plan_dir ?? 0 });
     });
@@ -246,6 +269,20 @@
       const c = cams.find((x) => x.id === picked);
       if (c) save(c, { plan_dir: c.plan_dir });
     });
+    // 화각 폭 · 크기: 끄는 동안 미리 보고, 손을 떼면 저장
+    for (const [id, key] of [["fov", "plan_fov"], ["range", "plan_range"]]) {
+      $(id).addEventListener("input", () => {
+        const c = cams.find((x) => x.id === picked);
+        if (!c) return;
+        c[key] = Number($(id).value);
+        drawMarks();
+        drawEdit();
+      });
+      $(id).addEventListener("change", () => {
+        const c = cams.find((x) => x.id === picked);
+        if (c) save(c, { [key]: c[key] });
+      });
+    }
     $("swatches").addEventListener("click", (e) => {
       const b = e.target.closest("[data-color]"), c = cams.find((x) => x.id === picked);
       if (b && c) save(c, { plan_color: b.dataset.color || null });

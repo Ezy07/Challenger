@@ -102,7 +102,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `93 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `97 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -117,6 +117,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 2026-10-05 | 비밀번호 5번 틀리면 15분 잠금 (`users.locked_until`) | `ALTER TABLE users ADD COLUMN locked_until DATETIME NULL AFTER failed_login_count;` |
 | 2026-10-06 | 현장 도면(`site_plan` 새 테이블) · 카메라 배치도 위치(`camera.plan_x` · `plan_y` · `plan_dir`) | 아래 SQL |
 | 2026-10-07 | 카메라 배치도 화각 색 (`camera.plan_color`) | `ALTER TABLE camera ADD COLUMN plan_color CHAR(7) NULL AFTER plan_dir;` |
+| 2026-10-13 | 카메라 배치도 화각 폭 · 길이 (`camera.plan_fov` · `plan_range`, 360° 회전 카메라는 원으로) | `ALTER TABLE camera ADD COLUMN plan_fov SMALLINT UNSIGNED NULL AFTER plan_color, ADD COLUMN plan_range SMALLINT UNSIGNED NULL AFTER plan_fov;` |
 
 ```sql
 -- 2026-10-06 현장 도면 · 카메라 배치도 위치
@@ -158,7 +159,7 @@ ALTER TABLE camera
 | 장비 · 일일 기록 | `GET/POST /api/equipment` · `GET/PATCH/DELETE /api/equipment/{id}` · `PUT /api/equipment/{id}/logs/{날짜}` · `POST /api/equipment/daily` | `equipment.html` · `equipment-detail.html` · `equipment-assign.html` · `work-workers.html`(작업 구역의 투입 장비) |
 | 판정 · 심각도 기준 | `GET /api/detection-types` · `PATCH /api/detection-types/{id}/rule` · `POST /api/detection-types/reset-rules` | `alert-threshold.html` · `alert-severity.html` |
 | 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` (배치도 위치 `plan_x` · `plan_y` · `plan_dir` 포함) | `cameras.html` · `camera-edit.html` · `camera-map.html` |
-| 현장 도면 | `GET /api/site-plan` · `PUT /api/site-plan` (본문 = 그림 파일, PNG · JPG · WebP 15MB) · `PATCH` (이름) · `DELETE` — 관리자만 바꿈, 그림은 `storage/plans` · `/plans/…` | `camera-map.html`(관리 · 카메라 위치 옮기기) · `zones.html`(배경) |
+| 현장 도면 | `GET /api/site-plan` · `PUT /api/site-plan` (본문 = 그림 파일, PNG · JPG · WebP 15MB) · `PATCH` (이름) · `DELETE` — 관리자만 바꿈, 그림은 `storage/plans` · `/plans/…` | `camera-map.html`(관리 · 카메라 배치 수정) · `zones.html`(배경) |
 | ROI 구역 | `GET /api/roi-zones` · `PUT /api/roi-zones` (구역 전체를 바꿈, 안전관리자 이상) — `storage/roi-zones.json` 에 저장, AI 탐지 프로그램이 이 파일을 읽음. 카메라 목록은 DB(영상 파일이 연결된 카메라에만 그릴 수 있음) | `roi-draw.html` · `roi-list.html` |
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
 | 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` | `events.html` · `event-detail.html` · `event-snapshot.html` |

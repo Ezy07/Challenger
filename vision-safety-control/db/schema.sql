@@ -149,6 +149,8 @@ CREATE TABLE camera (
   plan_y         DECIMAL(5,4) NULL,                           -- (위 0 ~ 아래 1)
   plan_dir       SMALLINT UNSIGNED NULL,                      -- 보는 방향 (0 = 위쪽, 시계 방향 도)
   plan_color     CHAR(7)      NULL,                           -- 배치도 화각 색 #rrggbb (NULL = 기본색)
+  plan_fov       SMALLINT UNSIGNED NULL,                      -- 화각 폭 도 10~360 (360 = 회전하며 전체, NULL = 기본 60)
+  plan_range     SMALLINT UNSIGNED NULL,                      -- 화각 길이 30~500 (도면 너비 1000 기준, NULL = 기본 110)
   PRIMARY KEY (id),
   UNIQUE KEY uk_camera_slot (view_page, view_slot),           -- 한 칸에 카메라 하나
   CONSTRAINT fk_camera_zone      FOREIGN KEY (work_zone_id) REFERENCES work_zone (id),
