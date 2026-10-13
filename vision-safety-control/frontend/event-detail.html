@@ -7,16 +7,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: auto minmax(0, 1fr) auto; }
+    .main { grid-template-rows: auto minmax(0, 1fr); }
     .info-bar { padding: 12px 16px; display: flex; align-items: center; gap: 14px 22px; flex-wrap: wrap; overflow: hidden; }
     .info-grid { flex: 1; display: flex; flex-wrap: wrap; gap: 8px 22px; min-width: 0; }
     .info-item > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
     .info-item > b { font-size: 14px; white-space: nowrap; }
     .info-acts { display: flex; gap: 8px; flex-wrap: wrap; }
-    .clip { padding: 12px 14px; display: grid; gap: 10px; overflow: hidden; }
-    .scrub { position: relative; height: 6px; border-radius: 99px; background: #2a3342; }
-    .scrub i { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: inherit; background: var(--orange); }
-    .scrub b { position: absolute; left: 50%; top: -5px; width: 3px; height: 16px; background: var(--red); }
   </style>
 </head>
 <body>
@@ -44,17 +40,6 @@
         <div class="cam-tag" id="cam-tag"></div>
         <div class="cam-time" id="cam-time"></div>
         <div class="cam-zone" id="cam-zone"></div>
-      </section>
-      <section class="cell clip">
-        <div class="row between">
-          <div class="label">앞뒤 영상 클립 <span>탐지 전 10초 ~ 후 10초</span></div>
-          <div class="row">
-            <button class="btn sm" data-toast="영상 재생은 저장 서버 연결 후 동작합니다.">▶ 재생</button>
-            <button class="btn sm" data-toast="클립 저장은 저장 서버 연결 후 동작합니다.">⬇ 클립 저장</button>
-          </div>
-        </div>
-        <div class="scrub"><i></i><b></b></div>
-        <div class="hint">영상 클립은 저장 위치(서버)를 정한 뒤 붙입니다. 스냅샷 파일이 없는 이벤트는 위에 예시 그림이 보입니다.</div>
       </section>
     </main>
 

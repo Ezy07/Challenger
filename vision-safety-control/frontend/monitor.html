@@ -182,10 +182,10 @@
     .label a { color: var(--orange); font-size: 11.5px; font-weight: 700; }
     .alerts a.item:has(.status.ok),
     .zone button.tc-card:has([data-tc-status].ok) { cursor: default; }
-    .alerts a.item:has(.status.stop) { position: relative; overflow: hidden; }
+    .alerts a.item { position: relative; overflow: hidden; }
     .alerts a.item:has(.status.stop)::before {
       content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
-      background: rgba(196, 24, 24, 0.62); animation: cam-flash 1.05s ease-in-out infinite;
+      background: rgba(196, 24, 24, 0.3);
     }
     .alerts a.item:has(.status.ok)::before { content: none; display: none; animation: none; }
     .alerts a.item:has(.status.stop) > * { position: relative; z-index: 1; }
@@ -698,13 +698,21 @@
     #cam-tc03 .cam-alarm { display: none; }
     #cam-tc03.alarm-on .cam-alarm { display: block; }
     .tc-card { position: relative; overflow: hidden; }
-    .tc-card .item-alarm { position: absolute; inset: 0; border-radius: inherit; background: rgba(196, 24, 24, 0.6); pointer-events: none; display: none; animation: cam-flash 1.05s ease-in-out infinite; }
-    .tc-card.alarm-on .item-alarm { display: block; }
     .zone button.tc-card:has([data-tc-status].stop) { position: relative; overflow: hidden; }
     .zone button.tc-card:has([data-tc-status].stop)::before {
       content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
-      background: rgba(196, 24, 24, 0.55); animation: cam-flash 1.05s ease-in-out infinite;
+      background: rgba(196, 24, 24, 0.3);
     }
+    /* 새 이벤트가 들어온 칸은 빨갛게 세 번 깜빡인다 (끝나면 위의 고정 색만 남음) */
+    .alerts a.item.ev-flash::after, .zone .tc-card.ev-flash::after {
+      content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+      background: rgba(230, 30, 30, 0.75); animation: ev-flash 0.6s ease-in-out 3 both;
+    }
+    .cam.ev-flash::after {
+      content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+      background: rgba(230, 30, 30, 0.6); animation: ev-flash 0.6s ease-in-out 3 both;
+    }
+    @keyframes ev-flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
     .zone button.tc-card:has([data-tc-status].ok)::before { content: none; display: none; animation: none; }
     .zone button.tc-card:has([data-tc-status].stop) > * { position: relative; z-index: 1; }
     .permit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--red); }
@@ -849,14 +857,14 @@
               <div class="bar ok"><i></i></div>
             </a>
             <a class="item" href="#" id="cam2-item">
-              <div class="item-top"><b>CAM_0002</b><span class="status stop" id="cam2-status">작업중지</span></div>
-              <div class="desc" id="cam2-desc">제38조 신호수 미배치 · 85%</div>
-              <div class="bar stop" id="cam2-bar"><i></i></div>
+              <div class="item-top"><b>CAM_0002</b><span class="status ok" id="cam2-status">정상</span></div>
+              <div class="desc" id="cam2-desc">신호수 배치 · 이상 없음</div>
+              <div class="bar ok" id="cam2-bar"><i></i></div>
             </a>
             <a class="item" href="event-detail.html">
-              <div class="item-top"><b>CAM_0003</b><span class="status warn">현장점검</span></div>
-              <div class="desc">제38조 지반침하방지 · 96%</div>
-              <div class="bar warn"><i></i></div>
+              <div class="item-top"><b>CAM_0003</b><span class="status ok">정상</span></div>
+              <div class="desc">지반 · 이상 없음</div>
+              <div class="bar ok"><i></i></div>
             </a>
             <a class="item" href="event-detail.html">
               <div class="item-top"><b>CAM_0004</b><span class="status ok">정상</span></div>
@@ -871,9 +879,9 @@
               <div class="bar ok"><i></i></div>
             </a>
             <a class="item" href="monitor-camera.html?cam=tc2">
-              <div class="item-top"><b>CAM_TC02 · 2호기</b><span class="status warn">대기</span></div>
-              <div class="desc">신호수 미배치로 인양 대기</div>
-              <div class="bar warn"><i></i></div>
+              <div class="item-top"><b>CAM_TC02 · 2호기</b><span class="status ok">정상</span></div>
+              <div class="desc">대형거푸집 인양 · 이상 없음</div>
+              <div class="bar ok"><i></i></div>
             </a>
             <a class="item" href="#" id="tc3-item">
               <div class="item-top"><b>CAM_TC03 · 3호기</b><span class="status ok" id="tc3-status">정상</span></div>
@@ -905,7 +913,6 @@
             <div class="item-top"><b>3호기 · M-CRN-01</b><span class="status ok" data-tc-status>정상</span></div>
             <div class="desc" data-tc-desc>중앙 자재하역장 · 100%</div>
             <div class="bar ok" data-tc-bar><i></i></div>
-            <span class="item-alarm" aria-hidden="true"></span>
           </button>
           <button type="button" class="tc-card" data-tc="3">
             <div class="item-top"><b>4호기 · T-CRN-03</b><span class="status ok" data-tc-status>정상</span></div>
@@ -953,7 +960,7 @@
       <a class="cam-over" href="monitor-camera.html?cam=1" aria-label="CAM_0001 크게 보기"></a>
     </section>
 
-    <section class="cell cam cam-2" data-page="1" id="cam-2" role="button" tabindex="0" aria-label="CAM_0002 작업중지 경보">
+    <section class="cell cam cam-2 alarm-off" data-page="1" id="cam-2" role="button" tabindex="0" aria-label="CAM_0002">
       <div class="scene">
         <div class="ground-line"></div>
         <div class="bld" style="left:10%; width:22%; height:52%;"></div>
@@ -1480,6 +1487,8 @@
     const TC_ZONE = ["101동 갱폼 인양구역", "102동 대형거푸집구역", "중앙 자재하역장", "103동 외벽 인양구역"];
     const TC_PCT = { ok: 100, warn: 96, stop: 85 };
     const TC_WORD = { ok: "정상", warn: "현장점검", stop: "작업중지" };
+    const LEVEL_RANK = { ok: 0, warn: 1, stop: 2 };
+    const tcShown = [];
     function paintTcCards() {
       if (typeof tcCardLevel !== "function") return;
       tcCardLevel().forEach((level, i) => {
@@ -1489,13 +1498,23 @@
         const desc = card.querySelector("[data-tc-desc]");
         const bar = card.querySelector("[data-tc-bar]");
         if (card.dataset.pin === "stop") level = "stop";
+        const note = level === "warn" ? "후크 10초 전" : level === "stop" ? "후크 겹침" : TC_ZONE[i];
+        let text = note + " · " + TC_PCT[level] + "%";
+        const live = liveTc[i]; // 이 호기 TC CAM 의 미처리 이벤트가 후크 경보만큼 심하면 그것을 보여 준다
+        card.dataset.eventId = "";
+        if (live && LEVEL_RANK[live.level] >= LEVEL_RANK[level]) {
+          level = live.level;
+          text = live.text;
+          card.dataset.eventId = live.id;
+        }
         if (st) { st.className = "status " + level; st.textContent = TC_WORD[level]; }
         card.classList.toggle("alarm-on", level === "stop");
-        if (desc) {
-          const note = level === "warn" ? "후크 10초 전" : level === "stop" ? "후크 겹침" : TC_ZONE[i];
-          desc.textContent = note + " · " + TC_PCT[level] + "%";
-        }
+        if (desc) desc.textContent = text;
         if (bar) bar.className = "bar " + level;
+        // 경보가 심해지거나(후크 겹침 포함) 이 호기 카메라에 새 이벤트가 오면 깜빡인다
+        const fresh = liveFlash.delete("tc" + i);
+        if (fresh || (tcShown[i] && LEVEL_RANK[level] > LEVEL_RANK[tcShown[i]])) flashEl(card);
+        tcShown[i] = level;
       });
     }
     setInterval(paintTcCards, 200);
@@ -1505,6 +1524,7 @@
         const st = btn.querySelector("[data-tc-status]");
         const shown = st && st.classList.contains("stop") ? "stop" : st && st.classList.contains("warn") ? "warn" : "ok";
         if (shown !== "stop" && shown !== "warn") return;
+        if (btn.dataset.eventId) { location.href = "event-detail.html?id=" + btn.dataset.eventId; return; }
         if (btn.dataset.pin === "stop") openTc3();
         else openHookClear(index);
       });
@@ -1573,8 +1593,9 @@
       worker.classList.toggle("stop", on);
       worker.querySelector("em").textContent = on ? "직하부" : "작업자";
       document.getElementById("tc3-zone").textContent = on ? "인양물 직하부 작업자 탐지" : "3호기 · 중앙 자재하역장";
-      document.getElementById("tc3-item").classList.toggle("alarm-on", on);
       const st = document.getElementById("tc3-status");
+      if (!st) return;
+      document.getElementById("tc3-item").classList.toggle("alarm-on", on);
       st.className = "status " + (on ? "stop" : "ok");
       st.textContent = on ? "작업중지" : "정상";
       document.getElementById("tc3-desc").textContent = on ? "인양물 직하부 작업자 · 91%" : "자재 하역 · 직하부 이상 없음";
@@ -1631,7 +1652,6 @@
     });
     document.getElementById("tc3-cancel").addEventListener("click", closeTc3);
     document.getElementById("tc3-close").addEventListener("click", closeTc3);
-    setTc3Alarm(true);
 
     const camPop = document.getElementById("cam-pop");
     const cam2 = document.getElementById("cam-2");
@@ -1655,8 +1675,9 @@
     }
     function setCamAlarm(on) {
       cam2.classList.toggle("alarm-off", !on);
-      document.getElementById("cam2-item").classList.toggle("alarm-on", on);
       const st = document.getElementById("cam2-status");
+      if (!st) return;
+      document.getElementById("cam2-item").classList.toggle("alarm-on", on);
       st.className = "status " + (on ? "stop" : "ok");
       st.textContent = on ? "작업중지" : "정상";
       document.getElementById("cam2-desc").textContent = on ? "제38조 신호수 미배치 · 85%" : "신호수 배치 · 이상 없음";
@@ -1706,6 +1727,79 @@
       closeCamAlarm();
       toast("CAM_0002 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
     });
+
+    // ---------------- 오른쪽 패널 ↔ 이벤트 연동
+    // 로그인했으면 미처리 · 확인중 이벤트를 5초마다 받아, 섹터 감지경보(카메라별)와 TC 카드(TC CAM 칸 번호별)에 붙인다.
+    // 높음이 하나라도 있으면 작업중지, 그 밖은 현장점검. 처음 보는 이벤트가 들어온 칸은 빨갛게 세 번 깜빡인다.
+    // 로그인 전이거나 서버에 닿지 않으면 예시 화면을 그대로 둔다
+    const LIVE_POLL_MS = 5000;
+    let liveCams = null, liveSeen = null;
+    const liveTc = [null, null, null, null];
+    const liveFlash = new Set(); // 다음 그리기에서 깜빡일 칸 ("cam" + 카메라 id · "tc" + 카드 번호)
+    function flashEl(el) {
+      if (!el) return;
+      el.classList.remove("ev-flash");
+      void el.offsetWidth; // 깜빡이는 중에 또 오면 처음부터 다시
+      el.classList.add("ev-flash");
+    }
+    document.addEventListener("animationend", (e) => { if (e.animationName === "ev-flash") e.target.classList.remove("ev-flash"); });
+    const levelOf = (rows) => (rows.some((r) => r.severity === "HIGH") ? "stop" : rows.length ? "warn" : "ok");
+    function eventText(rows) {
+      const top = rows[0];
+      return top.detection_label + (top.confidence != null ? " · " + Math.round(top.confidence * 100) + "%" : "")
+        + (rows.length > 1 ? " 외 " + (rows.length - 1) + "건" : "");
+    }
+    function sectorItem(c, rows) {
+      const level = levelOf(rows);
+      const desc = rows.length ? eventText(rows) : (c.work_zone_name || c.location_desc || "현장") + " · 이상 없음";
+      return '<a class="item" data-cam="' + c.id + '" href="' + (rows.length ? "event-detail.html?id=" + rows[0].id : "#") + '">'
+        + '<div class="item-top"><b>' + esc(c.name) + '</b><span class="status ' + level + '">' + TC_WORD[level] + "</span></div>"
+        + '<div class="desc">' + esc(desc) + '</div><div class="bar ' + level + '"><i></i></div></a>';
+    }
+    async function pollLive() {
+      if (!liveCams) {
+        liveCams = (await alertFetch("/api/cameras")).filter((c) => c.is_active)
+          .sort((a, b) => (a.view_slot ?? 99) - (b.view_slot ?? 99) || a.name.localeCompare(b.name));
+        setCamAlarm(false); // 예시 경보(CAM_0002 · TC03)는 끄고 실제 이벤트만 보여 준다
+        setTc3Alarm(false);
+      }
+      const page = await alertFetch("/api/events?status=NEW&status=ACK&sort=severity&size=200"); // 심한 것 → 최신 순
+      const byCam = new Map();
+      page.items.forEach((r) => {
+        if (r.camera_id == null) return;
+        if (!byCam.has(r.camera_id)) byCam.set(r.camera_id, []);
+        byCam.get(r.camera_id).push(r);
+        if (liveSeen && !liveSeen.has(r.id)) liveFlash.add("cam" + r.camera_id); // 처음 불러올 때는 깜빡이지 않는다
+      });
+      liveSeen = new Set([...(liveSeen || []), ...page.items.map((r) => r.id)]);
+
+      [["1", liveCams.filter((c) => c.camera_type !== "TC")], ["2", liveCams.filter((c) => c.camera_type === "TC")]].forEach(([p, list]) => {
+        const box = document.querySelector('.alerts .page-group[data-page="' + p + '"]');
+        const html = list.map((c) => sectorItem(c, byCam.get(c.id) || [])).join("") || '<p class="desc">등록된 카메라가 없습니다</p>';
+        if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; } // 그대로면 다시 그리지 않아야 깜빡임이 끊기지 않는다
+        list.forEach((c) => { if (liveFlash.has("cam" + c.id)) flashEl(box.querySelector('[data-cam="' + c.id + '"]')); });
+      });
+      liveTc.fill(null);
+      liveCams.filter((c) => c.camera_type === "TC" && c.view_page === 2 && c.view_slot >= 1 && c.view_slot <= 4).forEach((c) => {
+        const rows = byCam.get(c.id) || [];
+        if (rows.length) liveTc[c.view_slot - 1] = { level: levelOf(rows), text: eventText(rows), id: rows[0].id };
+        if (liveFlash.has("cam" + c.id)) liveFlash.add("tc" + (c.view_slot - 1));
+      });
+      // CCTV 4분할에서 그 카메라가 걸린 칸도 같이 깜빡인다 (지금 보고 있는 페이지의 칸만)
+      liveCams.forEach((c) => {
+        const cell = c.view_slot && document.querySelector('.cam.cam-' + c.view_slot + '[data-page="' + c.view_page + '"]');
+        if (liveFlash.has("cam" + c.id) && cell && !cell.hidden) flashEl(cell);
+      });
+      [...liveFlash].forEach((k) => { if (k.startsWith("cam")) liveFlash.delete(k); });
+      document.getElementById("sector-sub").textContent = "현장 CAM · 미처리 " + page.total + "건";
+      paintTcCards();
+    }
+    function startLive() {
+      pollLive().catch((err) => {
+        if (liveCams && err.message !== "login") document.getElementById("sector-sub").textContent = "이벤트를 불러오지 못했습니다";
+      }).finally(() => setTimeout(startLive, LIVE_POLL_MS));
+    }
+    startLive();
 
     let hookClearEvent = null;
     let hookClearSeq = null;

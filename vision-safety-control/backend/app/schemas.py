@@ -262,6 +262,7 @@ class EventRow(BaseModel):
     id: int
     snapshot: str | None = None  # 첫 스냅샷 경로 ("snapshots/...")
     detected_at: datetime
+    camera_id: int | None = None  # 관제 화면이 카메라별 경보를 붙일 때 쓴다
     camera_name: str | None
     work_zone_name: str | None
     detection_code: str
@@ -300,7 +301,6 @@ class CheckItemState(BaseModel):
 
 
 class EventDetail(EventRow):
-    camera_id: int | None
     work_zone_id: int | None
     roi_id: int | None
     roi_name: str | None

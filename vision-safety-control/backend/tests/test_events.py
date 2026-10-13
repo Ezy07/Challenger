@@ -105,6 +105,7 @@ def test_list_filters(client, manager):
     open_ = client.get("/api/events", params=[("status", "NEW"), ("status", "ACK")], headers=manager).json()
     assert {i["status"] for i in open_["items"]} == {"NEW", "ACK"}
     assert open_["total"] == 3
+    assert all(i["camera_id"] for i in open_["items"] if i["camera_name"])  # 관제 화면이 카메라별로 묶는다
 
     by_sev = client.get("/api/events", params={"sort": "severity"}, headers=manager).json()["items"]
     assert [i["severity"] for i in by_sev[:3]] == ["HIGH", "HIGH", "HIGH"]

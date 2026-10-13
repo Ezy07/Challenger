@@ -193,6 +193,7 @@ def to_row(event: Event, camera_name, zone_name, code, label, snapshot=None) -> 
         snapshot=snapshot,
         id=event.id,
         detected_at=event.detected_at,
+        camera_id=event.camera_id,
         camera_name=camera_name,
         work_zone_name=zone_name,
         detection_code=code,
@@ -360,7 +361,6 @@ def to_detail(event: Event) -> EventDetail:
     done = permitted_items(event)
     return EventDetail(
         **row.model_dump(),
-        camera_id=event.camera_id,
         work_zone_id=zone.id if zone else None,
         roi_id=event.roi_id,
         roi_name=event.roi.name if event.roi else None,
