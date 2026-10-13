@@ -97,12 +97,15 @@
     }
 
     .site-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .site-side {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 8px;
+    .site-side { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+    .full-btn, .full-exit {
+      height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line);
+      background: #121820; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700;
+      white-space: nowrap; cursor: pointer;
     }
+    .full-btn:hover, .full-exit:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .full-btn:focus-visible, .full-exit:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+    .full-exit { position: fixed; z-index: 45; top: 12px; right: 12px; background: rgba(18, 24, 32, 0.88); }
 
     .pager {
       width: 28px;
@@ -271,44 +274,6 @@
     .cam-2 { grid-column: 2; grid-row: 2; }
     .cam-3 { grid-column: 1; grid-row: 3; }
     .cam-4 { grid-column: 2; grid-row: 3; }
-
-    .zone-page {
-      grid-column: 1 / 3;
-      grid-row: 2 / 4;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 14px;
-    }
-    .zone-page[hidden] { display: none; }
-    .zone-page-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 10px; }
-    .zone-page .plan-area { min-height: 0; height: 100%; }
-    .zone-page .road { position: absolute; background: #1a212b; }
-    .zone-page .road.h { left: 0; right: 0; top: 52%; height: 7%; }
-    .zone-page .road.v { top: 0; bottom: 0; left: 46%; width: 5%; }
-    .zone-page #shapes { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .zone-page #shapes .zone { cursor: pointer; fill: var(--c); fill-opacity: 0.28; stroke: var(--c); stroke-width: 3; stroke-linejoin: round; }
-    .zone-page .plan.has-image #shapes .zone { fill-opacity: 0.32; }
-    .zone-page #shapes .zone:hover, .zone-page #shapes .zone.on { fill-opacity: 0.42; }
-    .zone-page #shapes .zone.on { stroke: #fff; stroke-width: 4; }
-    .zone-page #shapes .zone.alarm { animation: zone-flash 1.2s ease-in-out infinite; }
-    @keyframes zone-flash { 50% { fill: #ff5d5d; fill-opacity: 0.4; } }
-    .zone-tag {
-      position: absolute; transform: translate(-50%, -50%); display: grid; gap: 3px; max-width: 200px;
-      padding: 6px 9px; border-radius: 9px; border: 1.5px solid var(--c); background: rgba(10, 14, 20, 0.8);
-      color: var(--ink); font: inherit; text-align: left; cursor: pointer;
-    }
-    .zone-tag.on { box-shadow: 0 0 0 2px #fff; }
-    .zone-tag b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .zone-tag small { font-size: 10.5px; color: #c5d0dc; font-weight: 600; }
-    .zone-sum { overflow: auto; display: grid; align-content: start; gap: 8px; padding: 12px; border-radius: 12px; background: #121820; border: 1px solid var(--line); }
-    .zone-sum a { color: var(--orange); font-size: 13px; font-weight: 700; }
-    .zone-page > .row a { color: var(--orange); font-size: 12px; font-weight: 700; }
-    .zone-sum h2 { font-size: 18px; letter-spacing: -0.03em; }
-    .zone-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-    .zone-stats div { padding: 8px 4px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); text-align: center; }
-    .zone-stats span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
-    .zone-stats b { font-size: 18px; }
 
     .cam-2 { box-shadow: inset 0 0 0 1px rgba(255, 93, 93, 0.55), 0 10px 30px rgba(0, 0, 0, 0.22); cursor: pointer; }
     .cam-2:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; }
@@ -705,10 +670,9 @@
     .check b { display: block; font-size: 14px; letter-spacing: -0.03em; }
     .check small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
 
-    /* 머리 칸 오른쪽 시계 (날씨는 맨 위 헤더로 옮김) */
-    .now-box { text-align: right; line-height: 1.15; }
-    .now { font-size: 20px; font-weight: 760; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-    .now-date { color: var(--muted); font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    /* 관제화면 시계는 맨 위 헤더에서 온도 바로 왼쪽 */
+    .gnb-clock b { font-size: 14px; letter-spacing: -0.03em; }
+    .gnb-clock span { font-variant-numeric: tabular-nums; }
 
     /* CCTV 1 · 2페이지 전환 (project/board.html 과 같은 방식) */
     .cam-pages { display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 10px; background: #121820; border: 1px solid var(--line); }
@@ -804,7 +768,7 @@
         grid-template-rows: auto 220px 220px auto;
       }
       .site { grid-column: 1 / -1; grid-template-columns: 1fr; gap: 10px; padding: 12px 16px; justify-items: center; }
-      .site-side { flex-wrap: wrap; justify-content: center; }
+      .site-side { justify-content: center; }
       .cam-1, .cam-2, .cam-3, .cam-4 { grid-column: auto; grid-row: auto; }
       .cam { min-height: 220px; }
       .rail { grid-column: 1 / -1; grid-row: auto; order: 2; }
@@ -814,6 +778,22 @@
       #tc-pop .tc-body { grid-template-columns: 1fr; }
       #tc-map { height: 52vh; }
     }
+
+    /* 전체화면: 메뉴 · 현장 이름 · 오른쪽 패널을 가리고 보이는 CCTV 4칸만 창을 채운다 */
+    body.cctv-full { overflow: hidden; }
+    body.cctv-full .gnb, body.cctv-full .drawer, body.cctv-full .scrim,
+    body.cctv-full .site, body.cctv-full .rail { display: none !important; }
+    body.cctv-full .board, body.cctv-full .board.rail-hidden {
+      position: fixed; inset: 0; z-index: 20; flex: none; height: auto; min-height: 0;
+      margin: 0; padding: 0; gap: 2px; background: #000;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    body.cctv-full .cam { min-height: 0; border-radius: 0; border: 0; box-shadow: none; }
+    body.cctv-full .cam-1:not([hidden]) { grid-column: 1; grid-row: 1; }
+    body.cctv-full .cam-2:not([hidden]) { grid-column: 2; grid-row: 1; }
+    body.cctv-full .cam-3:not([hidden]) { grid-column: 1; grid-row: 2; }
+    body.cctv-full .cam-4:not([hidden]) { grid-column: 2; grid-row: 2; }
 
     /* .pop-card 의 480px 너비보다 뒤에 두어 TC 팝업만 화면을 채운다 */
     #tc-pop > .pop-card {
@@ -834,13 +814,12 @@
         <div class="cam-pages" role="group" aria-label="CCTV 페이지">
           <button type="button" class="pager on" data-page="1" aria-pressed="true" aria-label="1페이지 현장 카메라 CAM_0001부터 0004">1</button>
           <button type="button" class="pager" data-page="2" aria-pressed="false" aria-label="2페이지 TC 관제 카메라">2</button>
-          <button type="button" class="pager" data-page="3" aria-pressed="false" aria-label="3페이지 전체 구역 배치도">3</button>
           <small id="page-label">현장</small>
         </div>
       </div>
       <h1>공동주택 건설현장</h1>
       <div class="site-side">
-        <div class="now-box"><div class="now" id="now-time">--:--:--</div><div class="now-date" id="now-date">----.--.--</div></div>
+        <button type="button" class="full-btn" id="cctv-full" aria-pressed="false">전체화면</button>
       </div>
     </header>
 
@@ -892,9 +871,6 @@
               <div class="desc">외벽 인양 예정 · 작업 없음</div>
               <div class="bar ok"><i></i></div>
             </a>
-          </div>
-          <div class="page-group" data-page="3" hidden>
-            <p class="desc">전체 구역은 가운데 배치도에서 봅니다.</p>
           </div>
         </div>
       </aside>
@@ -1074,23 +1050,8 @@
       <div class="cam-zone">4호기 · 103동 외벽 인양구역</div>
       <a class="cam-over" href="monitor-camera.html?cam=tc4" aria-label="CAM_TC04 크게 보기"></a>
     </section>
-
-    <section class="cell zone-page" id="zone-page" hidden>
-      <div class="row between">
-        <div class="label">현장 배치도 <span id="plan-sub">구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
-        <a href="zones.html">구역 관리 →</a>
-      </div>
-      <div class="zone-page-body">
-        <div class="plan-area"><div class="plan" id="plan"><div class="road h"></div><div class="road v"></div>
-          <svg id="shapes" preserveAspectRatio="none" aria-label="작업구역 영역"></svg>
-          <div id="tags"></div>
-        </div></div>
-        <aside class="zone-sum" id="zone-sum">
-          <p class="desc">구역을 고르면 작업 · 인원 · 경보가 여기 나옵니다.</p>
-        </aside>
-      </div>
-    </section>
   </div>
+  <button type="button" class="full-exit" id="cctv-exit" hidden>전체화면 종료</button>
 
   <div class="pop" id="tc-pop" hidden>
     <div class="pop-card tc-pop-card" role="dialog" aria-modal="true" aria-labelledby="tc-title">
@@ -1191,9 +1152,20 @@
       const now = new Date();
       const time = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
       const date = now.getFullYear() + "." + pad(now.getMonth() + 1) + "." + pad(now.getDate());
-      document.getElementById("now-time").textContent = time;
-      document.getElementById("now-date").textContent = date;
+      const timeEl = document.getElementById("now-time");
+      const dateEl = document.getElementById("now-date");
+      if (timeEl) timeEl.textContent = time;
+      if (dateEl) dateEl.textContent = date;
       document.querySelectorAll(".js-cam-time").forEach((el) => { el.textContent = time; });
+    }
+
+    // 시각 · 날짜를 맨 위 헤더의 온도 바로 왼쪽에 둔다
+    const wx = document.getElementById("gnb-wx");
+    if (wx) {
+      const clock = document.createElement("span");
+      clock.className = "wx-chip gnb-clock";
+      clock.innerHTML = '<b id="now-time">--:--:--</b><span id="now-date">----.--.--</span>';
+      wx.before(clock);
     }
 
     const TC_SPEC = [
@@ -1425,6 +1397,7 @@
         }
         return false;
       });
+      /* TEMP 작업 중: 지도 안의 후크 겹침 · 순간풍속 알림을 띄우지 않는다
       const alertBox = document.getElementById("hook-alert");
       const leftName = (i) => TC_SPEC[i].id;
       if (nowHook.d <= HOOK_HIT) {
@@ -1449,6 +1422,9 @@
       }
       const windBox = document.getElementById("wind-alert");
       windBox.hidden = typeof windGustOn !== "function" || !windGustOn(tcFrame);
+      */
+      document.getElementById("hook-alert").hidden = true;
+      document.getElementById("wind-alert").hidden = true;
       const msg = document.getElementById("tc-msg");
       msg.className = "tc-msg " + (worst.d <= TC_STOP ? "stop" : worst.d <= TC_WARN ? "warn" : "ok");
       const pair = TC_SPEC[worst.a].id + " · " + TC_SPEC[worst.b].id;
@@ -1511,33 +1487,24 @@
       btn.addEventListener("click", () => {
         const index = Number(btn.dataset.tc);
         const level = typeof tcCardLevel === "function" ? tcCardLevel()[index] : "ok";
-        if (level === "ok") return;
         if (level === "stop") openHookClear(index);
-        else openZonePage(index);
       });
     });
     document.getElementById("tc-close").addEventListener("click", () => { tcPop.hidden = true; });
     tcPop.addEventListener("click", (event) => { if (event.target === tcPop) tcPop.hidden = true; });
 
-    // CCTV 1페이지(현장 CAM) / 2페이지(TC CAM) / 3페이지(전체 구역 배치도)
+    // CCTV 1페이지(현장 CAM) / 2페이지(TC CAM) 전환
     function showCamPage(page) {
-      const next = page === "2" || page === "3" ? page : "1";
+      const next = page === "2" ? "2" : "1";
       document.querySelectorAll(".cam[data-page], .page-group[data-page]").forEach((el) => { el.hidden = el.dataset.page !== next; });
-      document.getElementById("zone-page").hidden = next !== "3";
       document.querySelectorAll(".pager").forEach((btn) => {
         const on = btn.dataset.page === next;
         btn.classList.toggle("on", on);
         btn.setAttribute("aria-pressed", on ? "true" : "false");
       });
-      const label = {
-        "1": ["LIVE · CCTV 4", "현장", "현장 CAM · 최근 10분"],
-        "2": ["LIVE · TC CAM 4", "TC 관제", "TC CAM · 최근 10분"],
-        "3": ["LIVE · 전체 구역", "구역", "전체 구역 배치도"],
-      }[next];
-      document.getElementById("live-label").textContent = label[0];
-      document.getElementById("page-label").textContent = label[1];
-      document.getElementById("sector-sub").textContent = label[2];
-      if (next === "3") loadZonePage();
+      document.getElementById("live-label").textContent = next === "2" ? "LIVE · TC CAM 4" : "LIVE · CCTV 4";
+      document.getElementById("page-label").textContent = next === "2" ? "TC 관제" : "현장";
+      document.getElementById("sector-sub").textContent = next === "2" ? "TC CAM · 최근 10분" : "현장 CAM · 최근 10분";
       syncDetectStreams();
     }
     document.querySelectorAll(".pager").forEach((btn) => btn.addEventListener("click", () => showCamPage(btn.dataset.page)));
@@ -1684,89 +1651,6 @@
       setCamAlarm(false);
       closeCamAlarm();
       toast("CAM_0002 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
-    });
-
-    let zoneList = [], zoneCurrent = null, zoneLoaded = false, zoneFocusName = "", zoneH = 1000 / (5 / 3);
-    const zoneW = 1000;
-    function zonePoly(z) { return z.plan_polygon && z.plan_polygon.length >= 3 ? z.plan_polygon : null; }
-    function zoneCenter(p) {
-      let a = 0, cx = 0, cy = 0;
-      p.forEach(([x1, y1], i) => {
-        const [x2, y2] = p[(i + 1) % p.length], k = x1 * y2 - x2 * y1;
-        a += k; cx += (x1 + x2) * k; cy += (y1 + y2) * k;
-      });
-      if (Math.abs(a) < 1e-9) return [p.reduce((s, q) => s + q[0], 0) / p.length, p.reduce((s, q) => s + q[1], 0) / p.length];
-      return [cx / (3 * a), cy / (3 * a)];
-    }
-    function zoneState(z) {
-      if (z.open_high || z.works.some((w) => w.status === "STOPPED")) return ["stop", "#ff5d5d", z.open_high ? "높음 경보 " + z.open_high + "건" : "작업중지"];
-      if (z.open_events) return ["warn", "#ffb020", "점검 필요"];
-      if (!z.works.length) return ["mute", "#8e9aab", "오늘 작업 없음"];
-      return ["ok", "#3ddc84", "정상"];
-    }
-    function drawZonePlan() {
-      const svg = document.getElementById("shapes");
-      svg.setAttribute("viewBox", "0 0 " + zoneW + " " + zoneH.toFixed(1));
-      let shapes = "", tags = "";
-      zoneList.forEach((z) => {
-        const p = zonePoly(z);
-        if (!p) return;
-        const [cls, color, text] = zoneState(z);
-        const on = zoneCurrent && zoneCurrent.id === z.id ? " on" : "";
-        const pts = p.map(([x, y]) => (x * zoneW).toFixed(1) + "," + (y * zoneH).toFixed(1)).join(" ");
-        shapes += '<polygon class="zone' + (cls === "stop" ? " alarm" : "") + on + '" data-z="' + z.id + '" points="' + pts + '" style="--c:' + color + '" />';
-        const [cx, cy] = zoneCenter(p);
-        const sub = [z.works.length && "작업 " + z.works.length, z.worker_count && "인원 " + z.worker_count].filter(Boolean).join(" · ");
-        tags += '<button type="button" class="zone-tag' + on + '" data-z="' + z.id + '" style="--c:' + color + '; left:' + (cx * 100).toFixed(2) + '%; top:' + (cy * 100).toFixed(2) + '%"><b>' + esc(z.name) + '</b><small>' + esc(sub || "-") + '</small><span class="status ' + cls + '">' + esc(text.split(" · ")[0]) + '</span></button>';
-      });
-      svg.innerHTML = shapes;
-      document.getElementById("tags").innerHTML = tags;
-    }
-    function showZone(id) {
-      zoneCurrent = zoneList.find((z) => z.id === id) || zoneList[0] || null;
-      drawZonePlan();
-      const box = document.getElementById("zone-sum");
-      if (!zoneCurrent) { box.innerHTML = '<p class="desc">등록된 구역이 없습니다.</p>'; return; }
-      const z = zoneCurrent;
-      const [cls, , text] = zoneState(z);
-      const cams = z.cameras.length + z.cameras_off.length;
-      box.innerHTML = '<div class="label">ZONE-' + String(z.id).padStart(2, "0") + '</div><h2>' + esc(z.name) + '</h2><div><span class="status ' + cls + '">' + esc(text) + '</span></div>' +
-        '<div class="zone-stats"><div><span>작업</span><b>' + z.works.length + '</b></div><div><span>인원</span><b>' + z.worker_count + '</b></div><div><span>장비</span><b>' + z.equipment.length + '</b></div><div><span>카메라</span><b>' + cams + '</b></div><div><span>경보</span><b>' + z.open_events + '</b></div></div>' +
-        '<a href="zone-works.html?zone=' + z.id + '">구역별 작업 →</a> <a href="zones.html?zone=' + z.id + '">이 구역 수정 →</a>';
-    }
-    function openZonePage(index) {
-      startTcWatch();
-      tcSelected = index;
-      document.querySelectorAll(".tc-card").forEach((el, i) => el.classList.toggle("active", i === index));
-      zoneFocusName = TC_SPEC[index].zone;
-      showCamPage("3");
-      if (zoneList.length) {
-        const z = zoneList.find((item) => item.name === zoneFocusName);
-        if (z) showZone(z.id);
-      }
-    }
-    async function loadZonePage() {
-      if (zoneLoaded) return;
-      zoneLoaded = true;
-      try {
-        const [list, plan] = await Promise.all([api("/api/work-zones/summary"), loadSitePlan()]);
-        zoneList = list;
-        paintPlan(document.getElementById("plan"), plan);
-        zoneH = zoneW / (plan ? plan.width / plan.height : PLAN_RATIO);
-        const named = zoneList.find((z) => z.name === zoneFocusName);
-        showZone(named ? named.id : zoneList[0] && zoneList[0].id);
-      } catch (err) {
-        zoneLoaded = false;
-        document.getElementById("plan-sub").textContent = "배치도를 불러오지 못했습니다.";
-      }
-    }
-    document.getElementById("tags").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-z]");
-      if (b) showZone(Number(b.dataset.z));
-    });
-    document.getElementById("shapes").addEventListener("click", (e) => {
-      const g = e.target.closest(".zone");
-      if (g) showZone(Number(g.dataset.z));
     });
 
     let hookClearEvent = null;
@@ -1947,6 +1831,22 @@
     }
     try { setRail(localStorage.getItem(RAIL_KEY) === "1", false); } catch (e) { setRail(false, false); }
     railBtn.addEventListener("click", () => setRail(!board.classList.contains("rail-hidden"), true));
+
+    // 전체화면: 지금 페이지의 CCTV 4칸만 창을 채운다. Esc 나 종료 버튼으로 돌아온다
+    const fullBtn = document.getElementById("cctv-full");
+    const exitBtn = document.getElementById("cctv-exit");
+    function setCctvFull(on) {
+      document.body.classList.toggle("cctv-full", on);
+      exitBtn.hidden = !on;
+      fullBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      const root = document.documentElement;
+      if (on && !document.fullscreenElement && root.requestFullscreen) root.requestFullscreen().catch(() => {});
+      else if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 280);
+    }
+    fullBtn.addEventListener("click", () => setCctvFull(true));
+    exitBtn.addEventListener("click", () => setCctvFull(false));
+    document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) setCctvFull(false); });
 
     // 오른쪽 패널 접기 · 펴기 (접은 상태는 이 브라우저에 기억)
     const FOLD_KEY = "safety.monitor-fold";

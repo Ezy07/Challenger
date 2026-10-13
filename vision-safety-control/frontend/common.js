@@ -35,7 +35,7 @@ const MENU = [
   ] },
   { icon: "⚙", name: "장비 현황", pages: [
     ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
-    ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 관련 이벤트", 0],
+    ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 구비 서류와 안전교육", 0],
   ] },
   { icon: "✚", name: "안전관리 업무", pages: [
     ["workers.html", "현장작업자 관리", "현장작업자 등록 · 수정 · 삭제", 0],
@@ -552,6 +552,7 @@ function stepTcHooks() {
     holds.push({ seq: state.seq, names: state.names, id: null });
     writeHookHolds(holds);
     tcHookSeen = state.seq;
+    /* TEMP 작업 중: 후크 겹침 경고창과 그 이벤트 알림을 띄우지 않는다
     showHookWarn(null);
     postHookEvent().then(async (id) => {
       const next = readHookHolds();
@@ -563,6 +564,7 @@ function stepTcHooks() {
       const pop = document.getElementById("hook-warn");
       if (id && pop && !pop.hidden) showHookWarn(id);
     });
+    */
     return;
   }
   if (now.d > TC_HOOK_CLEAR && ahead.d > TC_HOOK_HIT && state.latched) {
@@ -573,7 +575,9 @@ function stepTcHooks() {
   if (tcHookSeen == null) tcHookSeen = state.seq || 0;
   else if (state.latched && (state.seq || 0) > tcHookSeen) {
     tcHookSeen = state.seq;
+    /* TEMP 작업 중: 다른 창의 후크 겹침 경고창을 띄우지 않는다
     showHookWarn(null);
+    */
   }
 }
 
@@ -646,11 +650,13 @@ function stepWindGust() {
     state.seq = (state.seq || 0) + 1;
     writeWindWatch(state);
     windSeen = state.seq;
+    /* TEMP 작업 중: 순간풍속 경고창과 그 이벤트 알림을 띄우지 않는다
     showWindWarn(null);
     postWindEvent().then((id) => {
       const pop = document.getElementById("wind-warn");
       if (id && pop && !pop.hidden) showWindWarn(id);
     });
+    */
     return;
   }
   if (!gust && state.latched) {
@@ -660,7 +666,9 @@ function stepWindGust() {
   if (windSeen == null) windSeen = state.seq || 0;
   else if (state.latched && (state.seq || 0) > windSeen) {
     windSeen = state.seq;
+    /* TEMP 작업 중: 다른 창의 순간풍속 경고창을 띄우지 않는다
     showWindWarn(null);
+    */
   }
 }
 

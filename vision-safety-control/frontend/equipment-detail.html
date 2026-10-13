@@ -15,6 +15,21 @@
     .run i.stop { background: var(--red); }
     .run i.idle { background: #3a4554; }
     .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+    #doc-count, #edu-count { color: var(--muted); font-weight: 700; }
+    .doc-item { align-items: center; }
+    .doc-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .doc-name label { cursor: pointer; }
+    .doc-more { border: 0; background: none; color: var(--blue); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; padding: 0; white-space: nowrap; }
+    .doc-more:hover { color: var(--ink); }
+    #doc-detail, #edu-detail { z-index: 40; }
+    #edu-detail .pop-card { width: min(560px, 100%); max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
+    #doc-detail-body, #edu-detail-body { display: grid; gap: 8px; margin: 0; }
+    #edu-detail-body { overflow: auto; }
+    #doc-detail-body li, .detail-sec p, .detail-sec li { font-size: 14px; line-height: 1.5; }
+    .detail-sec { display: grid; gap: 4px; }
+    .detail-sec b { font-size: 13px; }
+    .detail-sec p { margin: 0; }
+    .detail-sec ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
   </style>
 </head>
 <body>
@@ -54,11 +69,9 @@
 
     <aside class="cell right" id="rail">
       <div class="pad">
-        <div class="label">관련 이벤트 <span>연결 카메라 · 투입 구역</span></div>
-        <div id="events"></div>
-        <div class="label" style="margin-top:6px">이번 주</div>
-        <div id="week"></div>
-        <a class="btn block" id="all-events" href="events.html">이벤트 목록에서 보기</a>
+        <div class="label">구비 서류 · 교육</div>
+        <button type="button" class="btn block" id="open-docs">체크리스트 <span id="doc-count"></span></button>
+        <button type="button" class="btn block" id="open-edu">안전교육 <span id="edu-count"></span></button>
       </div>
       <div class="pad">
         <div class="label">장비 정보 <span id="e-reg"></span></div>
@@ -73,6 +86,75 @@
         <a class="btn block" href="equipment.html">← 장비 목록</a>
       </div>
     </aside>
+  </div>
+
+  <div class="pop" id="doc-pop" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="doc-title">
+      <div class="pop-head">
+        <div><span class="role">구비 서류</span><h2 id="doc-title">체크리스트</h2><p>갖춘 서류를 체크한 뒤 저장합니다</p></div>
+        <button type="button" class="btn sm" data-close>닫기</button>
+      </div>
+      <form class="pop-body" id="doc-form" data-lock="MANAGER">
+        <div class="check doc-item">
+          <div class="doc-name"><label for="doc-license"><b>건설기계조종사 면허</b></label><button type="button" class="doc-more" data-detail="license">상세보기 &gt;</button></div>
+          <input id="doc-license" type="checkbox" value="license" />
+        </div>
+        <div class="check doc-item">
+          <div class="doc-name"><label for="doc-registration"><b>건설기계 등록증 및 검사증</b></label><button type="button" class="doc-more" data-detail="registration">상세보기 &gt;</button></div>
+          <input id="doc-registration" type="checkbox" value="registration" />
+        </div>
+        <div class="check doc-item">
+          <div class="doc-name"><label for="doc-spec"><b>장비 제원표</b></label><button type="button" class="doc-more" data-detail="spec_sheet">상세보기 &gt;</button></div>
+          <input id="doc-spec" type="checkbox" value="spec_sheet" />
+        </div>
+        <div class="check doc-item">
+          <div class="doc-name"><label for="doc-business"><b>사업자등록증</b></label><button type="button" class="doc-more" data-detail="business">상세보기 &gt;</button></div>
+          <input id="doc-business" type="checkbox" value="business" />
+        </div>
+        <label class="check"><span><b>작업계획서</b></span><input type="checkbox" value="work_plan" /></label>
+        <div class="row end"><button class="btn" type="button" data-close>취소</button><button class="btn primary" data-need="MANAGER">저장</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="pop" id="doc-detail" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="doc-detail-title">
+      <div class="pop-head">
+        <div><span class="role">구비 서류</span><h2 id="doc-detail-title">상세</h2></div>
+        <button type="button" class="btn sm" data-close>닫기</button>
+      </div>
+      <ul class="pop-body" id="doc-detail-body"></ul>
+    </div>
+  </div>
+
+  <div class="pop" id="edu-pop" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="edu-title">
+      <div class="pop-head">
+        <div><span class="role">안전교육</span><h2 id="edu-title">안전교육</h2><p>이수한 교육을 체크한 뒤 저장합니다</p></div>
+        <button type="button" class="btn sm" data-close>닫기</button>
+      </div>
+      <form class="pop-body" id="edu-form" data-lock="MANAGER">
+        <div class="check doc-item">
+          <div class="doc-name"><label for="edu-pre"><b>신규 투입 전 교육</b></label><button type="button" class="doc-more" data-detail="pre_entry">상세보기 &gt;</button></div>
+          <input id="edu-pre" type="checkbox" value="pre_entry" />
+        </div>
+        <div class="check doc-item">
+          <div class="doc-name"><label for="edu-special"><b>특별안전보건교육</b></label><button type="button" class="doc-more" data-detail="special">상세보기 &gt;</button></div>
+          <input id="edu-special" type="checkbox" value="special" />
+        </div>
+        <div class="row end"><button class="btn" type="button" data-close>취소</button><button class="btn primary" data-need="MANAGER">저장</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="pop" id="edu-detail" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="edu-detail-title">
+      <div class="pop-head">
+        <div><span class="role">안전교육</span><h2 id="edu-detail-title">상세</h2></div>
+        <button type="button" class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="pop-body" id="edu-detail-body"></div>
+    </div>
   </div>
 
   <div class="pop" id="pop" hidden>
@@ -125,17 +207,8 @@
         <td class="num">${l.inspected_at ? fmtTime(l.inspected_at, { date: false }).slice(0, 5) : "-"}</td><td>${esc(l.note || "-")}</td><td>${esc(l.recorded_by_name || "-")}</td></tr>`).join("")
         : '<tr><td colspan="5" class="muted" style="text-align:center; padding:20px">기록이 없습니다</td></tr>';
       fillLog($("l-date").value || todayStr());
-
-      $("events").innerHTML = e.events.length ? e.events.map((v) => {
-        const tone = { NEW: "stop", ACK: "warn", DONE: "ok", FALSE: "" }[v.status];
-        return `<a class="item ${tone}" href="event-detail.html?id=${v.id}"><div class="item-top"><b>${esc(v.detection_label)}</b>${badge("severity", v.severity)}</div>
-          <div class="desc">${fmtTime(v.detected_at)} · ${esc(v.camera_name || "-")} · ${LABEL.eventStatus[v.status][1]}</div></a>`;
-      }).join("") : '<p class="muted">관련 이벤트가 없습니다</p>';
-      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-      const week = e.events.filter((v) => v.detected_at.slice(0, 10) >= weekAgo);
-      const workDays = e.logs.filter((l) => l.log_date >= weekAgo && l.status === "RUNNING").length;
-      $("week").innerHTML = `<div class="check info"><div><b>가동한 날</b><small>최근 7일 일일 기록 기준</small></div><span class="status info">${workDays}일</span></div>
-        <div class="check ${week.length ? "warn" : ""}"><div><b>관련 이벤트</b><small>최근 7일 (최대 10건까지 표시)</small></div><span class="status ${week.length ? "warn" : "ok"}">${week.length}건</span></div>`;
+      $("doc-count").textContent = (e.doc_checks || []).length + "/5";
+      $("edu-count").textContent = (e.edu_checks || []).length + "/2";
     }
 
     // 날짜를 고르면 그날 기록을 칸에 채운다 (없으면 지금 상태로)
@@ -182,6 +255,68 @@
         toast(`${day.replaceAll("-", ".")} 기록을 저장했습니다.`);
       } catch (err) { toast(err.message); }
     });
+
+    function openChecks(popId, formId, saved) {
+      const on = new Set(saved || []);
+      document.querySelectorAll("#" + formId + " input[type=checkbox]").forEach((box) => { box.checked = on.has(box.value); });
+      $(popId).hidden = false;
+    }
+    async function saveChecks(ev, kind, popId) {
+      ev.preventDefault();
+      const items = [...ev.target.querySelectorAll("input[type=checkbox]:checked")].map((box) => box.value);
+      try {
+        render(await api(`/api/equipment/${id}/checks/${kind}`, { method: "PUT", body: { items } }));
+        $(popId).hidden = true;
+        toast(kind === "docs" ? "체크리스트를 저장했습니다." : "안전교육을 저장했습니다.");
+      } catch (err) { toast(err.message); }
+    }
+    const DOC_DETAIL = {
+      license: ["3톤 이상: 건설기계조종사 면허증", "3톤 미만: 소형건설기계조종교육 이수증"],
+      registration: ["건설기계관리법에 따른 정기검사/구조변경검사 유효기간 확인"],
+      spec_sheet: ["정격하중, 작업반경, 자체중량 등 (작업계획서 작성 기본자료)"],
+      business: ["특수형태근로종사자(건설기계 조종사) 안전보건조치 이행용"],
+    };
+    $("doc-form").addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-detail]");
+      if (!btn) return;
+      const lines = DOC_DETAIL[btn.dataset.detail];
+      if (!lines) return;
+      $("doc-detail-title").textContent = btn.previousElementSibling.textContent;
+      $("doc-detail-body").innerHTML = lines.map((line) => `<li>${esc(line)}</li>`).join("");
+      $("doc-detail").hidden = false;
+    });
+    const EDU_DETAIL = {
+      pre_entry: [
+        ["법적 근거", "산업안전보건법 제77조 및 동법 시행규칙 제93조"],
+        ["교육 시간", "2시간 이상(단, 단기/일용 작업자는 1시간 이상)"],
+        ["교육 내용", ["건설기계의 위험성 및 안전작업방법", "보호구 착용 및 점검에 관한 사항", "비상시 조치 및 작업장 내 충돌/협착 방지 대책"]],
+      ],
+      special: [
+        ["법적 근거", "산업안전보건법 제29조 제3항 및 시행규칙"],
+        ["대상 작업", "차량계 건설기계(굴착기, 크레인 등)를 사용하는 작업, 중량물 취급 작업, 굴착작업 등 유해/위험 작업"],
+        ["교육 시간", "총 16시간 이상(일용근로자/단기작업자는 2시간 이상)"],
+        ["교육 내용", ["장비의 구조/특성 및 신호체계", "작업반경 내 근로자 출입통제 및 작업경로 확보", "퀵커플러(Quick Coupler) 이탈 방지 안전핀 체결 및 버킷 낙하 방지"]],
+      ],
+    };
+    function detailSections(sections) {
+      return sections.map(([title, body]) => {
+        const inner = Array.isArray(body) ? `<ul>${body.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>` : `<p>${esc(body)}</p>`;
+        return `<section class="detail-sec"><b>${esc(title)}</b>${inner}</section>`;
+      }).join("");
+    }
+    $("edu-form").addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-detail]");
+      if (!btn) return;
+      const sections = EDU_DETAIL[btn.dataset.detail];
+      if (!sections) return;
+      $("edu-detail-title").textContent = btn.previousElementSibling.textContent;
+      $("edu-detail-body").innerHTML = detailSections(sections);
+      $("edu-detail").hidden = false;
+    });
+    $("open-docs").addEventListener("click", () => openChecks("doc-pop", "doc-form", eq.doc_checks));
+    $("open-edu").addEventListener("click", () => openChecks("edu-pop", "edu-form", eq.edu_checks));
+    $("doc-form").addEventListener("submit", (ev) => saveChecks(ev, "docs", "doc-pop"));
+    $("edu-form").addEventListener("submit", (ev) => saveChecks(ev, "edu", "edu-pop"));
 
     $("edit").addEventListener("click", () => {
       $("f-name").value = eq.name;

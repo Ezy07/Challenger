@@ -1,7 +1,7 @@
 from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, inspect, or_, select
 from sqlalchemy.orm import selectinload
 
 from ..deps import DB, CurrentUser, Manager
@@ -18,6 +18,7 @@ from ..models import (
     WorkZone,
 )
 from ..schemas import (
+    ChecksIn,
     DailyIn,
     DailyLogIn,
     DailyLogOut,
@@ -30,6 +31,40 @@ from ..schemas import (
 )
 
 router = APIRouter(prefix="/api/equipment", tags=["장비 · 일일 기록"])
+
+DOC_KEYS = ("license", "registration", "spec_sheet", "business", "work_plan")
+EDU_KEYS = ("pre_entry", "special")
+_checks_ready = False
+
+
+def ensure_check_columns(db: DB) -> None:
+    """이미 만들어진 장비 테이블에도 체크리스트 칸을 붙인다 (없는 칸만)."""
+    global _checks_ready
+    if _checks_ready:
+        return
+    bind = db.get_bind()
+    names = {col["name"] for col in inspect(bind).get_columns("equipment")}
+    missing = [col for col in ("doc_checks", "edu_checks") if col not in names]
+    if missing:
+        conn = bind.connect()
+        try:
+            for col in missing:
+                conn.exec_driver_sql(f"ALTER TABLE equipment ADD COLUMN {col} JSON NULL")
+            conn.commit()
+        finally:
+            conn.close()
+    _checks_ready = True
+
+
+def save_checks(db: DB, equipment_id: int, field: str, allowed: tuple[str, ...], items: list[str]) -> EquipmentDetail:
+    ensure_check_columns(db)
+    unknown = [key for key in items if key not in allowed]
+    if unknown:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "목록에 없는 항목입니다.")
+    e = get_equipment(db, equipment_id)
+    setattr(e, field, list(dict.fromkeys(items)))
+    db.commit()
+    return detail(db, e.id)
 
 ZONE_ID = func.coalesce(Roi.work_zone_id, Camera.work_zone_id)  # 이벤트의 구역 (events.py 와 같은 기준)
 
@@ -142,6 +177,8 @@ def detail(db: DB, equipment_id: int) -> EquipmentDetail:
         **to_out(e, cams, logs, zone_events).model_dump(),
         logs=[log_out(log) for log in history],
         events=rows,
+        doc_checks=list(e.doc_checks or []),
+        edu_checks=list(e.edu_checks or []),
     )
 
 
@@ -174,6 +211,7 @@ def upsert_log(db: DB, e: Equipment, day: date, user: User, **values) -> Equipme
 @router.get("", response_model=list[EquipmentOut])
 def list_equipment(db: DB, _: CurrentUser, equip_type: EquipType | None = None,
                    work_zone_id: int | None = None, q: str | None = None):
+    ensure_check_columns(db)
     query = select(Equipment).options(*load_options()).order_by(Equipment.equip_type, Equipment.name)
     if equip_type:
         query = query.where(Equipment.equip_type == equip_type)
@@ -187,11 +225,13 @@ def list_equipment(db: DB, _: CurrentUser, equip_type: EquipType | None = None,
 
 @router.get("/{equipment_id}", response_model=EquipmentDetail)
 def read_equipment(equipment_id: int, db: DB, _: CurrentUser):
+    ensure_check_columns(db)
     return detail(db, equipment_id)
 
 
 @router.post("", response_model=EquipmentDetail, status_code=status.HTTP_201_CREATED)
 def create_equipment(body: EquipmentIn, db: DB, _: Manager):
+    ensure_check_columns(db)
     check_refs(db, body.work_zone_id, body.operator_id)
     check_reg_no(db, body.reg_no)
     e = Equipment(**body.model_dump())
@@ -202,6 +242,7 @@ def create_equipment(body: EquipmentIn, db: DB, _: Manager):
 
 @router.patch("/{equipment_id}", response_model=EquipmentDetail)
 def update_equipment(equipment_id: int, body: EquipmentUpdate, db: DB, _: Manager):
+    ensure_check_columns(db)
     e = get_equipment(db, equipment_id)
     data = body.model_dump(exclude_unset=True)
     check_refs(db, data.get("work_zone_id"), data.get("operator_id"))
@@ -217,6 +258,7 @@ def update_equipment(equipment_id: int, body: EquipmentUpdate, db: DB, _: Manage
 
 @router.delete("/{equipment_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_equipment(equipment_id: int, db: DB, _: Manager):
+    ensure_check_columns(db)
     e = get_equipment(db, equipment_id)
     if db.scalar(select(Camera.id).where(Camera.equipment_id == e.id)):
         raise HTTPException(status.HTTP_409_CONFLICT, "이 장비에 연결된 카메라가 있습니다. 카메라 연결을 먼저 바꾸세요.")
@@ -228,6 +270,7 @@ def delete_equipment(equipment_id: int, db: DB, _: Manager):
 @router.put("/{equipment_id}/logs/{log_date}", response_model=EquipmentDetail)
 def save_log(equipment_id: int, log_date: date, body: DailyLogIn, db: DB, user: Manager):
     """하루 기록 쓰기 (운전 전 점검 시각 · 메모). 오늘 기록이면 장비의 현재 상태도 같이 바꾼다."""
+    ensure_check_columns(db)
     e = get_equipment(db, equipment_id)
     if log_date > date.today():
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "앞으로의 날짜에는 기록할 수 없습니다.")
@@ -241,6 +284,7 @@ def save_log(equipment_id: int, log_date: date, body: DailyLogIn, db: DB, user: 
 @router.post("/daily", response_model=list[EquipmentOut])
 def save_daily(body: DailyIn, db: DB, user: Manager):
     """[오늘 기록 저장]: 장비마다 투입 구역 · 운전원 · 상태를 바꾸고 오늘 일일 기록에 상태를 남긴다"""
+    ensure_check_columns(db)
     today = date.today()
     for item in body.items:
         e = get_equipment(db, item.equipment_id)
@@ -250,3 +294,15 @@ def save_daily(body: DailyIn, db: DB, user: Manager):
     db.commit()
     db.expire_all()
     return list_equipment(db, user)
+
+
+@router.put("/{equipment_id}/checks/docs", response_model=EquipmentDetail)
+def save_doc_checks(equipment_id: int, body: ChecksIn, db: DB, _: Manager):
+    """구비 서류 체크리스트. 체크된 항목 키만 남긴다."""
+    return save_checks(db, equipment_id, "doc_checks", DOC_KEYS, body.items)
+
+
+@router.put("/{equipment_id}/checks/edu", response_model=EquipmentDetail)
+def save_edu_checks(equipment_id: int, body: ChecksIn, db: DB, _: Manager):
+    """안전교육 체크리스트. 체크된 항목 키만 남긴다."""
+    return save_checks(db, equipment_id, "edu_checks", EDU_KEYS, body.items)

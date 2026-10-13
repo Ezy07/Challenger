@@ -405,6 +405,8 @@ class Equipment(Base):
     work_zone_id: Mapped[int | None] = mapped_column(Id, ForeignKey("work_zone.id"))  # NULL = 미투입
     operator_id: Mapped[int | None] = mapped_column(Id, ForeignKey("worker.id"))
     status: Mapped[EquipStatus] = mapped_column(enum_col(EquipStatus), default=EquipStatus.IDLE)
+    doc_checks: Mapped[list | None] = mapped_column(JSON)  # 구비 서류 체크 (license, registration ...)
+    edu_checks: Mapped[list | None] = mapped_column(JSON)  # 안전교육 체크 (pre_entry, special)
 
     work_zone: Mapped[WorkZone | None] = relationship()
     operator: Mapped[Worker | None] = relationship()

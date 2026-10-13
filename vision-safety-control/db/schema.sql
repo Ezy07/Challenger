@@ -126,6 +126,8 @@ CREATE TABLE equipment (
   work_zone_id  BIGINT UNSIGNED NULL,                         -- 투입 구역 (NULL = 미투입)
   operator_id   BIGINT UNSIGNED NULL,                         -- 운전원 (현장작업자)
   status        ENUM('RUNNING', 'IDLE', 'MAINTENANCE', 'BROKEN') NOT NULL DEFAULT 'IDLE',  -- 가동 · 대기 · 점검 · 고장
+  doc_checks    JSON         NULL,                            -- 구비 서류 체크 키 목록
+  edu_checks    JSON         NULL,                            -- 안전교육 체크 키 목록
   PRIMARY KEY (id),
   UNIQUE KEY uk_equipment_reg_no (reg_no),
   CONSTRAINT fk_equipment_zone     FOREIGN KEY (work_zone_id) REFERENCES work_zone (id),

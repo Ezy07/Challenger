@@ -60,6 +60,22 @@ def test_daily_save_updates_equipment_and_log(client, manager):
     assert by_name["FORK-01"]["today_log"]["recorded_by_name"] == "manager.test"
 
 
+def test_equipment_checks_round_trip(client, manager):
+    exc = equip(client, manager, "EXC_01")
+    docs = client.put(f"/api/equipment/{exc['id']}/checks/docs",
+                      json={"items": ["work_plan", "license", "license"]}, headers=manager)
+    assert docs.status_code == 200, docs.text
+    assert docs.json()["doc_checks"] == ["work_plan", "license"]
+    edu = client.put(f"/api/equipment/{exc['id']}/checks/edu",
+                     json={"items": ["special"]}, headers=manager).json()
+    assert edu["edu_checks"] == ["special"] and edu["doc_checks"] == ["work_plan", "license"]
+    again = client.get(f"/api/equipment/{exc['id']}", headers=manager).json()
+    assert again["doc_checks"] == ["work_plan", "license"] and again["edu_checks"] == ["special"]
+    bad = client.put(f"/api/equipment/{exc['id']}/checks/docs", json={"items": ["bus"]}, headers=manager)
+    assert bad.status_code == 422
+    assert client.put(f"/api/equipment/{exc['id']}/checks/edu", json={"items": []}).status_code == 401
+
+
 def test_daily_log_write(client, manager):
     exc = equip(client, manager, "EXC_01")
     checked = datetime.combine(TODAY, datetime.min.time()) + timedelta(hours=7, minutes=5)

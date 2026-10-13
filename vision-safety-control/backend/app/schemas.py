@@ -511,6 +511,12 @@ class EquipmentOut(BaseModel):
 class EquipmentDetail(EquipmentOut):
     logs: list[DailyLogOut]   # 최근 14일
     events: list[EventRow]    # 투입 구역 · 연결 카메라의 최근 이벤트
+    doc_checks: list[str] = []  # 구비 서류 중 체크된 항목
+    edu_checks: list[str] = []  # 안전교육 중 체크된 항목
+
+
+class ChecksIn(BaseModel):
+    items: list[str] = Field(default_factory=list, max_length=8)
 
 
 class DailyItem(BaseModel):
