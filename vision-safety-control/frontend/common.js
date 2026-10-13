@@ -386,7 +386,8 @@ const TC_HOOK_CLEAR = 18;
 const TC_HOOK_AHEAD = 200; // 한 프레임 25ms × 200 = 5초 뒤. 이 시점에 겹침 경고
 const TC_HOOK_INSPECT = 400; // 10초 뒤면 패널은 현장점검
 const TC_WATCH_KEY = "safety.tcWatch";
-const TC_HOLD_KEY = "safety.tcHookHolds"; // 겹침 경고가 만든 이벤트. 처리완료 전까지 해당 호기는 작업중지
+const TC_HOLD_KEY = "safety.tcHookHolds"; // 겹침 경고가 만든 이벤트. 작업 허가 전까지 해당 호기는 작업중지
+const TC_INSPECT_KEY = "safety.tcInspect"; // 현장점검으로 올라간 호기. 작업 허가 전까지 유지
 let tcHookSeen = null;
 
 function readTcWatch() {
@@ -441,6 +442,32 @@ function tcFirstHit(frame, i, j) {
   }
   return null;
 }
+function readTcInspect() {
+  try {
+    const list = JSON.parse(localStorage.getItem(TC_INSPECT_KEY));
+    return Array.isArray(list) ? list : [];
+  } catch (e) { return []; }
+}
+function writeTcInspect(list) {
+  try { localStorage.setItem(TC_INSPECT_KEY, JSON.stringify(list)); } catch (e) { /* 저장을 못 해도 이 화면에서는 동작 */ }
+}
+function latchTcInspect(names) {
+  const cur = new Set(readTcInspect());
+  names.forEach((name) => cur.add(name));
+  const next = [...cur];
+  if (next.length !== readTcInspect().length) writeTcInspect(next);
+}
+// 이 호기만 작업 허가로 푼다. 같이 걸린 다른 호기는 그대로 둔다
+function releaseTcCrane(name) {
+  writeTcInspect(readTcInspect().filter((n) => n !== name));
+  const rest = [];
+  readHookHolds().forEach((hold) => {
+    const names = (hold.names || []).filter((n) => n !== name);
+    if (names.length) rest.push(Object.assign({}, hold, { names: names }));
+  });
+  writeHookHolds(rest);
+  return rest;
+}
 function tcCardLevel() {
   const stopped = new Set();
   readHookHolds().forEach((hold) => (hold.names || []).forEach((name) => {
@@ -448,15 +475,26 @@ function tcCardLevel() {
     if (i >= 0) stopped.add(i);
   }));
   const inspect = new Set();
+  readTcInspect().forEach((name) => {
+    const i = TC_HOOKS.findIndex((spec) => spec.id === name);
+    if (i >= 0 && !stopped.has(i)) inspect.add(i);
+  });
   const frame = tcFrameNow();
+  const fresh = [];
   if (frame != null) {
     for (let i = 0; i < TC_HOOKS.length; i++) {
       for (let j = i + 1; j < TC_HOOKS.length; j++) {
         const hit = tcFirstHit(frame, i, j);
-        if (hit != null && hit > TC_HOOK_AHEAD) { inspect.add(i); inspect.add(j); }
+        if (hit == null || hit <= TC_HOOK_AHEAD) continue;
+        [i, j].forEach((k) => {
+          if (stopped.has(k)) return;
+          inspect.add(k);
+          fresh.push(TC_HOOKS[k].id);
+        });
       }
     }
   }
+  if (fresh.length) latchTcInspect(fresh);
   return TC_HOOKS.map((_, i) => (stopped.has(i) ? "stop" : inspect.has(i) ? "warn" : "ok"));
 }
 function tcHoldFor(index) {
@@ -570,7 +608,7 @@ function stepTcHooks() {
   if (now.d > TC_HOOK_CLEAR && ahead.d > TC_HOOK_HIT && state.latched) {
     state.latched = false;
     writeTcWatch(state);
-    writeHookHolds(readHookHolds().filter((hold) => hold.id));
+    // 작업중지는 후크가 떨어져도 유지한다. 작업 허가가 나와야 풀린다
   }
   if (tcHookSeen == null) tcHookSeen = state.seq || 0;
   else if (state.latched && (state.seq || 0) > tcHookSeen) {
