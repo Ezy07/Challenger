@@ -177,6 +177,8 @@
     .zone, .alerts { overflow: auto; }
     .zone .pad, .alerts .pad { height: auto; min-height: 100%; }
     .label a { color: var(--orange); font-size: 11.5px; font-weight: 700; }
+    .alerts a.item:has(.status.ok),
+    .zone button.tc-card:has([data-tc-status].ok) { cursor: default; }
     .label a:hover { text-decoration: underline; }
 
     .pad {
@@ -269,6 +271,44 @@
     .cam-2 { grid-column: 2; grid-row: 2; }
     .cam-3 { grid-column: 1; grid-row: 3; }
     .cam-4 { grid-column: 2; grid-row: 3; }
+
+    .zone-page {
+      grid-column: 1 / 3;
+      grid-row: 2 / 4;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+    }
+    .zone-page[hidden] { display: none; }
+    .zone-page-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 10px; }
+    .zone-page .plan-area { min-height: 0; height: 100%; }
+    .zone-page .road { position: absolute; background: #1a212b; }
+    .zone-page .road.h { left: 0; right: 0; top: 52%; height: 7%; }
+    .zone-page .road.v { top: 0; bottom: 0; left: 46%; width: 5%; }
+    .zone-page #shapes { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .zone-page #shapes .zone { cursor: pointer; fill: var(--c); fill-opacity: 0.28; stroke: var(--c); stroke-width: 3; stroke-linejoin: round; }
+    .zone-page .plan.has-image #shapes .zone { fill-opacity: 0.32; }
+    .zone-page #shapes .zone:hover, .zone-page #shapes .zone.on { fill-opacity: 0.42; }
+    .zone-page #shapes .zone.on { stroke: #fff; stroke-width: 4; }
+    .zone-page #shapes .zone.alarm { animation: zone-flash 1.2s ease-in-out infinite; }
+    @keyframes zone-flash { 50% { fill: #ff5d5d; fill-opacity: 0.4; } }
+    .zone-tag {
+      position: absolute; transform: translate(-50%, -50%); display: grid; gap: 3px; max-width: 200px;
+      padding: 6px 9px; border-radius: 9px; border: 1.5px solid var(--c); background: rgba(10, 14, 20, 0.8);
+      color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+    }
+    .zone-tag.on { box-shadow: 0 0 0 2px #fff; }
+    .zone-tag b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .zone-tag small { font-size: 10.5px; color: #c5d0dc; font-weight: 600; }
+    .zone-sum { overflow: auto; display: grid; align-content: start; gap: 8px; padding: 12px; border-radius: 12px; background: #121820; border: 1px solid var(--line); }
+    .zone-sum a { color: var(--orange); font-size: 13px; font-weight: 700; }
+    .zone-page > .row a { color: var(--orange); font-size: 12px; font-weight: 700; }
+    .zone-sum h2 { font-size: 18px; letter-spacing: -0.03em; }
+    .zone-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .zone-stats div { padding: 8px 4px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); text-align: center; }
+    .zone-stats span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+    .zone-stats b { font-size: 18px; }
 
     .cam-2 { box-shadow: inset 0 0 0 1px rgba(255, 93, 93, 0.55), 0 10px 30px rgba(0, 0, 0, 0.22); cursor: pointer; }
     .cam-2:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; }
@@ -794,6 +834,7 @@
         <div class="cam-pages" role="group" aria-label="CCTV 페이지">
           <button type="button" class="pager on" data-page="1" aria-pressed="true" aria-label="1페이지 현장 카메라 CAM_0001부터 0004">1</button>
           <button type="button" class="pager" data-page="2" aria-pressed="false" aria-label="2페이지 TC 관제 카메라">2</button>
+          <button type="button" class="pager" data-page="3" aria-pressed="false" aria-label="3페이지 전체 구역 배치도">3</button>
           <small id="page-label">현장</small>
         </div>
       </div>
@@ -852,11 +893,14 @@
               <div class="bar ok"><i></i></div>
             </a>
           </div>
+          <div class="page-group" data-page="3" hidden>
+            <p class="desc">전체 구역은 가운데 배치도에서 봅니다.</p>
+          </div>
         </div>
       </aside>
       <aside class="cell zone" data-fold="zone">
         <div class="pad">
-          <div class="label"><button type="button" class="fold-btn" aria-expanded="true"><i class="chev">▾</i>TC / 작업구역</button><a href="zones.html">자세히 보기 →</a></div>
+          <div class="label"><button type="button" class="fold-btn" aria-expanded="true"><i class="chev">▾</i>TC / 작업구역</button><a href="#" id="tc-detail">자세히 보기 →</a></div>
           <button type="button" class="tc-card active" data-tc="0">
             <div class="item-top"><b>1호기 · T-CRN-01</b><span class="status ok" data-tc-status>정상</span></div>
             <div class="desc" data-tc-desc>101동 갱폼 인양구역 · 100%</div>
@@ -1030,6 +1074,22 @@
       <div class="cam-zone">4호기 · 103동 외벽 인양구역</div>
       <a class="cam-over" href="monitor-camera.html?cam=tc4" aria-label="CAM_TC04 크게 보기"></a>
     </section>
+
+    <section class="cell zone-page" id="zone-page" hidden>
+      <div class="row between">
+        <div class="label">현장 배치도 <span id="plan-sub">구역을 누르면 오른쪽에 요약이 나옵니다</span></div>
+        <a href="zones.html">구역 관리 →</a>
+      </div>
+      <div class="zone-page-body">
+        <div class="plan-area"><div class="plan" id="plan"><div class="road h"></div><div class="road v"></div>
+          <svg id="shapes" preserveAspectRatio="none" aria-label="작업구역 영역"></svg>
+          <div id="tags"></div>
+        </div></div>
+        <aside class="zone-sum" id="zone-sum">
+          <p class="desc">구역을 고르면 작업 · 인원 · 경보가 여기 나옵니다.</p>
+        </aside>
+      </div>
+    </section>
   </div>
 
   <div class="pop" id="tc-pop" hidden>
@@ -1102,6 +1162,27 @@
     </div>
   </div>
 
+  <div class="pop" id="hook-clear" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="hook-clear-title" style="width:min(560px, 100%)">
+      <div class="pop-head">
+        <div>
+          <span class="role" id="hook-clear-role">작업중지</span>
+          <h2 id="hook-clear-title">후크 겹침</h2>
+          <p id="hook-clear-place">후크 겹침</p>
+        </div>
+        <button type="button" class="pop-x" id="hook-clear-close">닫기</button>
+      </div>
+      <p class="cam-lead" id="hook-clear-lead">후크가 겹칩니다. 항목을 모두 작업 허가해야 경보를 해제할 수 있습니다.</p>
+      <div id="hook-clear-list"></div>
+      <div class="pop-actions">
+        <button type="button" class="pop-act" id="hook-clear-cancel">취소</button>
+        <a class="pop-act" id="hook-clear-detail" href="events.html">상세 보기</a>
+        <button type="button" class="pop-act go" id="hook-clear-go" data-need="MANAGER" disabled>경보 해제</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
     function pad(n) { return String(n).padStart(2, "0"); }
@@ -1367,8 +1448,7 @@
         alertBox.hidden = true;
       }
       const windBox = document.getElementById("wind-alert");
-      const gustPhase = tcFrame % 1000;
-      windBox.hidden = !(gustPhase >= 200 && gustPhase < 520);
+      windBox.hidden = typeof windGustOn !== "function" || !windGustOn(tcFrame);
       const msg = document.getElementById("tc-msg");
       msg.className = "tc-msg " + (worst.d <= TC_STOP ? "stop" : worst.d <= TC_WARN ? "warn" : "ok");
       const pair = TC_SPEC[worst.a].id + " · " + TC_SPEC[worst.b].id;
@@ -1396,13 +1476,16 @@
       document.querySelectorAll(".tc-card").forEach((el, i) => el.classList.toggle("active", i === index));
       closeAlerts();
       camPop.hidden = true;
+      document.getElementById("hook-clear").hidden = true;
       tcPop.hidden = false;
       document.getElementById("tc-close").focus();
       if (!tcTimer) tcTimer = requestAnimationFrame(tickTc);
     }
 
-    document.querySelectorAll(".zone .tc-card").forEach((btn) => {
-      btn.addEventListener("click", () => openTc(Number(btn.dataset.tc)));
+    document.getElementById("tc-detail").addEventListener("click", (e) => {
+      e.preventDefault();
+      const active = document.querySelector(".zone .tc-card.active");
+      openTc(active ? Number(active.dataset.tc) : 0);
     });
     const TC_ZONE = ["101동 갱폼 인양구역", "102동 대형거푸집구역", "중앙 자재하역장", "103동 외벽 인양구역"];
     const TC_PCT = { ok: 100, warn: 96, stop: 85 };
@@ -1424,21 +1507,37 @@
       });
     }
     setInterval(paintTcCards, 200);
+    document.querySelectorAll(".zone .tc-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const index = Number(btn.dataset.tc);
+        const level = typeof tcCardLevel === "function" ? tcCardLevel()[index] : "ok";
+        if (level === "ok") return;
+        if (level === "stop") openHookClear(index);
+        else openZonePage(index);
+      });
+    });
     document.getElementById("tc-close").addEventListener("click", () => { tcPop.hidden = true; });
     tcPop.addEventListener("click", (event) => { if (event.target === tcPop) tcPop.hidden = true; });
 
-    // CCTV 1페이지(현장 CAM) / 2페이지(TC CAM) 전환
+    // CCTV 1페이지(현장 CAM) / 2페이지(TC CAM) / 3페이지(전체 구역 배치도)
     function showCamPage(page) {
-      const next = page === "2" ? "2" : "1";
+      const next = page === "2" || page === "3" ? page : "1";
       document.querySelectorAll(".cam[data-page], .page-group[data-page]").forEach((el) => { el.hidden = el.dataset.page !== next; });
+      document.getElementById("zone-page").hidden = next !== "3";
       document.querySelectorAll(".pager").forEach((btn) => {
         const on = btn.dataset.page === next;
         btn.classList.toggle("on", on);
         btn.setAttribute("aria-pressed", on ? "true" : "false");
       });
-      document.getElementById("live-label").textContent = next === "2" ? "LIVE · TC CAM 4" : "LIVE · CCTV 4";
-      document.getElementById("page-label").textContent = next === "2" ? "TC 관제" : "현장";
-      document.getElementById("sector-sub").textContent = next === "2" ? "TC CAM · 최근 10분" : "현장 CAM · 최근 10분";
+      const label = {
+        "1": ["LIVE · CCTV 4", "현장", "현장 CAM · 최근 10분"],
+        "2": ["LIVE · TC CAM 4", "TC 관제", "TC CAM · 최근 10분"],
+        "3": ["LIVE · 전체 구역", "구역", "전체 구역 배치도"],
+      }[next];
+      document.getElementById("live-label").textContent = label[0];
+      document.getElementById("page-label").textContent = label[1];
+      document.getElementById("sector-sub").textContent = label[2];
+      if (next === "3") loadZonePage();
       syncDetectStreams();
     }
     document.querySelectorAll(".pager").forEach((btn) => btn.addEventListener("click", () => showCamPage(btn.dataset.page)));
@@ -1482,6 +1581,7 @@
       showCamPage("2");
       closeAlerts();
       tcPop.hidden = true;
+      document.getElementById("hook-clear").hidden = true;
       camPop.hidden = true;
       paintTc3();
       tc3Pop.hidden = false;
@@ -1501,7 +1601,7 @@
     });
     document.getElementById("tc3-item").addEventListener("click", (e) => {
       e.preventDefault();
-      if (camTc3.classList.contains("alarm-on")) openTc3(); else location.href = "monitor-camera.html?cam=tc3";
+      if (camTc3.classList.contains("alarm-on")) openTc3();
     });
     camTc3.addEventListener("click", () => { if (camTc3.classList.contains("alarm-on")) openTc3(); else location.href = "monitor-camera.html?cam=tc3"; });
     camTc3.addEventListener("keydown", (e) => {
@@ -1545,6 +1645,7 @@
       showCamPage("1");
       closeAlerts();
       tcPop.hidden = true;
+      document.getElementById("hook-clear").hidden = true;
       tc3Pop.hidden = true;
       paintCam();
       camPop.hidden = false;
@@ -1559,7 +1660,6 @@
     });
     function onCam2Activate() {
       if (!cam2.classList.contains("alarm-off")) openCamAlarm();
-      else location.href = "event-detail.html";
     }
     cam2.addEventListener("click", onCam2Activate);
     cam2.addEventListener("keydown", (event) => {
@@ -1572,6 +1672,11 @@
       e.preventDefault();
       onCam2Activate();
     });
+    document.querySelector(".alerts").addEventListener("click", (e) => {
+      const item = e.target.closest("a.item");
+      const st = item && item.querySelector(".status");
+      if (st && st.classList.contains("ok")) e.preventDefault();
+    });
     document.getElementById("cam-cancel").addEventListener("click", closeCamAlarm);
     document.getElementById("cam-close").addEventListener("click", closeCamAlarm);
     camPop.addEventListener("click", (event) => { if (event.target === camPop) closeCamAlarm(); });
@@ -1581,12 +1686,179 @@
       toast("CAM_0002 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
     });
 
+    let zoneList = [], zoneCurrent = null, zoneLoaded = false, zoneFocusName = "", zoneH = 1000 / (5 / 3);
+    const zoneW = 1000;
+    function zonePoly(z) { return z.plan_polygon && z.plan_polygon.length >= 3 ? z.plan_polygon : null; }
+    function zoneCenter(p) {
+      let a = 0, cx = 0, cy = 0;
+      p.forEach(([x1, y1], i) => {
+        const [x2, y2] = p[(i + 1) % p.length], k = x1 * y2 - x2 * y1;
+        a += k; cx += (x1 + x2) * k; cy += (y1 + y2) * k;
+      });
+      if (Math.abs(a) < 1e-9) return [p.reduce((s, q) => s + q[0], 0) / p.length, p.reduce((s, q) => s + q[1], 0) / p.length];
+      return [cx / (3 * a), cy / (3 * a)];
+    }
+    function zoneState(z) {
+      if (z.open_high || z.works.some((w) => w.status === "STOPPED")) return ["stop", "#ff5d5d", z.open_high ? "높음 경보 " + z.open_high + "건" : "작업중지"];
+      if (z.open_events) return ["warn", "#ffb020", "점검 필요"];
+      if (!z.works.length) return ["mute", "#8e9aab", "오늘 작업 없음"];
+      return ["ok", "#3ddc84", "정상"];
+    }
+    function drawZonePlan() {
+      const svg = document.getElementById("shapes");
+      svg.setAttribute("viewBox", "0 0 " + zoneW + " " + zoneH.toFixed(1));
+      let shapes = "", tags = "";
+      zoneList.forEach((z) => {
+        const p = zonePoly(z);
+        if (!p) return;
+        const [cls, color, text] = zoneState(z);
+        const on = zoneCurrent && zoneCurrent.id === z.id ? " on" : "";
+        const pts = p.map(([x, y]) => (x * zoneW).toFixed(1) + "," + (y * zoneH).toFixed(1)).join(" ");
+        shapes += '<polygon class="zone' + (cls === "stop" ? " alarm" : "") + on + '" data-z="' + z.id + '" points="' + pts + '" style="--c:' + color + '" />';
+        const [cx, cy] = zoneCenter(p);
+        const sub = [z.works.length && "작업 " + z.works.length, z.worker_count && "인원 " + z.worker_count].filter(Boolean).join(" · ");
+        tags += '<button type="button" class="zone-tag' + on + '" data-z="' + z.id + '" style="--c:' + color + '; left:' + (cx * 100).toFixed(2) + '%; top:' + (cy * 100).toFixed(2) + '%"><b>' + esc(z.name) + '</b><small>' + esc(sub || "-") + '</small><span class="status ' + cls + '">' + esc(text.split(" · ")[0]) + '</span></button>';
+      });
+      svg.innerHTML = shapes;
+      document.getElementById("tags").innerHTML = tags;
+    }
+    function showZone(id) {
+      zoneCurrent = zoneList.find((z) => z.id === id) || zoneList[0] || null;
+      drawZonePlan();
+      const box = document.getElementById("zone-sum");
+      if (!zoneCurrent) { box.innerHTML = '<p class="desc">등록된 구역이 없습니다.</p>'; return; }
+      const z = zoneCurrent;
+      const [cls, , text] = zoneState(z);
+      const cams = z.cameras.length + z.cameras_off.length;
+      box.innerHTML = '<div class="label">ZONE-' + String(z.id).padStart(2, "0") + '</div><h2>' + esc(z.name) + '</h2><div><span class="status ' + cls + '">' + esc(text) + '</span></div>' +
+        '<div class="zone-stats"><div><span>작업</span><b>' + z.works.length + '</b></div><div><span>인원</span><b>' + z.worker_count + '</b></div><div><span>장비</span><b>' + z.equipment.length + '</b></div><div><span>카메라</span><b>' + cams + '</b></div><div><span>경보</span><b>' + z.open_events + '</b></div></div>' +
+        '<a href="zone-works.html?zone=' + z.id + '">구역별 작업 →</a> <a href="zones.html?zone=' + z.id + '">이 구역 수정 →</a>';
+    }
+    function openZonePage(index) {
+      startTcWatch();
+      tcSelected = index;
+      document.querySelectorAll(".tc-card").forEach((el, i) => el.classList.toggle("active", i === index));
+      zoneFocusName = TC_SPEC[index].zone;
+      showCamPage("3");
+      if (zoneList.length) {
+        const z = zoneList.find((item) => item.name === zoneFocusName);
+        if (z) showZone(z.id);
+      }
+    }
+    async function loadZonePage() {
+      if (zoneLoaded) return;
+      zoneLoaded = true;
+      try {
+        const [list, plan] = await Promise.all([api("/api/work-zones/summary"), loadSitePlan()]);
+        zoneList = list;
+        paintPlan(document.getElementById("plan"), plan);
+        zoneH = zoneW / (plan ? plan.width / plan.height : PLAN_RATIO);
+        const named = zoneList.find((z) => z.name === zoneFocusName);
+        showZone(named ? named.id : zoneList[0] && zoneList[0].id);
+      } catch (err) {
+        zoneLoaded = false;
+        document.getElementById("plan-sub").textContent = "배치도를 불러오지 못했습니다.";
+      }
+    }
+    document.getElementById("tags").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-z]");
+      if (b) showZone(Number(b.dataset.z));
+    });
+    document.getElementById("shapes").addEventListener("click", (e) => {
+      const g = e.target.closest(".zone");
+      if (g) showZone(Number(g.dataset.z));
+    });
+
+    let hookClearEvent = null;
+    let hookClearSeq = null;
+    function paintHookClear() {
+      const ev = hookClearEvent;
+      const list = document.getElementById("hook-clear-list");
+      const go = document.getElementById("hook-clear-go");
+      if (!ev) { list.innerHTML = ""; go.disabled = true; return; }
+      const done = ev.check_items.filter((c) => c.permitted).length;
+      const ready = done === ev.check_items.length;
+      document.getElementById("hook-clear-role").textContent = ev.status === "DONE" ? "처리완료" : "작업중지 · 허가 " + done + "/" + ev.check_items.length;
+      list.innerHTML = ev.check_items.map((c) =>
+        '<div class="permit-row' + (c.permitted ? " ok" : "") + '"><div><b>' + esc(c.title) + '</b><small>' + (c.permitted ? "허가됨" : "아직 허가 안 됨") + '</small></div>' +
+        '<button type="button" class="permit-btn' + (c.permitted ? " back" : "") + '" data-need="MANAGER" data-hook-item="' + c.id + '">' + (c.permitted ? "작업 중지로" : "작업 허가") + "</button></div>"
+      ).join("");
+      go.disabled = !ready || ev.status === "DONE";
+    }
+    async function openHookClear(index) {
+      startTcWatch();
+      tcSelected = index;
+      document.querySelectorAll(".tc-card").forEach((el, i) => el.classList.toggle("active", i === index));
+      closeAlerts();
+      tcPop.hidden = true;
+      camPop.hidden = true;
+      tc3Pop.hidden = true;
+      const spec = TC_SPEC[index];
+      const hold = typeof tcHoldFor === "function" ? tcHoldFor(index) : null;
+      hookClearSeq = hold ? hold.seq : null;
+      document.getElementById("hook-clear-title").textContent = spec.id + " · " + spec.code;
+      document.getElementById("hook-clear-place").textContent = spec.zone + " · 후크 겹침";
+      const link = document.getElementById("hook-clear-detail");
+      link.href = hold && hold.id ? "event-detail.html?id=" + hold.id : "events.html";
+      hookClearEvent = null;
+      document.getElementById("hook-clear").hidden = false;
+      document.getElementById("hook-clear-close").focus();
+      if (!hold || !hold.id) {
+        document.getElementById("hook-clear-lead").textContent = "겹침 경보 이벤트를 아직 찾지 못했습니다. 상세 보기에서 이벤트 로그를 확인하세요.";
+        paintHookClear();
+        return;
+      }
+      document.getElementById("hook-clear-lead").textContent = spec.id + " 후크가 겹칩니다. 항목을 모두 작업 허가해야 경보를 해제할 수 있습니다.";
+      try {
+        hookClearEvent = await api("/api/events/" + hold.id);
+        paintHookClear();
+      } catch (err) { toast(err.message); }
+    }
+    function closeHookClear() { document.getElementById("hook-clear").hidden = true; }
+    document.getElementById("hook-clear-list").addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-hook-item]");
+      if (!btn || !hookClearEvent) return;
+      const item = hookClearEvent.check_items.find((c) => c.id === Number(btn.dataset.hookItem));
+      if (!item) return;
+      try {
+        hookClearEvent = await api("/api/events/" + hookClearEvent.id + "/actions", {
+          method: "POST",
+          body: { action_type: item.permitted ? "REVOKE" : "PERMIT", check_item_id: item.id },
+        });
+        paintHookClear();
+      } catch (err) { toast(err.message); }
+    });
+    document.getElementById("hook-clear-go").addEventListener("click", async () => {
+      if (!hookClearEvent) return;
+      try {
+        const name = TC_SPEC[tcSelected].id;
+        const rest = [];
+        readHookHolds().forEach((hold) => {
+          if (hold.seq !== hookClearSeq) { rest.push(hold); return; }
+          const names = (hold.names || []).filter((n) => n !== name);
+          if (names.length) rest.push(Object.assign({}, hold, { names: names }));
+        });
+        const stillOpen = rest.some((hold) => hold.id === hookClearEvent.id);
+        if (!stillOpen) {
+          await api("/api/events/" + hookClearEvent.id + "/actions", { method: "POST", body: { action_type: "RESOLVE" } });
+        }
+        writeHookHolds(rest);
+        paintTcCards();
+        closeHookClear();
+        toast(TC_SPEC[tcSelected].id + " 경보를 해제했습니다.");
+      } catch (err) { toast(err.message); }
+    });
+    document.getElementById("hook-clear-cancel").addEventListener("click", closeHookClear);
+    document.getElementById("hook-clear-close").addEventListener("click", closeHookClear);
+    document.getElementById("hook-clear").addEventListener("click", (e) => { if (e.target.id === "hook-clear") closeHookClear(); });
+
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         tc3Pop.hidden = true;
         closeAlerts();
         tcPop.hidden = true;
         camPop.hidden = true;
+        closeHookClear();
       }
     });
 

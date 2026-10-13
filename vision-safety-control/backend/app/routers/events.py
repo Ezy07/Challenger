@@ -123,8 +123,9 @@ def ingest(body: EventIn, db: DB):
 
 @router.post("/tc-hook", response_model=EventIngestOut)
 def tc_hook_overlap(db: DB, _: CurrentUser):
-    """관제 화면 TC 패널을 연 뒤 1~4호기 후크가 약 5초 뒤 겹칠 때. 어느 화면에서든 로그인한 브라우저가 만든다."""
-    return create_event(db, EventIn(detection_type="TC_HOOK_PROXIMITY", confidence=0.95))
+    """관제 화면 TC 패널을 연 뒤 1~4호기 후크가 약 5초 뒤 겹칠 때. 어느 화면에서든 로그인한 브라우저가 만든다.
+    같은 겹침이 창 여러 개에서 동시에 올라오는 것만 건너뛰고, 다음 쌍의 경보는 따로 남긴다."""
+    return create_event(db, EventIn(detection_type="TC_HOOK_PROXIMITY", confidence=0.95), cooldown_sec=2)
 
 
 @router.post("/wind-gust", response_model=EventIngestOut)

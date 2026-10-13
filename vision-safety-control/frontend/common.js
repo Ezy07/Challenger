@@ -459,6 +459,12 @@ function tcCardLevel() {
   }
   return TC_HOOKS.map((_, i) => (stopped.has(i) ? "stop" : inspect.has(i) ? "warn" : "ok"));
 }
+function tcHoldFor(index) {
+  const name = TC_HOOKS[index] && TC_HOOKS[index].id;
+  if (!name) return null;
+  const holds = readHookHolds().filter((hold) => (hold.names || []).includes(name));
+  return holds.length ? holds[holds.length - 1] : null;
+}
 async function refreshHookHolds() {
   const holds = readHookHolds();
   const pending = holds.filter((hold) => !hold.id);
@@ -548,15 +554,12 @@ function stepTcHooks() {
     tcHookSeen = state.seq;
     showHookWarn(null);
     postHookEvent().then(async (id) => {
-      if (!id) {
-        try {
-          const page = await alertFetch("/api/events?detection_type=TC_HOOK_PROXIMITY&status=NEW&status=ACK&size=1");
-          id = page.items && page.items[0] && page.items[0].id;
-        } catch (e) { /* 이벤트 번호를 못 붙이면 아래 분리 시점에 작업중지를 푼다 */ }
-      }
       const next = readHookHolds();
       const row = next.find((hold) => hold.seq === state.seq);
-      if (row && id) { row.id = id; writeHookHolds(next); }
+      if (row && id && !next.some((hold) => hold !== row && hold.id === id)) {
+        row.id = id;
+        writeHookHolds(next);
+      }
       const pop = document.getElementById("hook-warn");
       if (id && pop && !pop.hidden) showHookWarn(id);
     });
@@ -574,8 +577,11 @@ function stepTcHooks() {
   }
 }
 
-// 순간풍속 10m/s. monitor.html 과 같이 1000프레임마다 200~519프레임 동안 강풍.
+// 순간풍속 10m/s. 한 프레임 25ms × 2400 = 1분마다, 그중 200~519프레임(약 8초)만 강풍.
 // TC 패널을 누른 시각을 같이 써서, 다른 화면에서도 그 구간에 들어가면 경고창과 이벤트가 생긴다.
+const WIND_CYCLE = 2400;
+const WIND_GUST_FROM = 200;
+const WIND_GUST_TO = 520;
 const WIND_WATCH_KEY = "safety.windWatch";
 let windSeen = null;
 
@@ -626,11 +632,14 @@ async function postWindEvent() {
     return body.created ? body.event_id : null;
   } catch (e) { return null; }
 }
+function windGustOn(frame) {
+  const phase = frame % WIND_CYCLE;
+  return phase >= WIND_GUST_FROM && phase < WIND_GUST_TO;
+}
 function stepWindGust() {
   const frame = tcFrameNow();
   if (frame == null) return;
-  const phase = frame % 1000;
-  const gust = phase >= 200 && phase < 520;
+  const gust = windGustOn(frame);
   const state = readWindWatch() || { latched: false, seq: 0 };
   if (gust && !state.latched) {
     state.latched = true;
