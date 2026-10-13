@@ -440,7 +440,10 @@
     }
 
     button.tc-card {
+      position: relative;
       width: 100%;
+      display: grid;
+      gap: 6px;
       color: inherit;
       font: inherit;
       text-align: left;
@@ -449,7 +452,7 @@
     }
 
     .zone .tc-card { padding: 8px 10px; }
-    .zone .tc-card strong { font-size: 13px; }
+    .zone .tc-card b { font-size: 13px; }
     .zone .pad { gap: 8px; }
 
     #tc-pop {
@@ -855,25 +858,25 @@
         <div class="pad">
           <div class="label"><button type="button" class="fold-btn" aria-expanded="true"><i class="chev">▾</i>TC / 작업구역</button><a href="zones.html">자세히 보기 →</a></div>
           <button type="button" class="tc-card active" data-tc="0">
-            <div class="code">1호기 · T-CRN-01</div>
-            <strong>101동 갱폼 인양구역</strong>
-            <p>T형 · 지브 55m</p>
+            <div class="item-top"><b>1호기 · T-CRN-01</b><span class="status ok" data-tc-status>정상</span></div>
+            <div class="desc" data-tc-desc>101동 갱폼 인양구역 · 100%</div>
+            <div class="bar ok" data-tc-bar><i></i></div>
           </button>
           <button type="button" class="tc-card" data-tc="1">
-            <div class="code">2호기 · T-CRN-02</div>
-            <strong>102동 대형거푸집구역</strong>
-            <p>러핑 · 지브 50m</p>
+            <div class="item-top"><b>2호기 · T-CRN-02</b><span class="status ok" data-tc-status>정상</span></div>
+            <div class="desc" data-tc-desc>102동 대형거푸집구역 · 100%</div>
+            <div class="bar ok" data-tc-bar><i></i></div>
           </button>
           <button type="button" class="tc-card" data-tc="2" id="tc3-card">
-            <div class="code">3호기 · M-CRN-01</div>
-            <strong>중앙 자재하역장</strong>
-            <p>T형 · 지브 48m</p>
+            <div class="item-top"><b>3호기 · M-CRN-01</b><span class="status ok" data-tc-status>정상</span></div>
+            <div class="desc" data-tc-desc>중앙 자재하역장 · 100%</div>
+            <div class="bar ok" data-tc-bar><i></i></div>
             <span class="item-alarm" aria-hidden="true"></span>
           </button>
           <button type="button" class="tc-card" data-tc="3">
-            <div class="code">4호기 · T-CRN-03</div>
-            <strong>103동 외벽 인양구역</strong>
-            <p>러핑 · 지브 46m</p>
+            <div class="item-top"><b>4호기 · T-CRN-03</b><span class="status ok" data-tc-status>정상</span></div>
+            <div class="desc" data-tc-desc>103동 외벽 인양구역 · 100%</div>
+            <div class="bar ok" data-tc-bar><i></i></div>
           </button>
         </div>
       </aside>
@@ -1398,9 +1401,29 @@
       if (!tcTimer) tcTimer = requestAnimationFrame(tickTc);
     }
 
-    document.querySelectorAll(".tc-card").forEach((btn) => {
+    document.querySelectorAll(".zone .tc-card").forEach((btn) => {
       btn.addEventListener("click", () => openTc(Number(btn.dataset.tc)));
     });
+    const TC_ZONE = ["101동 갱폼 인양구역", "102동 대형거푸집구역", "중앙 자재하역장", "103동 외벽 인양구역"];
+    const TC_PCT = { ok: 100, warn: 96, stop: 85 };
+    const TC_WORD = { ok: "정상", warn: "현장점검", stop: "작업중지" };
+    function paintTcCards() {
+      if (typeof tcCardLevel !== "function") return;
+      tcCardLevel().forEach((level, i) => {
+        const card = document.querySelector('.zone .tc-card[data-tc="' + i + '"]');
+        if (!card) return;
+        const st = card.querySelector("[data-tc-status]");
+        const desc = card.querySelector("[data-tc-desc]");
+        const bar = card.querySelector("[data-tc-bar]");
+        if (st) { st.className = "status " + level; st.textContent = TC_WORD[level]; }
+        if (desc) {
+          const note = level === "warn" ? "후크 10초 전" : level === "stop" ? "후크 겹침" : TC_ZONE[i];
+          desc.textContent = note + " · " + TC_PCT[level] + "%";
+        }
+        if (bar) bar.className = "bar " + level;
+      });
+    }
+    setInterval(paintTcCards, 200);
     document.getElementById("tc-close").addEventListener("click", () => { tcPop.hidden = true; });
     tcPop.addEventListener("click", (event) => { if (event.target === tcPop) tcPop.hidden = true; });
 

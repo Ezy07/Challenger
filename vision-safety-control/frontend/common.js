@@ -383,8 +383,10 @@ const TC_HOOKS = [
 ];
 const TC_HOOK_HIT = 14;
 const TC_HOOK_CLEAR = 18;
-const TC_HOOK_AHEAD = 200; // 한 프레임 25ms × 200 = 5초 뒤 위치
+const TC_HOOK_AHEAD = 200; // 한 프레임 25ms × 200 = 5초 뒤. 이 시점에 겹침 경고
+const TC_HOOK_INSPECT = 400; // 10초 뒤면 패널은 현장점검
 const TC_WATCH_KEY = "safety.tcWatch";
+const TC_HOLD_KEY = "safety.tcHookHolds"; // 겹침 경고가 만든 이벤트. 처리완료 전까지 해당 호기는 작업중지
 let tcHookSeen = null;
 
 function readTcWatch() {
@@ -417,6 +419,59 @@ function tcHookPoint(spec, frame) {
   const trolley = spec.jib * (0.55 + 0.30 * Math.sin(frame * 0.008 + (spec.trolleyPhase || 0)));
   const rad = angle * Math.PI / 180;
   return [spec.x + trolley * Math.cos(rad), spec.y + trolley * Math.sin(rad)];
+}
+function readHookHolds() {
+  try {
+    const list = JSON.parse(localStorage.getItem(TC_HOLD_KEY));
+    return Array.isArray(list) ? list : [];
+  } catch (e) { return []; }
+}
+function writeHookHolds(list) {
+  try { localStorage.setItem(TC_HOLD_KEY, JSON.stringify(list)); } catch (e) { /* 저장을 못 해도 이 화면에서는 동작 */ }
+}
+function tcHookDistance(frame, i, j) {
+  const a = tcHookPoint(TC_HOOKS[i], frame);
+  const b = tcHookPoint(TC_HOOKS[j], frame);
+  return Math.hypot(a[0] - b[0], a[1] - b[1]);
+}
+function tcFirstHit(frame, i, j) {
+  if (tcHookDistance(frame, i, j) <= TC_HOOK_HIT) return 0;
+  for (let k = 25; k <= TC_HOOK_INSPECT; k += 25) {
+    if (tcHookDistance(frame + k, i, j) <= TC_HOOK_HIT) return k;
+  }
+  return null;
+}
+function tcCardLevel() {
+  const stopped = new Set();
+  readHookHolds().forEach((hold) => (hold.names || []).forEach((name) => {
+    const i = TC_HOOKS.findIndex((spec) => spec.id === name);
+    if (i >= 0) stopped.add(i);
+  }));
+  const inspect = new Set();
+  const frame = tcFrameNow();
+  if (frame != null) {
+    for (let i = 0; i < TC_HOOKS.length; i++) {
+      for (let j = i + 1; j < TC_HOOKS.length; j++) {
+        const hit = tcFirstHit(frame, i, j);
+        if (hit != null && hit > TC_HOOK_AHEAD) { inspect.add(i); inspect.add(j); }
+      }
+    }
+  }
+  return TC_HOOKS.map((_, i) => (stopped.has(i) ? "stop" : inspect.has(i) ? "warn" : "ok"));
+}
+async function refreshHookHolds() {
+  const holds = readHookHolds();
+  const pending = holds.filter((hold) => !hold.id);
+  const named = holds.filter((hold) => hold.id);
+  if (!named.length || !authToken()) return;
+  const left = [];
+  for (const hold of named) {
+    try {
+      const ev = await alertFetch("/api/events/" + hold.id);
+      if (ev.status !== "DONE") left.push(hold);
+    } catch (e) { left.push(hold); }
+  }
+  if (left.length !== named.length) writeHookHolds(pending.concat(left));
 }
 function tcHookGap(frame) {
   const pts = TC_HOOKS.map((spec) => tcHookPoint(spec, frame));
@@ -487,9 +542,21 @@ function stepTcHooks() {
     state.seq = (state.seq || 0) + 1;
     state.names = [TC_HOOKS[ahead.a].id, TC_HOOKS[ahead.b].id];
     writeTcWatch(state);
+    const holds = readHookHolds();
+    holds.push({ seq: state.seq, names: state.names, id: null });
+    writeHookHolds(holds);
     tcHookSeen = state.seq;
     showHookWarn(null);
-    postHookEvent().then((id) => {
+    postHookEvent().then(async (id) => {
+      if (!id) {
+        try {
+          const page = await alertFetch("/api/events?detection_type=TC_HOOK_PROXIMITY&status=NEW&status=ACK&size=1");
+          id = page.items && page.items[0] && page.items[0].id;
+        } catch (e) { /* 이벤트 번호를 못 붙이면 아래 분리 시점에 작업중지를 푼다 */ }
+      }
+      const next = readHookHolds();
+      const row = next.find((hold) => hold.seq === state.seq);
+      if (row && id) { row.id = id; writeHookHolds(next); }
       const pop = document.getElementById("hook-warn");
       if (id && pop && !pop.hidden) showHookWarn(id);
     });
@@ -498,6 +565,7 @@ function stepTcHooks() {
   if (now.d > TC_HOOK_CLEAR && ahead.d > TC_HOOK_HIT && state.latched) {
     state.latched = false;
     writeTcWatch(state);
+    writeHookHolds(readHookHolds().filter((hold) => hold.id));
   }
   if (tcHookSeen == null) tcHookSeen = state.seq || 0;
   else if (state.latched && (state.seq || 0) > tcHookSeen) {
@@ -596,6 +664,7 @@ function wireAlerts() {
     if (e.target.id === "wind-warn" || e.target.closest("#wind-warn-close")) document.getElementById("wind-warn").hidden = true;
   });
   setInterval(() => { stepTcHooks(); stepWindGust(); }, 200);
+  setInterval(() => { refreshHookHolds(); }, 3000);
   const pop = document.getElementById("alert-pop");
   pop.addEventListener("click", async (e) => {
     if (e.target === pop || e.target.closest("#alert-close")) return closeAlerts();
