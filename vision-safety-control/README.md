@@ -165,7 +165,7 @@ ALTER TABLE camera
 | 판정 · 심각도 기준 | `GET /api/detection-types` · `PATCH /api/detection-types/{id}/rule` · `POST /api/detection-types/reset-rules` | `alert-threshold.html` · `alert-severity.html` |
 | 카메라 | `GET/POST /api/cameras` · `GET/PATCH/DELETE /api/cameras/{id}` (배치도 위치 `plan_x` · `plan_y` · `plan_dir` 포함) | `cameras.html` · `camera-edit.html` · `camera-map.html` |
 | 현장 도면 | `GET /api/site-plan` · `PUT /api/site-plan` (본문 = 그림 파일, PNG · JPG · WebP 15MB) · `PATCH` (이름) · `DELETE` — 관리자만 바꿈, 그림은 `storage/plans` · `/plans/…` | `camera-map.html`(관리 · 카메라 배치 수정) · `zones.html`(배경) |
-| ROI 구역 | `GET /api/roi-zones` · `PUT /api/roi-zones` (구역 전체를 바꿈, 안전관리자 이상) — `storage/roi-zones.json` 에 저장, AI 탐지 프로그램이 이 파일을 읽음. 카메라 목록은 DB(영상 파일이 연결된 카메라에만 그릴 수 있음) | `roi-draw.html` · `roi-list.html` |
+| ROI 구역 | `GET /api/roi-zones` · `PUT /api/roi-zones` (구역 전체를 바꿈, 관리자만) — `storage/roi-zones.json` 에 저장, AI 탐지 프로그램이 이 파일을 읽음. 카메라 목록은 DB(영상 파일이 연결된 카메라에만 그릴 수 있음) | `roi-draw.html` · `roi-list.html` |
 | 이벤트 수집 (AI) | `POST /api/events` (헤더 `X-Ingest-Key`) | — |
 | 이벤트 조회 | `GET /api/events` (날짜 · 구역 · 종류 · 심각도 · 상태 · 정렬 · 페이지) · `GET /api/events/{id}` | `events.html` · `event-detail.html` · `event-snapshot.html` |
 | 이벤트 내보내기 | `GET /api/events/export?format=csv\|xlsx\|zip&columns=…` (목록과 같은 조건) · `GET /api/events/export/preview` | `event-export.html` |

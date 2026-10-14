@@ -4,6 +4,9 @@
    - 화면을 추가하려면 MENU 에 [파일 이름, 화면 이름, 설명, 깊이] 한 줄만 넣으면 된다
      깊이 0 = 메모장의 "-" 화면, 1 = "ㄴ" 화면, 2 = "ㄴㄴ" 화면
      파일 이름이 빈 줄("")은 메뉴 안의 소제목으로만 쓴다 (예: 관리자 > 카메라 관리)
+     다섯째 칸 { hide: true } = 메뉴에는 안 보이고 목록에서 한 항목을 골라 들어가는 화면 (번호 · 제목은 그대로)
+              { need: "MANAGER" } = 그 역할 미만이면 메뉴에서 빠지고, 주소로 열어도 관제화면으로 돌려보낸다
+     묶음의 admin: true = 왼쪽 메뉴 "관리자 전용" 칸에 둔다 (need 를 같이 주면 화면도 막는다)
    - 아직 API 를 연결하지 않은 화면의 저장 · 삭제 버튼은 안내 문구(toast)만 띄운다
    - API 를 쓰는 화면은 api.js 를 이 파일보다 먼저 넣는다 */
 
@@ -15,13 +18,13 @@ const MENU = [
   { icon: "◫", name: "구역 및 작업", pages: [
     ["zones.html", "전체 구역 표시", "현장 배치도 위에 작업구역과 구역별 작업 · 인원 · 장비 · 경보를 표시", 0],
     ["zone-works.html", "구역별 작업 목록", "구역을 고르면 그 구역에서 오늘 진행하는 작업을 보여 줌", 1],
-    ["work-workers.html", "작업별 장비 · 작업자 목록", "작업 하나에 배정된 작업자 · 특별관리 대상과 그 구역에 투입된 장비 · 운전원 · 상태", 2],
+    ["work-workers.html", "작업별 장비 · 작업자 목록", "작업 하나에 배정된 작업자 · 특별관리 대상과 그 구역에 투입된 장비 · 운전원 · 상태", 2, { hide: true }],
   ] },
   { icon: "≡", name: "이벤트 로그", pages: [
     ["events.html", "이벤트 목록", "날짜 · 구역 · 종류 · 심각도로 지난 이벤트를 찾고 CSV로 내보내기", 0],
-    ["event-detail.html", "이벤트 상세", "이벤트 하나의 스냅샷 · 탐지 정보 · 처리 상태", 1],
-    ["event-snapshot.html", "스냅샷 조회 및 저장", "탐지 순간 이미지를 크게 보고 내려받기", 2],
-    ["event-handle.html", "처리 기록", "확인 · 조치 · 오탐 처리와 메모를 시간순으로 기록", 2],
+    ["event-detail.html", "이벤트 상세", "이벤트 하나의 스냅샷 · 탐지 정보 · 처리 상태", 1, { hide: true }],
+    ["event-snapshot.html", "스냅샷 조회 및 저장", "탐지 순간 이미지를 크게 보고 내려받기", 2, { hide: true }],
+    ["event-handle.html", "처리 기록", "확인 · 조치 · 오탐 처리와 메모를 시간순으로 기록", 2, { hide: true }],
     ["event-export.html", "내보내기", "이벤트 목록의 [내보내기]로 여는 화면. 조건을 골라 CSV · 엑셀 · 스냅샷 묶음으로 받기", 1],
   ] },
   { icon: "▤", name: "통계", pages: [
@@ -29,29 +32,29 @@ const MENU = [
     ["stats-trend.html", "추이 차트", "일별 · 시간대별로 이벤트가 늘거나 줄었는지 확인", 0],
     ["stats-report.html", "리포트", "기간을 골라 요약 보고서를 만들고 PDF로 저장 · 인쇄", 0],
   ] },
-  { icon: "⬠", name: "ROI", pages: [
+  { icon: "⬠", name: "ROI", admin: true, need: "ADMIN", pages: [
     ["roi-draw.html", "ROI 그리기", "카메라 화면 위를 클릭해 감지 영역(ROI) 다각형 그리기", 0],
     ["roi-list.html", "ROI 목록", "만든 ROI 전체를 보고 켜고 끄기", 0],
   ] },
   { icon: "⚙", name: "장비 현황", pages: [
     ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
-    ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 구비 서류와 안전교육", 0],
+    ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 구비 서류와 안전교육", 0, { hide: true }],
   ] },
   { icon: "✚", name: "안전관리 업무", pages: [
     ["workers.html", "현장작업자 관리", "현장작업자 등록 · 수정 · 삭제", 0],
-    ["worker-special.html", "특별관리 지정", "고령 · 고혈압 · 신규 투입 등 특별관리 대상 지정과 해제", 0],
-    ["works.html", "작업 등록 및 배정", "작업을 만들고 구역 · 담당자 · 작업자를 배정", 0],
-    ["equipment-assign.html", "장비 등록 및 배정", "중장비를 등록하고 투입 구역 · 운전원을 지정", 0],
+    ["worker-special.html", "특별관리 지정", "고령 · 고혈압 · 신규 투입 등 특별관리 대상 지정과 해제", 0, { need: "MANAGER" }],
+    ["works.html", "작업 등록 및 배정", "작업을 만들고 구역 · 담당자 · 작업자를 배정", 0, { need: "MANAGER" }],
+    ["equipment-assign.html", "장비 등록 및 배정", "중장비를 등록하고 투입 구역 · 운전원을 지정", 0, { need: "MANAGER" }],
   ] },
   { icon: "◆", name: "관리자", admin: true, pages: [
     ["", "회원 관리"],
     ["users.html", "회원 목록", "회원 조회 · 등록 · 삭제", 0],
     ["user-approval.html", "회원가입 승인", "가입 신청한 사람을 확인하고 승인 · 반려", 1],
-    ["user-edit.html", "회원정보 수정", "기본 정보와 역할(권한) · 계정 상태 바꾸기", 1],
+    ["user-edit.html", "회원정보 수정", "기본 정보와 역할(권한) · 계정 상태 바꾸기", 1, { hide: true }],
     ["org.html", "조직 · 부서 관리", "원청 · 협력사 · 부서 구조를 트리로 관리", 1],
     ["", "카메라 관리"],
     ["cameras.html", "카메라 목록", "등록된 카메라와 관제화면 배치 · 사용 여부", 1],
-    ["camera-edit.html", "카메라 등록 및 수정", "스트림 주소 · 이름 · 설치 구역을 입력해 카메라 등록", 1],
+    ["camera-edit.html", "카메라 등록 및 수정", "스트림 주소 · 이름 · 설치 구역을 입력해 카메라 등록", 1, { hide: true }],
     ["camera-map.html", "카메라 배치도", "현장 도면 위에 카메라 위치와 시야 표시", 1],
     ["", "알림 규칙"],
     ["alert-threshold.html", "판정 기준", "감지 유형별 confidence 기준과 다시 알리기까지의 쿨다운", 1],
@@ -115,6 +118,11 @@ function findPage(file) {
   return null;
 }
 
+// 그 화면을 열 수 있는 가장 낮은 역할 (없으면 로그인만 하면 됨)
+function pageNeed(group, page) {
+  return (page[4] && page[4].need) || group.need || null;
+}
+
 function pageNo(group, page) {
   return `${group.no}-${realPages(group).indexOf(page) + 1}`;
 }
@@ -131,6 +139,7 @@ function drawerHtml(file, found) {
     const open = found && found.group === g ? " open" : "";
     const items = g.pages.map((p) => {
       if (!p[0]) return `<div class="dlabel">${p[1]}</div>`;
+      if ((p[4] && p[4].hide) || (pageNeed(g, p) && !can(pageNeed(g, p)))) return "";
       const on = p[0] === file ? " on" : "";
       return `<a class="ditem d${p[3] || 0}${on}" href="${p[0]}"><b>${pageNo(g, p)}</b>${p[1]}</a>`;
     }).join("");
@@ -984,6 +993,13 @@ function wireSideRail(btn) {
 (function init() {
   const file = currentFile();
   const found = findPage(file);
+  // 역할이 모자란 화면은 주소로 열어도 관제화면으로 돌려보낸다 (서버도 저장 · 수정을 따로 막는다)
+  const need = found && pageNeed(found.group, found.page);
+  if (need && !can(need)) {
+    alert(`${found.page[1]} 화면은 ${ROLE_KO[need]} 이상만 볼 수 있습니다.`);
+    location.replace("monitor.html");
+    return;
+  }
   if (!document.body.hasAttribute("data-no-gnb")) {
     renderShell(file, found);
     wireAlerts();

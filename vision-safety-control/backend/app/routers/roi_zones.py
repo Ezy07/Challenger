@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from ..clock import now_kst
 from ..config import settings
-from ..deps import CurrentUser, Manager
+from ..deps import Admin, CurrentUser
 
 router = APIRouter(prefix="/api/roi-zones", tags=["ROI 구역"])
 
@@ -153,7 +153,7 @@ def read_zones(_: CurrentUser):
 
 
 @router.put("", response_model=list[RoiZoneRow])
-def save_zones(rows: list[RoiZoneRow], _: Manager):
+def save_zones(rows: list[RoiZoneRow], _: Admin):  # ROI 는 관리자 전용 (5-1 · 5-2)
     """구역 전체를 이 목록으로 바꾼다 (화면이 늘 전체를 보낸다)"""
     if len(rows) > 5000:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "구역이 너무 많습니다 (5000줄까지).")

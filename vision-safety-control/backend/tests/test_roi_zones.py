@@ -26,24 +26,24 @@ def frozen_now(monkeypatch):
     monkeypatch.setattr("app.routers.roi_zones.now_kst", lambda: (datetime(2026, 10, 4, 12, 0, tzinfo=KST), "local"))
 
 
-def test_roi_zones_save_and_read(client, manager, zones_file):
-    assert client.get("/api/roi-zones", headers=manager).json() == []
+def test_roi_zones_save_and_read(client, admin, zones_file):
+    assert client.get("/api/roi-zones", headers=admin).json() == []
     later = {**ROW, "frame": 120, "points": [[110, 100], [310, 100], [310, 320], [110, 320]]}
     sched = {**ROW, "camera": "CAM_0002", "no": 2, "kind": "통제구역", "enabled": False,
              "schedule": {"on": True, "start": "07:00", "end": "18:30", "days": ["월", "화", "수"]}}
-    res = client.put("/api/roi-zones", json=[sched, later, ROW], headers=manager)
+    res = client.put("/api/roi-zones", json=[sched, later, ROW], headers=admin)
     assert res.status_code == 200, res.text
-    saved = client.get("/api/roi-zones", headers=manager).json()
+    saved = client.get("/api/roi-zones", headers=admin).json()
     assert [(r["camera"], r["no"], r["frame"]) for r in saved] == [("CAM_0001", 1, 1), ("CAM_0001", 1, 120), ("CAM_0002", 2, 1)]
     assert saved[2]["schedule"]["days"] == ["월", "화", "수"] and saved[2]["enabled"] is False
     assert json.loads(zones_file.read_text(encoding="utf-8"))[0]["kind"] == "위험구역"  # AI 프로그램이 읽는 파일
 
     # 전체 바꾸기: 빈 목록이면 모두 지워진다
-    assert client.put("/api/roi-zones", json=[], headers=manager).json() == []
-    assert client.get("/api/roi-zones", headers=manager).json() == []
+    assert client.put("/api/roi-zones", json=[], headers=admin).json() == []
+    assert client.get("/api/roi-zones", headers=admin).json() == []
 
 
-def test_roi_zones_validation(client, manager):
+def test_roi_zones_validation(client, admin):
     bad = [
         {**ROW, "points": [[100, 100], [200, 200]]},           # 점 2개
         {**ROW, "points": [[100, 100], [1200, 100], [300, 300]]},  # 화면 밖
@@ -53,43 +53,43 @@ def test_roi_zones_validation(client, manager):
         {**ROW, "dwell": -1},
     ]
     for row in bad:
-        assert client.put("/api/roi-zones", json=[row], headers=manager).status_code == 422, row
+        assert client.put("/api/roi-zones", json=[row], headers=admin).status_code == 422, row
 
 
-def test_dwell_seconds_round_trip(client, manager):
-    saved = client.put("/api/roi-zones", json=[{**ROW, "dwell": 0}], headers=manager).json()
+def test_dwell_seconds_round_trip(client, admin):
+    saved = client.put("/api/roi-zones", json=[{**ROW, "dwell": 0}], headers=admin).json()
     assert saved[0]["dwell"] == 0
-    again = client.put("/api/roi-zones", json=[{**ROW, "dwell": 12}], headers=manager).json()
+    again = client.put("/api/roi-zones", json=[{**ROW, "dwell": 12}], headers=admin).json()
     assert again[0]["dwell"] == 12
-    assert client.get("/api/roi-zones", headers=manager).json()[0]["dwell"] == 12
-    muted = client.put("/api/roi-zones", json=[{**ROW, "dwell": 0, "intrusion": False}], headers=manager).json()
+    assert client.get("/api/roi-zones", headers=admin).json()[0]["dwell"] == 12
+    muted = client.put("/api/roi-zones", json=[{**ROW, "dwell": 0, "intrusion": False}], headers=admin).json()
     assert muted[0]["intrusion"] is False
 
 
-def test_targets_round_trip(client, manager):
-    saved = client.put("/api/roi-zones", json=[{**ROW, "targets": ["truck", "person", "person"]}], headers=manager).json()
+def test_targets_round_trip(client, admin):
+    saved = client.put("/api/roi-zones", json=[{**ROW, "targets": ["truck", "person", "person"]}], headers=admin).json()
     assert saved[0]["targets"] == ["truck", "person"]
-    assert client.get("/api/roi-zones", headers=manager).json()[0]["targets"] == ["truck", "person"]
-    empty = client.put("/api/roi-zones", json=[{**ROW, "targets": []}], headers=manager).json()
+    assert client.get("/api/roi-zones", headers=admin).json()[0]["targets"] == ["truck", "person"]
+    empty = client.put("/api/roi-zones", json=[{**ROW, "targets": []}], headers=admin).json()
     assert empty[0]["targets"] == []
-    assert client.put("/api/roi-zones", json=[{**ROW, "targets": ["bus"]}], headers=manager).status_code == 422
+    assert client.put("/api/roi-zones", json=[{**ROW, "targets": ["bus"]}], headers=admin).status_code == 422
 
 
-def test_schedule_toggles_enabled(client, manager, monkeypatch):
+def test_schedule_toggles_enabled(client, admin, monkeypatch):
     def at(moment):
         monkeypatch.setattr("app.routers.roi_zones.now_kst", lambda: (moment, "local"))
 
     row = {**ROW, "enabled": False, "schedule": {"on": True, "start": "07:00", "end": "18:30", "days": ["수"]}}
     at(datetime(2026, 10, 7, 10, 0, tzinfo=KST))  # 수요일 오전, 적용 시간 안
-    saved = client.put("/api/roi-zones", json=[row], headers=manager).json()
+    saved = client.put("/api/roi-zones", json=[row], headers=admin).json()
     assert saved[0]["enabled"] is True
 
     at(datetime(2026, 10, 7, 19, 0, tzinfo=KST))  # 같은 날 저녁, 적용 시간 밖
-    assert client.get("/api/roi-zones", headers=manager).json()[0]["enabled"] is False
+    assert client.get("/api/roi-zones", headers=admin).json()[0]["enabled"] is False
 
     at(datetime(2026, 10, 7, 10, 0, tzinfo=KST))
     manual = {**ROW, "enabled": False, "schedule": {"on": False, "start": "07:00", "end": "18:30", "days": ["수"]}}
-    assert client.put("/api/roi-zones", json=[manual], headers=manager).json()[0]["enabled"] is False
+    assert client.put("/api/roi-zones", json=[manual], headers=admin).json()[0]["enabled"] is False
 
 
 def test_in_schedule_spans_midnight():
@@ -99,11 +99,13 @@ def test_in_schedule_spans_midnight():
     assert not in_schedule(plan, datetime(2026, 10, 7, 12, 0, tzinfo=KST))
 
 
-def test_roi_zones_viewer_reads_only(client, admin, manager):
-    client.put("/api/roi-zones", json=[ROW], headers=manager)
+def test_roi_zones_admin_writes_only(client, admin, manager):
+    client.put("/api/roi-zones", json=[ROW], headers=admin)
     uid = next(u["id"] for u in client.get("/api/users", headers=admin).json() if u["login_id"] == "yoon.gr")
     client.patch(f"/api/users/{uid}", json={"status": "ACTIVE"}, headers=admin)  # 시연 데이터에서 잠겨 있는 조회 전용
     viewer = login(client, "yoon.gr", DEMO_PASSWORD)
     assert len(client.get("/api/roi-zones", headers=viewer).json()) == 1
     assert client.put("/api/roi-zones", json=[], headers=viewer).status_code == 403
+    assert client.put("/api/roi-zones", json=[], headers=manager).status_code == 403  # ROI 는 관리자 전용
+    assert len(client.get("/api/roi-zones", headers=manager).json()) == 1
     assert client.get("/api/roi-zones").status_code == 401
