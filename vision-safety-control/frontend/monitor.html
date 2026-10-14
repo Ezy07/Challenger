@@ -468,6 +468,7 @@
     .zone .pad { gap: 8px; }
 
     #tc-pop {
+      z-index: 46;
       padding: 8px;
       place-items: stretch;
     }
@@ -487,6 +488,7 @@
       margin-top: 8px;
       flex: 1;
       min-height: 0;
+      overflow: hidden;
     }
     #tc-map {
       display: block;
@@ -503,6 +505,7 @@
       gap: 8px;
       min-width: 0;
       min-height: 0;
+      overflow-y: auto;
     }
     .tc-side .check { margin-bottom: 0; }
     .tc-pop .status,
@@ -516,7 +519,7 @@
       grid-template-columns: 1fr auto;
       gap: 5px 12px;
       align-items: center;
-      flex: 1;
+      flex: 0 0 auto;
       width: 100%;
       padding: 10px 12px;
       border-radius: 12px;
@@ -536,6 +539,7 @@
       height: 46px;
       margin-top: 10px;
     }
+    .hook-slot:has(.hook-alert[hidden]) { display: none; }
     .hook-alert {
       display: flex;
       align-items: center;
@@ -797,8 +801,9 @@
       .rail > * { flex: none !important; }
       .rail-toggle { display: none; }
       .zone, .alerts { overflow: visible; }
-      #tc-pop .tc-body { grid-template-columns: 1fr; }
-      #tc-map { height: 52vh; }
+      #tc-pop .tc-body { grid-template-columns: 1fr; overflow-y: auto; }
+      #tc-map { height: 52vh; flex: none; }
+      #tc-pop .tc-side { overflow: visible; }
     }
 
     /* 전체화면: 메뉴 · 현장 이름 · 오른쪽 패널을 가리고 보이는 CCTV 4칸만 창을 채운다 */
@@ -1199,6 +1204,57 @@
     const TC_STOP = 6;
     const HOOK_HIT = 14;
     const TC_VIEW = { minX: -70, maxX: 150, minY: -70, maxY: 150 };
+    const TC_SPREAD = 2;
+
+    // 배치도 점의 비율은 유지하고, 서로 붙은 간격만 벌린 뒤 화면에 맞춘다.
+    function cameraDotForCrane(cams, index) {
+      const slot = index + 1;
+      const placed = (c) => c.plan_x != null && c.plan_y != null;
+      return cams.find((c) => placed(c) && c.camera_type === "TC" && Number(c.view_slot) === slot)
+        || cams.find((c) => placed(c) && Number(c.view_page) === 1 && Number(c.view_slot) === slot)
+        || null;
+    }
+    function alignCranesToCameras() {
+      return api("/api/cameras").catch(() => []).then((cams) => {
+        if (!Array.isArray(cams)) return;
+        const base = 220;
+        const placed = [];
+        TC_SPEC.forEach((spec, i) => {
+          const cam = cameraDotForCrane(cams, i);
+          if (!cam) return;
+          placed.push({ i, x: Number(cam.plan_x) * base, y: (1 - Number(cam.plan_y)) * base });
+        });
+        if (placed.length < 2) return;
+        const cx = placed.reduce((sum, p) => sum + p.x, 0) / placed.length;
+        const cy = placed.reduce((sum, p) => sum + p.y, 0) / placed.length;
+        placed.forEach((p) => {
+          p.x = cx + (p.x - cx) * TC_SPREAD;
+          p.y = cy + (p.y - cy) * TC_SPREAD;
+          TC_SPEC[p.i].x = p.x;
+          TC_SPEC[p.i].y = p.y;
+          if (typeof TC_HOOKS !== "undefined" && TC_HOOKS[p.i]) {
+            TC_HOOKS[p.i].x = p.x;
+            TC_HOOKS[p.i].y = p.y;
+          }
+        });
+        const pad = Math.max(...placed.map((p) => TC_SPEC[p.i].jib || 0)) + 18;
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        placed.forEach((p) => {
+          minX = Math.min(minX, p.x);
+          maxX = Math.max(maxX, p.x);
+          minY = Math.min(minY, p.y);
+          maxY = Math.max(maxY, p.y);
+        });
+        const midX = (minX + maxX) / 2;
+        const midY = (minY + maxY) / 2;
+        const half = Math.max(maxX - minX, maxY - minY) / 2 + pad;
+        TC_VIEW.minX = midX - half;
+        TC_VIEW.maxX = midX + half;
+        TC_VIEW.minY = midY - half;
+        TC_VIEW.maxY = midY + half;
+      });
+    }
+    alignCranesToCameras();
     const tcPop = document.getElementById("tc-pop");
     const tcCanvas = document.getElementById("tc-map");
     let tcFrame = 0;
