@@ -796,7 +796,7 @@
       const opts = (list) => list.map((c) => `<option value="${c.id}" data-id="${c.id}">${esc(camLabel(c))}</option>`).join("");
       document.getElementById("n-cams").textContent = `${cams.length}대 · 영상 있는 카메라 ${cams.filter((c) => fileOf(c)).length}대`;
       document.getElementById("cam-pick").innerHTML = cams.length
-        ? '<option value="">카메라를 고르세요</option>' + (fixed.length ? `<optgroup label="현장 CAM">${opts(fixed)}</optgroup>` : "")
+        ? (fixed.length ? `<optgroup label="현장 CAM">${opts(fixed)}</optgroup>` : "")
           + (tc.length ? `<optgroup label="TC CAM">${opts(tc)}</optgroup>` : "")
         : '<option value="">등록된 카메라가 없습니다 (카메라 등록에서 추가)</option>';
       updateCounts();
@@ -836,9 +836,12 @@
       cams = await api("/api/cameras");
       Object.assign(books, await loadRoiBooks(cams));
       drawCams();
-      // ?camera=번호 (카메라 수정 화면에서) 또는 ?cam=CAM_0001 (ROI 목록에서) 로 오면 그 카메라를 연다
+      // ?camera=번호 (카메라 수정 화면에서) 또는 ?cam=CAM_0001 (ROI 목록에서) 로 오면 그 카메라를 연다.
+      // 지정이 없으면 CAM_0001 을 연다.
       const byId = Number(params.get("camera")), byName = params.get("cam");
-      const want = cams.find((c) => (byId && c.id === byId) || (byName && c.name === byName));
+      const want = cams.find((c) => (byId && c.id === byId) || (byName && c.name === byName))
+        || cams.find((c) => c.name === "CAM_0001")
+        || cams.find((c) => c.view_page === 1 && c.view_slot === 1);
       if (want) pickCam(want);
     })().catch((err) => toast(err.message));
   </script>
