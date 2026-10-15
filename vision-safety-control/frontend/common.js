@@ -291,8 +291,20 @@ async function alertFetch(path, options = {}) {
   if (!token) throw new Error("login");
   const res = await fetch(path, { ...options, headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" } });
   if (res.status === 401) throw new Error("login");
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "알림을 불러오지 못했습니다.");
+  if (!res.ok) {
+    const err = new Error((await res.json().catch(() => ({}))).detail || "알림을 불러오지 못했습니다.");
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
+}
+
+// 이벤트를 지우면 알림 · 관제화면 목록을 30초 기다리지 않고 바로 고친다.
+// 같은 브라우저의 다른 창에는 localStorage 로 알리고, 각 창은 "events-changed" 로 받는다
+const EVENTS_CHANGED_KEY = "safety.eventsChanged";
+function eventsChanged() {
+  try { localStorage.setItem(EVENTS_CHANGED_KEY, String(Date.now())); } catch (e) { /* 다른 창은 다음 새로 고침 때 반영 */ }
+  document.dispatchEvent(new Event("events-changed"));
 }
 
 function alertPopHtml() {
@@ -522,7 +534,9 @@ async function refreshHookHolds() {
     try {
       const ev = await alertFetch("/api/events/" + hold.id);
       if (ev.status !== "DONE") left.push(hold);
-    } catch (e) { left.push(hold); }
+    } catch (e) {
+      if (e.status !== 404) left.push(hold); // 지워진 이벤트의 작업중지는 푼다
+    }
   }
   if (left.length !== named.length) writeHookHolds(pending.concat(left));
 }
@@ -750,6 +764,10 @@ function wireAlerts() {
     const hook = document.getElementById("hook-warn");
     if (hook && !hook.hidden) { hook.hidden = true; return; }
     closeAlerts();
+  });
+  document.addEventListener("events-changed", () => { loadAlerts(); refreshHookHolds(); });
+  window.addEventListener("storage", (e) => {
+    if (e.key === EVENTS_CHANGED_KEY) document.dispatchEvent(new Event("events-changed"));
   });
   loadAlerts();
   alertTimer = setInterval(loadAlerts, ALERT_POLL_MS);

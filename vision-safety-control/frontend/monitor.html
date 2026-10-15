@@ -1866,6 +1866,7 @@
       }).finally(() => setTimeout(startLive, LIVE_POLL_MS));
     }
     startLive();
+    document.addEventListener("events-changed", () => { pollLive().catch(() => {}); }); // 이벤트가 지워지면 바로 다시 그린다
 
     let hookClearEvent = null;
     let hookClearSeq = null;

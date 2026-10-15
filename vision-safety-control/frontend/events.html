@@ -161,6 +161,7 @@
 
     async function afterDelete({ deleted }) {
       toast(`이벤트 ${deleted}건을 삭제했습니다.`);
+      eventsChanged(); // 헤더 알림 · 관제화면에서도 바로 빠진다
       await load();
       if (!pickBoxes().length && page > 1) { page -= 1; await load(); } // 마지막 페이지를 다 지웠으면 앞 페이지로
     }
