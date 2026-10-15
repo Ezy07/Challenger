@@ -279,6 +279,14 @@ class EventPage(BaseModel):
     items: list[EventRow]
 
 
+class EventDeleteIn(BaseModel):
+    ids: list[int] = Field(min_length=1, max_length=200)
+
+
+class EventDeleteOut(BaseModel):
+    deleted: int
+
+
 class ActionIn(BaseModel):
     action_type: ActionType
     check_item_id: int | None = None

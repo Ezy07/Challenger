@@ -9,7 +9,7 @@ from sqlalchemy import Select, case, func, select
 from sqlalchemy.orm import selectinload
 
 from ..config import settings
-from ..deps import DB, CurrentUser, Manager, ingest_key
+from ..deps import DB, Admin, CurrentUser, Manager, ingest_key
 from ..exporting import COLUMNS, DEFAULT_COLUMNS, to_csv, to_xlsx, to_zip
 from ..models import (
     ActionType,
@@ -31,6 +31,8 @@ from ..schemas import (
     ActionIn,
     ActionOut,
     CheckItemState,
+    EventDeleteIn,
+    EventDeleteOut,
     EventDetail,
     EventIn,
     EventIngestOut,
@@ -425,3 +427,38 @@ def add_action(event_id: int, body: ActionIn, db: DB, user: Manager):
     db.commit()
     db.expire_all()
     return to_detail(load_event(db, event_id))
+
+
+# ---------------------------------------------------------------- 삭제 (관리자 전용 · 3-1)
+def delete_events(db: DB, events: list[Event]) -> EventDeleteOut:
+    """처리 기록 · 스냅샷 행은 cascade 로 함께 지우고, 스냅샷 그림 파일도 지운다"""
+    files = [snapshot_file(s.image_path) for e in events for s in e.snapshots]
+    for e in events:
+        db.delete(e)
+    db.commit()
+    for path in files:
+        if path:
+            path.unlink(missing_ok=True)
+    return EventDeleteOut(deleted=len(events))
+
+
+@router.post("/delete", response_model=EventDeleteOut)
+def delete_selected(body: EventDeleteIn, db: DB, _: Admin):
+    q = select(Event).where(Event.id.in_(body.ids)).options(selectinload(Event.snapshots), selectinload(Event.actions))
+    return delete_events(db, list(db.scalars(q)))
+
+
+@router.delete("/range", response_model=EventDeleteOut)
+def delete_range(date_from: date, date_to: date, db: DB, _: Admin):
+    """date_from ~ date_to (끝일 포함) 에 감지된 이벤트 전부. 실수로 전체 기간을 지우지 않게 두 날짜 모두 받는다"""
+    if date_from > date_to:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "시작일이 끝일보다 늦습니다.")
+    q = (
+        select(Event)
+        .where(
+            Event.detected_at >= datetime.combine(date_from, time.min),
+            Event.detected_at < datetime.combine(date_to + timedelta(days=1), time.min),
+        )
+        .options(selectinload(Event.snapshots), selectinload(Event.actions))
+    )
+    return delete_events(db, list(db.scalars(q)))

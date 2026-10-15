@@ -3,7 +3,8 @@ from decimal import Decimal
 
 from sqlalchemy import select
 
-from app.models import Camera, DetectionType, Event, Roi, RoiRule, Severity
+from app.config import settings
+from app.models import Camera, DetectionType, Event, EventSnapshot, Roi, RoiRule, Severity
 
 
 def cam_id(db_session, name="CAM_0001"):
@@ -224,3 +225,34 @@ def test_ingest_converts_timezone_and_rejects_future(client, ingest, db_session)
 
     future = (datetime.now() + timedelta(hours=1)).isoformat()
     assert client.post("/api/events", json={**body, "detected_at": future}, headers=ingest).status_code == 422
+
+
+def test_admin_deletes_events(client, admin, manager, db_session, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "snapshot_dir", tmp_path / "snapshots")  # seed_demo 가 예시 스냅샷을 만든 곳
+    with db_session() as db:
+        ev = db.scalar(select(Event).join(EventSnapshot))
+        ev_id, shot = ev.id, tmp_path / ev.snapshots[0].image_path
+    assert shot.exists()
+
+    assert client.post("/api/events/delete", json={"ids": [ev_id]}, headers=manager).status_code == 403
+    assert client.delete("/api/events/range", params={"date_from": "2026-01-01", "date_to": "2026-01-01"}, headers=manager).status_code == 403
+
+    assert client.post("/api/events/delete", json={"ids": [ev_id]}, headers=admin).json() == {"deleted": 1}
+    assert client.get(f"/api/events/{ev_id}", headers=admin).status_code == 404
+    assert not shot.exists()
+
+    # 전체 삭제: 검색한 기간 (끝일 포함) 만 지우고, 그 앞날은 남긴다
+    end = date.today()
+    start = end - timedelta(days=2)
+    rng = {"date_from": start.isoformat(), "date_to": end.isoformat()}
+    count = lambda p: client.get("/api/events", params={**p, "size": 1}, headers=admin).json()["total"]
+    before = count({"date_to": (start - timedelta(days=1)).isoformat()})
+    in_range = count(rng)
+    assert in_range > 0
+    assert client.delete("/api/events/range", params=rng, headers=admin).json() == {"deleted": in_range}
+    assert count(rng) == 0
+    assert count({"date_to": (start - timedelta(days=1)).isoformat()}) == before
+
+    assert client.delete("/api/events/range", params={"date_from": end.isoformat()}, headers=admin).status_code == 422
+    bad = {"date_from": end.isoformat(), "date_to": start.isoformat()}
+    assert client.delete("/api/events/range", params=bad, headers=admin).status_code == 422
