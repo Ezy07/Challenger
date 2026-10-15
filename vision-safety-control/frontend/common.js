@@ -46,7 +46,7 @@ const MENU = [
     ["works.html", "작업 등록 및 배정", "작업을 만들고 구역 · 담당자 · 작업자를 배정", 0, { need: "MANAGER" }],
     ["equipment-assign.html", "장비 등록 및 배정", "중장비를 등록하고 투입 구역 · 운전원을 지정", 0, { need: "MANAGER" }],
   ] },
-  { icon: "◆", name: "관리자", admin: true, pages: [
+  { icon: "◆", name: "관리자", admin: true, need: "ADMIN", pages: [
     ["", "회원 관리"],
     ["users.html", "회원 목록", "회원 조회 · 등록 · 삭제", 0],
     ["user-approval.html", "회원가입 승인", "가입 신청한 사람을 확인하고 승인 · 반려", 1],
