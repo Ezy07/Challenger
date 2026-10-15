@@ -105,7 +105,11 @@
     }
     .full-btn:hover, .full-exit:hover { border-color: rgba(255, 154, 31, 0.7); }
     .full-btn:focus-visible, .full-exit:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
-    .full-exit { position: fixed; z-index: 45; top: 12px; right: 12px; background: rgba(18, 24, 32, 0.88); }
+    .full-bar {
+      position: fixed; z-index: 45; top: 12px; right: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .full-exit { background: rgba(18, 24, 32, 0.88); }
 
     .pager {
       width: 28px;
@@ -1077,7 +1081,13 @@
       <a class="cam-over" href="monitor-camera.html?cam=tc4" aria-label="CAM_TC04 크게 보기"></a>
     </section>
   </div>
-  <button type="button" class="full-exit" id="cctv-exit" hidden>전체화면 종료</button>
+  <div class="full-bar" id="cctv-fullbar" hidden>
+    <div class="cam-pages" role="group" aria-label="전체화면 CCTV 페이지">
+      <button type="button" class="pager on" data-page="1" aria-pressed="true" aria-label="1페이지 관제화면">1</button>
+      <button type="button" class="pager" data-page="2" aria-pressed="false" aria-label="2페이지 TC 관제화면">2</button>
+    </div>
+    <button type="button" class="full-exit" id="cctv-exit">전체화면 종료</button>
+  </div>
 
   <div class="pop" id="tc-pop" hidden>
     <div class="pop-card tc-pop-card" role="dialog" aria-modal="true" aria-labelledby="tc-title">
@@ -2054,9 +2064,10 @@
     // 전체화면: 지금 페이지의 CCTV 4칸만 창을 채운다. Esc 나 종료 버튼으로 돌아온다
     const fullBtn = document.getElementById("cctv-full");
     const exitBtn = document.getElementById("cctv-exit");
+    const fullBar = document.getElementById("cctv-fullbar");
     function setCctvFull(on) {
       document.body.classList.toggle("cctv-full", on);
-      exitBtn.hidden = !on;
+      fullBar.hidden = !on;
       fullBtn.setAttribute("aria-pressed", on ? "true" : "false");
       const root = document.documentElement;
       if (on && !document.fullscreenElement && root.requestFullscreen) root.requestFullscreen().catch(() => {});
