@@ -144,18 +144,26 @@
       } catch (err) { toast(err.message); }
     });
 
-    document.querySelector("main").addEventListener("click", async (e) => {
+    // 배정 · 빼기 버튼은 오른쪽 패널(#assign-box) 안에 있다
+    $("assign-box").addEventListener("click", async (e) => {
       const b = e.target.closest("[data-move]");
-      if (!b) return;
+      if (!b || !work) return;
       const id = Number(b.dataset.move);
       const ids = work.workers.map((w) => w.id);
-      const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id];
+      const assigned = ids.includes(id);
+      const next = assigned ? ids.filter((x) => x !== id) : [...ids, id];
+      const who = (work.workers.find((w) => w.id === id) || workers.find((w) => w.id === id) || {}).name || "작업자";
+      b.disabled = true; // 두 번 눌러 같은 요청이 겹치지 않게
       try {
         work = await api(`/api/works/${work.id}/workers`, { method: "PUT", body: { worker_ids: next } });
         await reloadWorkers();
         renderAssign();
-        loadList();
-      } catch (err) { toast(err.message); }
+        toast(assigned ? `${who}님을 작업에서 뺐습니다.` : `${who}님을 배정했습니다.`);
+        loadList().catch((err) => toast(err.message));
+      } catch (err) {
+        toast(err.message);
+        b.disabled = false;
+      }
     });
     $("list").addEventListener("click", (e) => {
       const c = e.target.closest("[data-id]");
