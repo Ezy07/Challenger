@@ -82,7 +82,7 @@
       <section class="cell controls">
         <button class="btn" type="button" id="pause" disabled>⏸ 일시정지</button>
         <button class="btn" type="button" id="snap" disabled>📷 스냅샷 저장</button>
-        <span class="chips"><span class="chip on" id="roi-toggle">ROI 표시</span></span>
+        <span class="chips"><span class="chip on" id="roi-toggle">ROI 표시</span><span class="chip on" id="box-toggle">탐지 박스 표시</span></span>
         <span class="muted" id="roi-sum"></span>
         <span class="grow"></span>
         <a class="btn" id="roi-edit" href="roi-draw.html" data-need="ADMIN">ROI 수정</a>
@@ -152,7 +152,7 @@
         const color = ROI_KINDS[r.kind].color, pts = key.pts.map((q) => q.join(",")).join(" ");
         const c = key.pts.reduce((a, q) => [a[0] + q[0] / key.pts.length, a[1] + q[1] / key.pts.length], [0, 0]);
         return `<polygon points="${pts}" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="3" stroke-dasharray="12 7" />
-          <text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="26" font-weight="800" stroke="#0c1016" stroke-width="5" paint-order="stroke">${r.no} ${ROI_KINDS[r.kind].label}</text>`;
+          <text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="26" font-weight="800" stroke="#0c1016" stroke-width="5" paint-order="stroke">${r.no} ${escHtml(roiName(r))}</text>`;
       }).join("");
     }
     $("video").addEventListener("timeupdate", drawRois);
@@ -211,7 +211,7 @@
       old.replaceWith(img);
       livePaused = false;
       $("pause").textContent = "⏸ 일시정지";
-      img.src = detectSrc(cam, $("roi-toggle").classList.contains("on"));
+      img.src = detectSrc(cam, $("roi-toggle").classList.contains("on"), $("box-toggle").classList.contains("on"));
       const forCam = cam;
       waitFirstFrame(img).then(() => { fitStage(); $("scene").style.visibility = "hidden"; }).catch(() => {
         if (cam !== forCam || $("live") !== img || !img.getAttribute("src")) return; // 그 사이 다른 카메라 · 다시 연결
@@ -313,9 +313,14 @@
     }
     $("cam-pick").addEventListener("change", onPick);
     $("full-cam").addEventListener("change", onPick);
+    // 관제화면에서 ROI · 박스를 숨겨 두었으면 여기서도 꺼진 채로 연다
+    if (!overlayShown()) ["roi-toggle", "box-toggle"].forEach((id) => $(id).classList.remove("on"));
     $("roi-toggle").addEventListener("click", () => { // 칩 켜고 끄기는 common.js 가 한다
       drawRois();
       if (live && !livePaused) connectLive(); // 탐지 영상은 ROI 를 넣고 빼서 다시 받는다
+    });
+    $("box-toggle").addEventListener("click", () => { // 박스를 빼도 탐지 · 이벤트 판정은 서버에서 그대로
+      if (live && !livePaused) connectLive();
     });
     $("pause").addEventListener("click", () => {
       if (live) return livePaused ? connectLive() : pauseLive();

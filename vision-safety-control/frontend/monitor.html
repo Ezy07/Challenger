@@ -846,6 +846,7 @@
       </div>
       <h1>공동주택 건설현장</h1>
       <div class="site-side">
+        <button type="button" class="full-btn overlay-btn" aria-pressed="true">ROI · 박스 숨기기</button>
         <button type="button" class="full-btn" id="cctv-full" aria-pressed="false">전체화면</button>
       </div>
     </header>
@@ -1082,6 +1083,7 @@
       <button type="button" class="pager on" data-page="1" aria-pressed="true" aria-label="1페이지 관제화면">1</button>
       <button type="button" class="pager" data-page="2" aria-pressed="false" aria-label="2페이지 TC 관제화면">2</button>
     </div>
+    <button type="button" class="full-exit overlay-btn" aria-pressed="true">ROI · 박스 숨기기</button>
     <button type="button" class="full-exit" id="cctv-exit">전체화면 종료</button>
   </div>
 
@@ -2060,7 +2062,8 @@
       const img = document.createElement("img");
       img.className = "cam-video";
       img.alt = `${c.name} 탐지 영상`;
-      img.dataset.stream = detectSrc(c);
+      img.dataset.stream = detectSrc(c, overlayShown(), overlayShown());
+      img.dataset.cam = c.id;
       img.dataset.file = c.stream_url.startsWith("videos/") ? c.stream_url : "";
       cell.querySelector(".scene").after(img);
     }
@@ -2073,6 +2076,26 @@
         if (img.dataset.file) showOriginalVideo(cell, { stream_url: img.dataset.file });
       });
     }
+
+    // ROI · 탐지 박스 숨기기 · 보이기 (이 브라우저에 기억). 보고 있는 칸은 다시 연결해 바로 바꾼다
+    const overlayBtns = document.querySelectorAll(".overlay-btn");
+    function setOverlay(on) {
+      overlayBtns.forEach((b) => {
+        b.textContent = on ? "ROI · 박스 숨기기" : "ROI · 박스 보이기";
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        b.title = on ? "영상에서 ROI · 탐지 박스를 숨깁니다 (탐지 · 이벤트는 그대로)" : "영상에 ROI · 탐지 박스를 다시 그립니다";
+      });
+      document.querySelectorAll("img.cam-video[data-stream]").forEach((img) => {
+        img.dataset.stream = detectSrc({ id: img.dataset.cam }, on, on);
+        if (img.getAttribute("src")) connectDetect(img, img.closest(".cam"));
+      });
+    }
+    setOverlay(overlayShown());
+    overlayBtns.forEach((b) => b.addEventListener("click", () => {
+      const on = !overlayShown();
+      rememberOverlay(on);
+      setOverlay(on);
+    }));
 
     function showOriginalVideo(cell, c) {
       // 브라우저는 숨겨진 영상의 자동재생을 시작하지 않으므로, 영상은 처음부터 보이게 두고(첫 화면 전에는 투명)

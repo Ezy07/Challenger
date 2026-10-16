@@ -36,7 +36,8 @@ class RoiZoneRow(BaseModel):
     cameraName: str | None = Field(default=None, max_length=200)  # 구역 · 위치 설명 (보기용)
     file: str | None = Field(default=None, max_length=255)   # 그린 영상 파일 (storage/videos)
     no: int = Field(ge=1, le=999)                            # 카메라 안에서의 구역 번호
-    kind: Literal["위험구역", "통제구역", "관리구역", "안전구역"]
+    name: str | None = Field(default=None, max_length=40)    # 구역 이름 (타워크레인 하부 등). 없으면 등급으로 부름
+    kind: Literal["위험구역", "통제구역", "관리구역", "안전구역"]  # 등급 (겹치면 위험 > 통제 > 관리 > 안전)
     frame: int = Field(ge=1)                                 # 이 모양이 시작되는 프레임 (1부터)
     time: float | None = Field(default=None, ge=0)           # 그 프레임의 영상 시각(초)
     points: list[list[float]] = Field(min_length=3, max_length=100)  # 화면 좌표 (가로 0~1000, 세로 0~600)
@@ -45,6 +46,12 @@ class RoiZoneRow(BaseModel):
     intrusion: bool | None = None  # false 면 침입 알림을 띄우지 않음 (체류 시간의 사용안함)
     targets: list[TargetClass] | None = Field(default=None, max_length=8)  # 이 구역에서 침입으로 볼 대상. 여러 개 가능
     schedule: Schedule | None = None
+
+    @field_validator("name")
+    @classmethod
+    def trim_name(cls, value: str | None) -> str | None:
+        value = " ".join(value.split()) if value else ""
+        return value or None
 
     @field_validator("targets")
     @classmethod

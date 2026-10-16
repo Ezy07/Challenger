@@ -1,6 +1,6 @@
 /* ROI 그리기 · ROI 목록이 같이 쓰는 감지 구역 데이터 (api.js 다음에 넣는다)
    - 서버: /api/roi-zones (storage/roi-zones.json). 한 줄 = 카메라 · 구역 번호 · 그 모양이 시작되는 프레임
-   - 화면 안: 영상 파일별 구역 목록 books = { "파일.mp4": [{ uid, no, kind, enabled, schedule, dwell, targets, keys: [{ frame, pts, time }] }] }
+   - 화면 안: 영상 파일별 구역 목록 books = { "파일.mp4": [{ uid, no, name, kind(등급), enabled, schedule, dwell, targets, keys: [{ frame, pts, time }] }] }
    - 카메라는 DB(/api/cameras) 기준. 카메라의 stream_url 이 "videos/파일" 이면 그 파일 위에 그린다
    - 카메라 · 영상 파일을 못 찾은 줄도 지우지 않도록 "cam:카메라이름" 열쇠로 들고 있다가 그대로 다시 저장한다 */
 
@@ -10,6 +10,9 @@ const ROI_KINDS = {
   manage: { label: "관리구역", color: "#6cb6ff" },
   safe: { label: "안전구역", color: "#3ddc84" },
 };
+// 구역 이름 (타워크레인 하부 등). 이름을 안 정한 예전 구역은 등급으로 부른다
+const roiName = (roi) => roi.name || (ROI_KINDS[roi.kind] ? ROI_KINDS[roi.kind].label : "");
+const ROI_NAME_MAX = 40;
 const ROI_ORPHAN = "cam:"; // 영상 파일이 없는 줄의 books 열쇠 앞머리
 const ROI_TARGETS = [
   { id: "person", label: "사람" },
@@ -50,6 +53,7 @@ async function loadRoiBooks(cams) {
     let roi = list.find((x) => x.no === r.no);
     if (!roi) {
       roi = { uid: roiUid(cam, r.no, key), no: r.no, kind, enabled: r.enabled !== false, listed: true, keys: [] };
+      if (r.name) roi.name = r.name;
       if (r.schedule) roi.schedule = r.schedule;
       if (Number.isInteger(r.dwell)) roi.dwell = r.dwell;
       if (typeof r.intrusion === "boolean") roi.intrusion = r.intrusion;
@@ -86,6 +90,7 @@ function roiRows(books, cams) {
           points: k.pts,
           enabled: roi.enabled !== false,
         };
+        if (roi.name) row.name = roi.name;
         if (Number.isInteger(roi.dwell) && roi.dwell >= 0) row.dwell = roi.dwell;
         if (typeof roi.intrusion === "boolean") row.intrusion = roi.intrusion;
         if (Array.isArray(roi.targets)) row.targets = roi.targets;

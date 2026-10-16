@@ -47,13 +47,14 @@
           <select class="input" id="cam-pick" aria-label="카메라 고르기"><option value="">카메라 목록을 불러오는 중…</option></select>
         </label>
         <div class="muted" id="cam-desc" style="font-size:12px"></div>
-        <div class="hint"><b>그리는 방법</b><br>① 카메라를 고르고 프레임을 맞춥니다<br>② 화면을 클릭해 구역을 그립니다<br>③ 번호와 종류를 정하고 저장하면 그 프레임부터 적용됩니다</div>
+        <div class="hint"><b>그리는 방법</b><br>① 카메라를 고르고 프레임을 맞춥니다<br>② 화면을 클릭해 구역을 그립니다<br>③ 번호 · 이름 · 등급을 정하고 저장하면 그 프레임부터 적용됩니다</div>
       </div>
       <div class="pad draw-set">
         <div class="label">구역 정보 <span id="roi-frame-note"></span></div>
         <div data-lock="MANAGER" style="display:contents">
         <label class="field">구역 번호<input class="input" id="roi-no" type="number" min="1" step="1" value="1" /></label>
-        <label class="field">구역 종류
+        <label class="field">구역 이름<input class="input" id="roi-name" type="text" maxlength="40" placeholder="예: 타워크레인 하부" /></label>
+        <label class="field">구역 등급 <small class="muted">겹치면 위험 > 통제 > 관리 > 안전</small>
           <select class="input" id="kind">
             <option value="danger">위험구역</option>
             <option value="control">통제구역</option>
@@ -202,8 +203,8 @@
         const when = key ? `프레임 ${key.frame + 1}부터` : (roi.keys[0] ? `프레임 ${roi.keys[0].frame + 1}부터 시작` : "모양 없음");
         return `<div class="roi-item${roi.uid === selected ? " on" : ""}" data-uid="${roi.uid}" style="border-left-color:${KINDS[roi.kind].color}">
           <b style="color:${KINDS[roi.kind].color}">${roi.no}</b>
-          <span>${KINDS[roi.kind].label}</span>
-          <small>${when}</small>
+          <span>${escHtml(roiName(roi))}</span>
+          <small>${KINDS[roi.kind].label} · ${when}</small>
           <button type="button" class="mini-btn" data-del="${roi.uid}" data-need="MANAGER">삭제</button>
         </div>`;
       }).join("") : `<p class="muted">저장된 구역이 없습니다</p>`;
@@ -217,6 +218,7 @@
         const key = shapeAt(roi, frame);
         pts = key ? key.pts.map((p) => p.slice()) : [];
         document.getElementById("roi-no").value = roi.no;
+        document.getElementById("roi-name").value = roi.name || "";
         document.getElementById("kind").value = roi.kind;
       } else pts = [];
       paintList();
@@ -269,6 +271,7 @@
       selected = null;
       pts = [];
       document.getElementById("roi-no").value = nextNumber();
+      document.getElementById("roi-name").value = "";
       paintList();
       render();
     };
@@ -277,6 +280,8 @@
       if (pts.length < 3) { toast("점을 3개 이상 찍으세요."); return null; }
       const no = Number(document.getElementById("roi-no").value);
       if (!Number.isInteger(no) || no < 1) { toast("구역 번호는 1 이상의 정수로 지정하세요."); return null; }
+      const name = document.getElementById("roi-name").value.trim().replace(/\s+/g, " ").slice(0, ROI_NAME_MAX);
+      if (!name) { toast("구역 이름을 입력하세요. (예: 타워크레인 하부)"); document.getElementById("roi-name").focus(); return null; }
       const list = books[videoFile] || (books[videoFile] = []);
       if (list.some((roi) => roi.no === no && roi.uid !== selected)) { toast("이 영상에서 이미 쓰는 번호입니다."); return null; }
       const kind = kindNow();
@@ -288,6 +293,7 @@
         selected = roi.uid;
       }
       roi.no = no;
+      roi.name = name;
       roi.kind = kind;
       const frame = currentFrame();
       const copy = pts.map((p) => p.slice());
@@ -305,7 +311,7 @@
     document.getElementById("roi-save").onclick = () => {
       const saved = saveCurrent();
       if (!saved) return;
-      const savedText = `${saved.no}번 ${KINDS[saved.kind].label}을 프레임 ${saved.frame + 1}부터 저장했습니다.`;
+      const savedText = `${saved.no}번 ${roiName(saved.roi)}(${KINDS[saved.kind].label}) 구역을 프레임 ${saved.frame + 1}부터 저장했습니다.`;
       persist().then((ok) => { if (ok) toast(savedText); });
     };
     document.getElementById("roi-rules").onclick = () => {

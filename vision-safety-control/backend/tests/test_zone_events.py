@@ -50,6 +50,21 @@ def test_only_targets_inside_above_threshold_count():
     assert len(observe(j, [zone(targets=["person", "truck"])], [person(name="truck")], 0.0)) == 1
 
 
+def test_overlap_counts_only_highest_priority_zone():
+    # 1번 통제구역(왼쪽 절반) 안에 2번 위험구역(작은 네모). 등록 순서와 상관없이 위험구역으로 본다
+    inner = [[100, 200], [300, 200], [300, 500], [100, 500]]
+    zones = [zone(no=1, kind="통제구역"), zone(no=2, kind="위험구역", points=inner)]
+    trig = observe(Judge(), zones, [person(x=200)], 0.0)
+    assert [(t.zone["no"], t.zone["kind"]) for t in trig] == [(2, "위험구역")]
+    # 위험구역 밖 · 통제구역 안이면 통제구역
+    trig = observe(Judge(), zones, [person(x=400)], 0.0)
+    assert [t.zone["no"] for t in trig] == [1]
+    # 위험구역이 이 대상을 보지 않으면 다음 구역(통제구역)에서 센다
+    zones[1] = zone(no=2, kind="위험구역", points=inner, targets=["truck"])
+    trig = observe(Judge(), zones, [person(x=200)], 0.0)
+    assert [t.zone["no"] for t in trig] == [1]
+
+
 def test_zone_settings_and_rule_switch():
     j = Judge()
     assert observe(j, [zone(targets=None)], [person()], 0.0) == []       # 저장 전
@@ -91,6 +106,12 @@ def test_record_creates_event_roi_and_snapshot(db_session, monkeypatch):
         assert (roi.camera_id, roi.name, roi.work_zone_id) == (cam_id, "1번 위험구역", cam_zone)
         assert ev.detection_type.code == INTRUSION and float(ev.confidence) == 0.8
         assert [s.image_path for s in ev.snapshots] == ["snapshots/x/a.jpg"]
+
+    # 이름을 정한 구역은 "번호 이름 (등급)"
+    named = Trigger(cam_id, zone(no=2, name="크레인 하부"), INTRUSION, person(conf=0.8))
+    result = zone_events.record(db_session, Job(named, cam_name, Snapshot(0, None, 0.0, []), []))
+    with db_session() as db:
+        assert db.get(Roi, db.get(Event, result.event_id).roi_id).name == "2번 크레인 하부 (위험구역)"
 
 
 def test_record_respects_inactive_rule(db_session, monkeypatch):

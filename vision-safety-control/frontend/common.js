@@ -280,7 +280,17 @@ function detectStatus() {
   return (detectStatusOnce ||= alertFetch("/api/stream/status").catch(() => ({ enabled: false, reason: "탐지 영상 상태를 확인하지 못했습니다." })));
 }
 // <img> 는 헤더를 못 붙여서 로그인 토큰을 주소에 붙인다
-const detectSrc = (cam, roi = true) => `/api/stream/${cam.id}.mjpg?roi=${roi ? 1 : 0}&token=${encodeURIComponent(authToken() || "")}`;
+const detectSrc = (cam, roi = true, boxes = true) =>
+  `/api/stream/${cam.id}.mjpg?roi=${roi ? 1 : 0}&boxes=${boxes ? 1 : 0}&token=${encodeURIComponent(authToken() || "")}`;
+
+// 관제화면에서 ROI · 탐지 박스를 그려 보일지 (이 브라우저에 기억). 꺼도 서버의 탐지 · 이벤트 판정 · 스냅샷은 그대로
+const OVERLAY_KEY = "safety.detect-overlay";
+function overlayShown() {
+  try { return localStorage.getItem(OVERLAY_KEY) !== "0"; } catch (e) { return true; }
+}
+function rememberOverlay(on) {
+  try { localStorage.setItem(OVERLAY_KEY, on ? "1" : "0"); } catch (e) { /* 기억 못 해도 지금 화면은 바뀜 */ }
+}
 // MJPEG 는 브라우저마다 load 이벤트가 달라서, 첫 장면이 들어왔는지 그림 크기로 확인한다
 function waitFirstFrame(img, ms = 20000) {
   return new Promise((resolve, reject) => {

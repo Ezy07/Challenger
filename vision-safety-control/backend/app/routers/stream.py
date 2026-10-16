@@ -28,7 +28,7 @@ async def stream_status(_: CurrentUser):
     return StreamStatus(enabled=ok, reason=reason, model=settings.yolo_model if ok else None)
 
 
-async def frames(feed: vision.Feed, camera_name: str, show_roi: bool):
+async def frames(feed: vision.Feed, camera_name: str, show_roi: bool, show_boxes: bool):
     seq = -1
     try:
         while not feed.stopped:
@@ -38,7 +38,7 @@ async def frames(feed: vision.Feed, camera_name: str, show_roi: bool):
                 continue
             seq = snap.seq
             rois = vision.rois_at(vision.roi_rows(), camera_name, snap.video_time)
-            jpeg = await asyncio.to_thread(vision.render, snap, rois, show_roi)
+            jpeg = await asyncio.to_thread(vision.render, snap, rois, show_roi, show_boxes)
             if jpeg:
                 yield b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n%s\r\n" % (len(jpeg), jpeg)
     finally:
@@ -56,8 +56,9 @@ def source_of(url: str) -> tuple[str, bool] | None:
 
 
 @router.get("/{camera_id}.mjpg")
-async def stream(camera_id: int, db: DB, _: StreamUser, roi: bool = True):
-    """카메라 영상에 YOLO 탐지 박스와 ROI(roi=false 면 박스만)를 그려 보낸다. 주소에 ?token=로그인토큰"""
+async def stream(camera_id: int, db: DB, _: StreamUser, roi: bool = True, boxes: bool = True):
+    """카메라 영상에 YOLO 탐지 박스와 ROI 를 그려 보낸다 (roi=false · boxes=false 면 그것만 뺀다. 탐지 · 판정은 그대로).
+    주소에 ?token=로그인토큰"""
     cam = get_camera(db, camera_id)
     name, url = cam.name, cam.stream_url
     db.close()  # 영상은 오래 이어지므로 DB 연결을 먼저 돌려준다
@@ -72,5 +73,5 @@ async def stream(camera_id: int, db: DB, _: StreamUser, roi: bool = True):
     if not ok:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, reason)
     feed = vision.open_feed(camera_id, source, is_file, name)
-    return StreamingResponse(frames(feed, name, roi), media_type="multipart/x-mixed-replace; boundary=frame",
+    return StreamingResponse(frames(feed, name, roi, boxes), media_type="multipart/x-mixed-replace; boundary=frame",
                              headers={"Cache-Control": "no-store"})

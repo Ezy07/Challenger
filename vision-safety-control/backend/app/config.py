@@ -39,7 +39,8 @@ class Settings(BaseSettings):
     # OpenVINO 모델 (Intel 내장 그래픽에서 PyTorch CPU 보다 2~3배 빠름). 폴더가 없으면 처음 실행할 때 yolov8n.pt 를 내려받아 변환한다.
     # PyTorch 그대로 쓰려면 "yolov8n.pt", 직접 학습한 모델은 파일 경로
     yolo_model: str = "yolov8n_openvino_model"
-    yolo_conf: float = 0.35         # 이 confidence 미만인 탐지 박스는 그리지 않음
+    yolo_seg_model: str = ""        # 시험용: 세그 모델을 하나 더 돌려 윤곽을 칠함 (예: excavator_seg_openvino_model). 비우면 안 씀
+    yolo_conf: float = 0.50       # 이 confidence 미만인 탐지 박스는 그리지 않음
     yolo_imgsz: int = 640           # 바꾸면 OpenVINO 모델 폴더를 지우고 다시 변환해야 함 (변환할 때 크기가 고정됨)
     yolo_device: str = "intel:gpu"  # OpenVINO: Intel 내장 그래픽 (없으면 알아서 CPU). .pt 모델이면 비우거나 cpu · cuda:0
     stream_fps: int = 8             # 화면으로 보내는 초당 장수 (탐지는 CPU 가 되는 만큼만). 노트북 기준으로 낮춤

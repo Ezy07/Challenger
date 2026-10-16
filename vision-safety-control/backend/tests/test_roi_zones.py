@@ -75,6 +75,15 @@ def test_targets_round_trip(client, admin):
     assert client.put("/api/roi-zones", json=[{**ROW, "targets": ["bus"]}], headers=admin).status_code == 422
 
 
+def test_name_round_trip(client, admin, zones_file):
+    saved = client.put("/api/roi-zones", json=[{**ROW, "name": "  타워크레인   하부 "}], headers=admin).json()
+    assert saved[0]["name"] == "타워크레인 하부"  # 앞뒤 · 겹친 공백 정리
+    assert client.get("/api/roi-zones", headers=admin).json()[0]["name"] == "타워크레인 하부"
+    blank = client.put("/api/roi-zones", json=[{**ROW, "name": "   "}], headers=admin).json()
+    assert blank[0].get("name") is None and "name" not in json.loads(zones_file.read_text(encoding="utf-8"))[0]
+    assert client.put("/api/roi-zones", json=[{**ROW, "name": "가" * 41}], headers=admin).status_code == 422
+
+
 def test_schedule_toggles_enabled(client, admin, monkeypatch):
     def at(moment):
         monkeypatch.setattr("app.routers.roi_zones.now_kst", lambda: (moment, "local"))

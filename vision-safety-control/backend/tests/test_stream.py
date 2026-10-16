@@ -44,12 +44,13 @@ def test_rois_at_follows_keyframes_and_enabled():
     sq = [[0, 0], [10, 0], [10, 10]]
     moved = [[100, 100], [110, 100], [110, 110]]
     rows = [
-        {"camera": "CAM_A", "no": 1, "kind": "위험구역", "frame": 1, "time": 0.0, "points": sq},
-        {"camera": "CAM_A", "no": 1, "kind": "위험구역", "frame": 61, "time": 2.0, "points": moved},
+        {"camera": "CAM_A", "no": 1, "name": "크레인 하부", "kind": "위험구역", "frame": 1, "time": 0.0, "points": sq},
+        {"camera": "CAM_A", "no": 1, "name": "크레인 하부", "kind": "위험구역", "frame": 61, "time": 2.0, "points": moved},
         {"camera": "CAM_A", "no": 2, "kind": "안전구역", "frame": 1, "points": sq, "enabled": False},  # 꺼진 구역
         {"camera": "CAM_A", "no": 3, "kind": "관리구역", "frame": 31, "points": moved},  # time 없으면 30fps 로 계산
         {"camera": "CAM_B", "no": 1, "kind": "관리구역", "frame": 1, "points": sq},  # 다른 카메라
     ]
-    assert vision.rois_at(rows, "CAM_A", 0.5) == [(1, "위험구역", sq), (3, "관리구역", moved)]
-    assert vision.rois_at(rows, "CAM_A", 2.5) == [(1, "위험구역", moved), (3, "관리구역", moved)]
-    assert vision.rois_at(rows, "CAM_B", 0) == [(1, "관리구역", sq)]
+    # 이름이 없는 예전 구역은 등급으로 부른다
+    assert vision.rois_at(rows, "CAM_A", 0.5) == [(1, "위험구역", sq, "크레인 하부"), (3, "관리구역", moved, "관리구역")]
+    assert vision.rois_at(rows, "CAM_A", 2.5) == [(1, "위험구역", moved, "크레인 하부"), (3, "관리구역", moved, "관리구역")]
+    assert vision.rois_at(rows, "CAM_B", 0) == [(1, "관리구역", sq, "관리구역")]

@@ -6,7 +6,8 @@
   · 사용안함(intrusion=false) · 구역 사용 스위치 · 적용 시간이 꺼져 있으면 판정하지 않음
 - 판정 기준 화면(8-8)의 값을 쓴다: confidence 가 기준 미만인 박스는 세지 않고, 사용을 끄면 판정하지 않고,
   쿨다운 · 심각도는 이벤트를 만들 때(events.create_event) 적용한다. 바꾸면 RULE_REFRESH_SEC 안에 반영된다.
-- 발밑(박스 아래 가운데)이 구역 안이면 "들어와 있음". 박스가 잠깐 끊겨도 GAP_SEC 까지는 계속 머문 것으로 본다.
+- 발밑(박스 아래 가운데)이 구역 안이면 "들어와 있음". 구역이 겹치면 위험 > 통제 > 관리 > 안전 순으로 한 구역에만 센다.
+  박스가 잠깐 끊겨도 GAP_SEC 까지는 계속 머문 것으로 본다.
   한 번 머무는 동안 이벤트는 한 번만 만든다 (나갔다 다시 들어오면 다시, 같은 경보는 쿨다운 동안 막힘).
 - 이벤트가 생기면 그 순간 화면(ROI · 탐지 박스를 그린 JPEG)을 storage/snapshots/날짜/ 에 저장한다.
 - 보는 사람이 없어도 판정할 구역이 있는 카메라는 계속 읽는다 (EVENT_WATCH=false 면 화면을 볼 때만 판정).
@@ -88,16 +89,25 @@ class Judge:
     def observe(self, camera_id: int, zones: list[dict], boxes: list[vision.Box], width: int, height: int,
                 rules: dict[str, Rule], now: float) -> list[Trigger]:
         out = []
-        for zone in zones:
-            key = (camera_id, zone["no"])
+        judged = []  # 판정하는 구역만, 우선순위(위험 > 통제 > 관리 > 안전) 순
+        for zone in vision.by_priority(zones, lambda z: z["kind"]):
             code = zone_code(zone)
             rule = rules.get(code) if code else None
             if not rule or not rule.active:
-                self.stays.pop(key, None)
+                self.stays.pop((camera_id, zone["no"]), None)
                 continue
             poly = [(x * width / vision.ROI_W, y * height / vision.ROI_H) for x, y in zone["points"]]
-            hits = [b for b in boxes
-                    if b.name in zone["targets"] and b.conf >= rule.min_conf and inside((b.x1 + b.x2) / 2, b.y2, poly)]
+            judged.append((zone, code, rule, poly))
+        # 발밑이 구역 여러 개에 겹치면 (통제구역 안의 위험구역 등) 우선순위가 가장 높은 구역 하나에만 센다
+        hits_by_no: dict[int, list[vision.Box]] = {zone["no"]: [] for zone, *_ in judged}
+        for b in boxes:
+            for zone, _, rule, poly in judged:
+                if b.name in zone["targets"] and b.conf >= rule.min_conf and inside((b.x1 + b.x2) / 2, b.y2, poly):
+                    hits_by_no[zone["no"]].append(b)
+                    break
+        for zone, code, _, _ in judged:
+            key = (camera_id, zone["no"])
+            hits = hits_by_no[zone["no"]]
             stay = self.stays.get(key)
             if not hits:
                 if stay and now - stay.last_seen > GAP_SEC:
@@ -130,9 +140,10 @@ def load_rules(db) -> dict[str, Rule]:
 
 # ---------------------------------------------------------------- 이벤트 · 스냅샷 기록
 def roi_id_for(db, camera_id: int, zone: dict) -> int:
-    """그린 구역(JSON)을 DB roi 줄과 잇는다. 이름 "1번 위험구역" 의 번호로 찾고, 없으면 만든다."""
+    """그린 구역(JSON)을 DB roi 줄과 잇는다. 이름 "1번 타워크레인 하부 (위험구역)" 의 번호로 찾고, 없으면 만든다.
+    이름을 안 정한 구역은 "1번 위험구역"."""
     prefix = f"{zone['no']}번 "
-    name = f"{zone['no']}번 {zone['kind']}"
+    name = f"{zone['no']}번 {zone['name']} ({zone['kind']})" if zone.get("name") else f"{zone['no']}번 {zone['kind']}"
     polygon = [[round(x / vision.ROI_W, 4), round(y / vision.ROI_H, 4)] for x, y in zone["points"]]
     roi = next((r for r in db.scalars(select(Roi).where(Roi.camera_id == camera_id)) if r.name.startswith(prefix)), None)
     if roi is None:
@@ -178,7 +189,7 @@ def record(Session, job: Job):
         result = create_event(db, body, lambda: save_snapshot(job.snap, job.rois, job.camera_name, t.code, job.at))
     if result.created:
         log.info("이벤트 EV-%s: %s %s번 %s (%s %.0f%%)", result.event_id, job.camera_name, t.zone["no"],
-                 t.zone["kind"], t.code, box.conf * 100)
+                 vision.zone_title(t.zone), t.code, box.conf * 100)
     return result
 
 
@@ -196,7 +207,7 @@ def on_detect(feed: vision.Feed, snap: vision.Snapshot) -> None:
     zones = vision.zones_at(vision.roi_rows(), feed.camera_name, snap.video_time)
     height, width = snap.frame.shape[:2]
     for trig in judge.observe(feed.camera_id, zones, snap.boxes, width, height, rules, time.monotonic()):
-        rois = [(z["no"], z["kind"], z["points"]) for z in zones]
+        rois = [(z["no"], z["kind"], z["points"], vision.zone_title(z)) for z in zones]
         try:
             _jobs.put_nowait(Job(trig, feed.camera_name, snap, rois))
         except queue.Full:
