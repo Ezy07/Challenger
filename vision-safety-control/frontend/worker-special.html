@@ -22,12 +22,13 @@
     .who-list .opt.on, .who-list .opt:hover { background: rgba(255, 154, 31, 0.12); }
     .who-list .opt mark { background: none; color: var(--orange); font-weight: 800; }
     .who-list .none { padding: 12px 10px; color: var(--muted); font-size: 12.5px; }
-    #sp-q[readonly] { opacity: 0.75; }
+    #sp-q[readonly], #ed-q[readonly] { opacity: 0.75; }
+    #add-pop, #edit-pop, #off-pop { z-index: 46; }
     @media (max-width: 1100px) { .cats { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
-  <div class="page no-left rail-hidden rail-over">
+  <div class="page full">
 
     <header class="cell head"></header>
 
@@ -36,6 +37,8 @@
         <div class="searchbar-row">
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <b id="n-shown"></b>
+          <span class="grow"></span>
+          <button class="btn primary sm" type="button" id="open-add" data-need="MANAGER">특별관리 지정</button>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -66,12 +69,18 @@
       </section>
     </main>
 
-    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
-    <aside class="cell right" id="rail">
-      <div class="pad" data-lacks="MANAGER"><div class="label">특별관리 지정</div>
-        <div class="hint">조회 전용 계정은 특별관리 지정 · 해제를 할 수 없습니다. 바꿔야 하면 안전관리자에게 요청하세요.</div></div>
-      <form class="pad" id="form" data-need="MANAGER">
-        <div class="label" id="form-title">특별관리 지정하기</div>
+  </div>
+
+  <div class="pop" id="add-pop" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="add-title" style="width:min(480px, 100%)">
+      <div class="pop-head">
+        <div>
+          <div class="label">특별관리</div>
+          <h2 id="add-title">특별관리 지정하기</h2>
+        </div>
+        <button class="btn sm" type="button" data-close>닫기</button>
+      </div>
+      <form id="form" data-need="MANAGER" style="display:grid; gap:10px; margin-top:14px">
         <div class="field"><label for="sp-q">작업자</label>
           <input class="input" id="sp-q" type="search" autocomplete="off" placeholder="이름 · 협력사 · 직종으로 검색"
             role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sp-list" />
@@ -85,11 +94,56 @@
           <small class="muted" id="sp-auto"></small>
         </div>
         <label class="field">메모<textarea class="input" id="sp-memo" maxlength="200" placeholder="예: 9월 건강검진 혈압 160/100"></textarea></label>
-        <button class="btn primary block" id="sp-add">지정</button>
-        <button class="btn block" type="button" id="sp-cancel" hidden>새로 지정하기로</button>
         <div class="hint">지정된 작업자는 <b>관제화면 오른쪽 아래 특별관리근로자 패널</b>에 숫자로 잡히고, 작업별 장비 · 작업자 목록에 표시가 붙습니다. <b>신규 투입</b>은 투입일부터 7일이 지나면 자동으로 빠집니다.</div>
+        <div class="row end">
+          <button class="btn" type="button" data-close>취소</button>
+          <button class="btn primary" id="sp-add">지정</button>
+        </div>
       </form>
-    </aside>
+    </div>
+  </div>
+
+  <div class="pop" id="edit-pop" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="edit-title" style="width:min(480px, 100%)">
+      <div class="pop-head">
+        <div>
+          <div class="label">특별관리 수정</div>
+          <h2 id="edit-title">사유 바꾸기</h2>
+        </div>
+        <button class="btn sm" type="button" data-close>닫기</button>
+      </div>
+      <form id="edit-form" style="display:grid; gap:10px; margin-top:14px">
+        <label class="field">작업자<input class="input" id="ed-q" readonly /></label>
+        <div class="field">사유 <span class="muted" style="font-weight:600">(여러 개 고를 수 있음)</span>
+          <div class="chips" id="ed-why">
+            <span class="chip" data-v="ELDERLY">고령</span><span class="chip" data-v="HYPERTENSION">고혈압</span>
+            <span class="chip" data-v="NEW">신규 투입</span><span class="chip" data-v="ETC">기타</span>
+          </div>
+          <small class="muted" id="ed-auto"></small>
+        </div>
+        <label class="field">메모<textarea class="input" id="ed-memo" maxlength="200" placeholder="예: 9월 건강검진 혈압 160/100"></textarea></label>
+        <div class="row end">
+          <button class="btn" type="button" data-close>취소</button>
+          <button class="btn primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="pop" id="off-pop" hidden>
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="off-title">
+      <div class="pop-head">
+        <div>
+          <div class="label">특별관리 해제</div>
+          <h2 id="off-title">정말로 해제 하시겠습니까?</h2>
+          <p id="off-sub"></p>
+        </div>
+      </div>
+      <div class="row end" style="margin-top:16px">
+        <button class="btn" type="button" data-close>아니오</button>
+        <button class="btn danger" type="button" id="off-yes">예</button>
+      </div>
+    </div>
   </div>
 
   <script src="api.js"></script>
@@ -98,7 +152,7 @@
     requireLogin();
     const $ = (id) => document.getElementById(id);
     const REASONS = ["ELDERLY", "HYPERTENSION", "NEW", "ETC"];
-    let workers = [], editId = null;
+    let workers = [], popEditId = null, offId = null;
     let pickId = null, hits = [], hitIdx = -1; // 고른 작업자 · 검색 결과 · 키보드로 가리킨 줄
 
     // 지금 유효한 사유 (신규 투입은 7일이 지나면 서버가 special_tags 에서 뺀다)
@@ -168,9 +222,9 @@
       suggest();
     }
     function fillWho() {
-      const w = editId && workers.find((x) => x.id === editId);
-      pickWho(w || null);
-      $("sp-q").readOnly = Boolean(editId); // 사유 바꾸기 중에는 작업자를 바꾸지 않는다
+      pickWho(null);
+      $("sp-memo").value = "";
+      document.querySelectorAll("#sp-why .chip").forEach((c) => c.classList.remove("on"));
     }
 
     // 나이 · 투입일로 고령 · 신규 투입을 미리 골라 준다 (새로 지정할 때)
@@ -178,20 +232,22 @@
       const w = workers.find((x) => x.id === pickId);
       const days = w && w.start_date ? Math.round((new Date(todayStr()) - new Date(w.start_date)) / 86400000) : null;
       const auto = { ELDERLY: w && w.age >= 60, NEW: days !== null && days <= 7 };
-      if (!editId) document.querySelectorAll("#sp-why .chip").forEach((c) => c.classList.toggle("on", Boolean(auto[c.dataset.v])));
+      document.querySelectorAll("#sp-why .chip").forEach((c) => c.classList.toggle("on", Boolean(auto[c.dataset.v])));
       $("sp-auto").textContent = w ? [w.age != null && `만 ${w.age}세`, days !== null && `투입 D+${days}`].filter(Boolean).join(" · ") : "";
     }
 
-    function startEdit(w) {
-      editId = w ? w.id : null;
-      $("form-title").textContent = w ? `${w.name} 사유 바꾸기` : "특별관리 지정하기";
-      $("sp-add").textContent = w ? "저장" : "지정";
-      $("sp-cancel").hidden = !w;
-      $("sp-memo").value = w ? w.special_memo || "" : "";
-      fillWho();
-      if (w) document.querySelectorAll("#sp-why .chip").forEach((c) => c.classList.toggle("on", w.special_reasons.includes(c.dataset.v)));
+    function openEdit(w) {
+      popEditId = w.id;
+      $("edit-title").textContent = `${w.name} 사유 바꾸기`;
+      $("ed-q").value = whoText(w);
+      const days = w.start_date ? Math.round((new Date(todayStr()) - new Date(w.start_date)) / 86400000) : null;
+      $("ed-auto").textContent = [w.age != null && `만 ${w.age}세`, days !== null && `투입 D+${days}`].filter(Boolean).join(" · ");
+      $("ed-memo").value = w.special_memo || "";
+      document.querySelectorAll("#ed-why .chip").forEach((c) => c.classList.toggle("on", (w.special_reasons || []).includes(c.dataset.v)));
+      $("edit-pop").hidden = false;
     }
 
+    $("open-add").addEventListener("click", () => { fillWho(); $("add-pop").hidden = false; $("sp-q").focus(); });
     $("form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const id = pickId;
@@ -200,34 +256,57 @@
       if (!reasons.length) return toast("사유를 하나 이상 고르세요.");
       try {
         const w = await api(`/api/workers/${id}/special`, { method: "POST", body: { reasons, memo: $("sp-memo").value.trim() || null } });
-        toast(editId ? `${w.name}님의 특별관리 사유를 바꿨습니다.` : `${w.name}님을 특별관리로 지정했습니다.`);
-        startEdit(null);
+        toast(`${w.name}님을 특별관리로 지정했습니다.`);
+        $("add-pop").hidden = true;
+        fillWho();
         await load();
       } catch (err) { toast(err.message); }
     });
-    $("rows").addEventListener("click", async (e) => {
+    $("edit-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const w = workers.find((x) => x.id === popEditId);
+      const reasons = [...document.querySelectorAll("#ed-why .chip.on")].map((c) => c.dataset.v);
+      if (!w) return;
+      if (!reasons.length) return toast("사유를 하나 이상 고르세요.");
+      try {
+        const saved = await api(`/api/workers/${w.id}/special`, { method: "POST", body: { reasons, memo: $("ed-memo").value.trim() || null } });
+        toast(`${saved.name}님의 특별관리 사유를 바꿨습니다.`);
+        $("edit-pop").hidden = true;
+        popEditId = null;
+        await load();
+      } catch (err) { toast(err.message); }
+    });
+    $("rows").addEventListener("click", (e) => {
       const tr = e.target.closest("tr[data-id]");
       if (!tr) return;
       const w = workers.find((x) => x.id === Number(tr.dataset.id));
-      if (e.target.closest("[data-edit]")) startEdit(w);
+      if (!w) return;
+      if (e.target.closest("[data-edit]")) openEdit(w);
       if (e.target.closest("[data-off]")) {
-        if (!confirm(`${w.name}님의 특별관리를 해제할까요?`)) return;
-        try {
-          await api(`/api/workers/${w.id}/special`, { method: "DELETE" });
-          toast(`${w.name}님의 특별관리를 해제했습니다.`);
-          if (editId === w.id) startEdit(null);
-          await load();
-        } catch (err) { toast(err.message); }
+        offId = w.id;
+        $("off-sub").textContent = `${w.name}님의 특별관리 지정이 해제됩니다.`;
+        $("off-pop").hidden = false;
       }
+    });
+    $("off-yes").addEventListener("click", async () => {
+      const w = workers.find((x) => x.id === offId);
+      if (!w) return;
+      try {
+        await api(`/api/workers/${w.id}/special`, { method: "DELETE" });
+        toast(`${w.name}님의 특별관리를 해제했습니다.`);
+        $("off-pop").hidden = true;
+        if (popEditId === w.id) { popEditId = null; $("edit-pop").hidden = true; }
+        offId = null;
+        await load();
+      } catch (err) { toast(err.message); }
     });
     $("sp-q").addEventListener("input", () => {
       if (pickId) { pickId = null; suggest(); } // 고른 뒤 글자를 고치면 다시 고르게 한다
       searchWho();
     });
-    $("sp-q").addEventListener("focus", () => { if (!editId && !pickId) searchWho(); });
+    $("sp-q").addEventListener("focus", () => { if (!pickId) searchWho(); });
     $("sp-q").addEventListener("blur", () => showList(false));
     $("sp-q").addEventListener("keydown", (e) => {
-      if (editId) return;
       const open = !$("sp-list").hidden;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
@@ -247,7 +326,6 @@
       const b = e.target.closest(".opt");
       if (b) pickWho(hits[Number(b.dataset.i)]);
     });
-    $("sp-cancel").addEventListener("click", () => startEdit(null));
     $("filter").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
 
     load().catch((err) => toast(err.message));

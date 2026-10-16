@@ -685,10 +685,6 @@
     .check b { display: block; font-size: 14px; letter-spacing: -0.03em; }
     .check small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
 
-    /* 관제화면 시계는 맨 위 헤더에서 온도 바로 왼쪽 */
-    .gnb-clock b { font-size: 14px; letter-spacing: -0.03em; }
-    .gnb-clock span { font-variant-numeric: tabular-nums; }
-
     /* CCTV 1 · 2페이지 전환 (project/board.html 과 같은 방식) */
     .cam-pages { display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 10px; background: #121820; border: 1px solid var(--line); }
     button.pager { padding: 0; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
@@ -914,17 +910,17 @@
             <div class="bar ok" data-tc-bar><i></i></div>
           </button>
           <button type="button" class="tc-card" data-tc="1">
-            <div class="item-top"><b>2호기 · T-CRN-02</b><span class="status ok" data-tc-status>정상</span></div>
+            <div class="item-top"><b>2호기 · M-CRN-01</b><span class="status ok" data-tc-status>정상</span></div>
             <div class="desc" data-tc-desc>102동 대형거푸집구역 · 100%</div>
             <div class="bar ok" data-tc-bar><i></i></div>
           </button>
           <button type="button" class="tc-card" data-tc="2" id="tc3-card">
-            <div class="item-top"><b>3호기 · M-CRN-01</b><span class="status ok" data-tc-status>정상</span></div>
+            <div class="item-top"><b>3호기 · T-CRN-02</b><span class="status ok" data-tc-status>정상</span></div>
             <div class="desc" data-tc-desc>중앙 자재하역장 · 100%</div>
             <div class="bar ok" data-tc-bar><i></i></div>
           </button>
           <button type="button" class="tc-card" data-tc="3">
-            <div class="item-top"><b>4호기 · T-CRN-03</b><span class="status ok" data-tc-status>정상</span></div>
+            <div class="item-top"><b>4호기 · M-CRN-02</b><span class="status ok" data-tc-status>정상</span></div>
             <div class="desc" data-tc-desc>103동 외벽 인양구역 · 100%</div>
             <div class="bar ok" data-tc-bar><i></i></div>
           </button>
@@ -1133,7 +1129,7 @@
       <div id="tc3-list"></div>
       <div class="pop-actions">
         <button type="button" class="pop-act" id="tc3-cancel">취소</button>
-        <a class="pop-act" id="tc3-detail" href="events.html">상세 보기</a>
+        <a class="pop-act" id="tc3-detail" href="event-detail.html">상세 보기</a>
         <button type="button" class="pop-act go" id="tc3-clear" data-need="MANAGER" disabled>경보 해제</button>
       </div>
     </div>
@@ -1145,7 +1141,7 @@
         <div>
           <span class="role" id="cam-role">작업중지</span>
           <h2 id="cam-title">CAM_0002</h2>
-          <p>102동 대형거푸집구역 · 신호수 미배치</p>
+          <p id="cam-place">102동 대형거푸집구역 · 신호수 미배치</p>
         </div>
         <button type="button" class="pop-x" id="cam-close">닫기</button>
       </div>
@@ -1153,7 +1149,7 @@
       <div id="cam-list"></div>
       <div class="pop-actions">
         <button type="button" class="pop-act" id="cam-cancel">취소</button>
-        <a class="pop-act" href="event-detail.html">상세 보기</a>
+        <a class="pop-act" id="cam-detail" href="event-detail.html">상세 보기</a>
         <button type="button" class="pop-act go" id="cam-clear" data-need="MANAGER" disabled>경보 해제</button>
       </div>
     </div>
@@ -1173,7 +1169,7 @@
       <div id="hook-clear-list"></div>
       <div class="pop-actions">
         <button type="button" class="pop-act" id="hook-clear-cancel">취소</button>
-        <a class="pop-act" id="hook-clear-detail" href="events.html">상세 보기</a>
+        <a class="pop-act" id="hook-clear-detail" href="event-detail.html">상세 보기</a>
         <button type="button" class="pop-act go" id="hook-clear-go" data-need="MANAGER" disabled>경보 해제</button>
       </div>
     </div>
@@ -1182,33 +1178,11 @@
   <script src="api.js"></script>
   <script src="common.js"></script>
   <script>
-    function pad(n) { return String(n).padStart(2, "0"); }
-
-    function tick() {
-      const now = new Date();
-      const time = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
-      const date = now.getFullYear() + "." + pad(now.getMonth() + 1) + "." + pad(now.getDate());
-      const timeEl = document.getElementById("now-time");
-      const dateEl = document.getElementById("now-date");
-      if (timeEl) timeEl.textContent = time;
-      if (dateEl) dateEl.textContent = date;
-      document.querySelectorAll(".js-cam-time").forEach((el) => { el.textContent = time; });
-    }
-
-    // 시각 · 날짜를 맨 위 헤더의 온도 바로 왼쪽에 둔다
-    const wx = document.getElementById("gnb-wx");
-    if (wx) {
-      const clock = document.createElement("span");
-      clock.className = "wx-chip gnb-clock";
-      clock.innerHTML = '<b id="now-time">--:--:--</b><span id="now-date">----.--.--</span>';
-      wx.before(clock);
-    }
-
     const TC_SPEC = [
       { id: "1호기", code: "T-CRN-01", zone: "101동 갱폼 인양구역", kind: "T", name: "TC-1 T형", x: -8, y: -8, jib: 55, rear: 16.5, speed: 0.08, phase: 300, trolleyPhase: 0, color: "#6cb6ff" },
-      { id: "2호기", code: "T-CRN-02", zone: "102동 대형거푸집구역", kind: "L", name: "TC-2 러핑", x: 42, y: 52, jib: 50, rear: 13.5, speed: -0.05, minLuff: 15, maxLuff: 80, color: "#ff9a1f" },
-      { id: "3호기", code: "M-CRN-01", zone: "중앙 자재하역장", kind: "T", name: "TC-3 T형", x: 80, y: -8, jib: 55, rear: 15.5, speed: -0.08, phase: 240, trolleyPhase: 0.9, color: "#c084fc" },
-      { id: "4호기", code: "T-CRN-03", zone: "103동 외벽 인양구역", kind: "L", name: "TC-4 러핑", x: 14, y: 90, jib: 46, rear: 13.5, speed: 0.042, minLuff: 15, maxLuff: 80, color: "#ffb020" }
+      { id: "2호기", code: "M-CRN-01", zone: "102동 대형거푸집구역", kind: "L", name: "TC-2 러핑", x: 42, y: 52, jib: 50, rear: 13.5, speed: -0.05, minLuff: 15, maxLuff: 80, color: "#ff9a1f" },
+      { id: "3호기", code: "T-CRN-02", zone: "중앙 자재하역장", kind: "T", name: "TC-3 T형", x: 80, y: -8, jib: 55, rear: 15.5, speed: -0.08, phase: 240, trolleyPhase: 0.9, color: "#c084fc" },
+      { id: "4호기", code: "M-CRN-02", zone: "103동 외벽 인양구역", kind: "L", name: "TC-4 러핑", x: 14, y: 90, jib: 46, rear: 13.5, speed: 0.042, minLuff: 15, maxLuff: 80, color: "#ffb020" }
     ];
     const TC_WARN = 16;
     const TC_STOP = 6;
@@ -1590,9 +1564,9 @@
         const st = btn.querySelector("[data-tc-status]");
         const shown = st && st.classList.contains("stop") ? "stop" : st && st.classList.contains("warn") ? "warn" : "ok";
         if (shown !== "stop" && shown !== "warn") return;
-        if (btn.dataset.eventId) { location.href = "event-detail.html?id=" + btn.dataset.eventId; return; }
-        if (btn.dataset.pin === "stop") openTc3();
-        else openHookClear(index);
+        const eventId = btn.dataset.eventId || "";
+        if (btn.dataset.pin === "stop") openTc3(eventId);
+        else openHookClear(index, eventId);
       });
     });
     document.getElementById("tc-close").addEventListener("click", () => { tcPop.hidden = true; });
@@ -1667,22 +1641,25 @@
       document.getElementById("tc3-desc").textContent = on ? "인양물 직하부 작업자 · 91%" : "자재 하역 · 직하부 이상 없음";
       document.getElementById("tc3-bar").className = "bar " + (on ? "stop" : "ok");
     }
-    async function openTc3() {
+    async function openTc3(fallbackId) {
       showCamPage("2");
       closeAlerts();
       tcPop.hidden = true;
       document.getElementById("hook-clear").hidden = true;
       camPop.hidden = true;
       tc3Event = null;
+      const detail = document.getElementById("tc3-detail");
+      detail.href = fallbackId ? "event-detail.html?id=" + fallbackId : "event-detail.html";
       paintTc3();
       tc3Pop.hidden = false;
       document.getElementById("tc3-close").focus();
       try {
         const page = await api("/api/events", { query: { status: ["NEW", "ACK"], detection_type: ["LOAD_OVERHEAD_WORKER"], size: 1 } });
-        const row = page.items && page.items[0];
-        if (!row) return;
-        tc3Event = await api("/api/events/" + row.id);
-        document.getElementById("tc3-detail").href = "event-detail.html?id=" + row.id;
+        const row = (page.items && page.items[0]) || null;
+        const id = (row && row.id) || fallbackId;
+        if (!id) return;
+        tc3Event = await api("/api/events/" + id);
+        detail.href = "event-detail.html?id=" + tc3Event.id;
         paintTc3();
       } catch (err) { toast(err.message); }
     }
@@ -1728,16 +1705,26 @@
       { id: "resume", title: "작업 재개", detail: "신호수 배치를 확인한 뒤 인양 재개" },
     ];
     const camPermit = {};
+    let sectorEvent = null;
+    function sectorRows() {
+      if (sectorEvent) return sectorEvent.check_items.map((c) => ({
+        id: c.id, title: c.title, detail: c.permitted ? "허가됨" : "아직 허가 안 됨", ok: c.permitted,
+      }));
+      return CAM_ITEMS.map((it) => ({ id: it.id, title: it.title, detail: it.detail, ok: !!camPermit[it.id] }));
+    }
     function paintCam() {
-      const done = CAM_ITEMS.filter((it) => camPermit[it.id]).length;
-      const ready = done === CAM_ITEMS.length;
-      document.getElementById("cam-role").textContent = ready ? "작업허가 " + done + "/3" : "작업중지 · 허가 " + done + "/3";
-      document.getElementById("cam-list").innerHTML = CAM_ITEMS.map((it) => {
-        const ok = !!camPermit[it.id];
-        return '<div class="permit-row' + (ok ? " ok" : "") + '"><div><b>' + it.title + "</b><small>" + it.detail + "</small></div>" +
-          '<button type="button" class="permit-btn' + (ok ? " back" : "") + '" data-need="MANAGER" data-cam="' + it.id + '">' + (ok ? "작업 중지로" : "작업 허가") + "</button></div>";
-      }).join("");
-      camClear.disabled = !ready;
+      const rows = sectorRows();
+      const done = rows.filter((it) => it.ok).length;
+      const ready = rows.length > 0 && done === rows.length;
+      document.getElementById("cam-role").textContent = sectorEvent && sectorEvent.status === "DONE"
+        ? "처리완료" : ready ? "작업허가 " + done + "/" + rows.length : "작업중지 · 허가 " + done + "/" + rows.length;
+      document.getElementById("cam-list").innerHTML = rows.map((it) =>
+        '<div class="permit-row' + (it.ok ? " ok" : "") + '"><div><b>' + esc(it.title) + "</b><small>" + esc(it.detail) + "</small></div>" +
+        '<button type="button" class="permit-btn' + (it.ok ? " back" : "") + '" data-need="MANAGER" data-cam="' + it.id + '">' + (it.ok ? "작업 중지로" : "작업 허가") + "</button></div>"
+      ).join("");
+      const clearOn = ready && !(sectorEvent && sectorEvent.status === "DONE");
+      camClear.disabled = !clearOn;
+      camClear.toggleAttribute("disabled", !clearOn);
     }
     function setCamAlarm(on) {
       cam2.classList.toggle("alarm-off", !on);
@@ -1750,6 +1737,11 @@
       document.getElementById("cam2-bar").className = "bar " + (on ? "stop" : "ok");
     }
     function openCamAlarm() {
+      sectorEvent = null;
+      document.getElementById("cam-title").textContent = "CAM_0002";
+      document.getElementById("cam-place").textContent = "102동 대형거푸집구역 · 신호수 미배치";
+      document.getElementById("cam-lead").textContent = "신호수가 없는 양중이 감지되었습니다. 세 항목을 모두 작업 허가해야 경보를 해제할 수 있습니다.";
+      document.getElementById("cam-detail").href = "event-detail.html";
       showCamPage("1");
       closeAlerts();
       tcPop.hidden = true;
@@ -1759,15 +1751,54 @@
       camPop.hidden = false;
       document.getElementById("cam-close").focus();
     }
-    function closeCamAlarm() { camPop.hidden = true; }
-    document.getElementById("cam-list").addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-cam]");
-      if (!btn) return;
-      camPermit[btn.dataset.cam] = !btn.classList.contains("back");
+    async function openSectorStop(anchor) {
+      const id = Number(anchor.dataset.event);
+      const name = anchor.querySelector("b").textContent;
+      const desc = anchor.querySelector(".desc").textContent;
+      sectorEvent = null;
+      closeAlerts();
+      tcPop.hidden = true;
+      document.getElementById("hook-clear").hidden = true;
+      tc3Pop.hidden = true;
+      document.getElementById("cam-title").textContent = name;
+      document.getElementById("cam-place").textContent = desc;
+      document.getElementById("cam-lead").textContent = "항목을 모두 작업 허가한 뒤 경보를 해제하세요.";
+      document.getElementById("cam-detail").href = id ? "event-detail.html?id=" + id : "events.html";
       paintCam();
+      camPop.hidden = false;
+      document.getElementById("cam-close").focus();
+      if (!id) return;
+      try {
+        sectorEvent = await api("/api/events/" + id);
+        document.getElementById("cam-title").textContent = sectorEvent.camera_name || name;
+        document.getElementById("cam-place").textContent = [sectorEvent.work_zone_name, sectorEvent.detection_label].filter(Boolean).join(" · ") || desc;
+        document.getElementById("cam-lead").textContent = (sectorEvent.detection_label || "작업중지") + " 항목을 모두 작업 허가하면 경보를 해제할 수 있습니다.";
+        document.getElementById("cam-detail").href = "event-detail.html?id=" + sectorEvent.id;
+        paintCam();
+      } catch (err) { toast(err.message); }
+    }
+    function closeCamAlarm() { camPop.hidden = true; }
+    document.getElementById("cam-list").addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-cam]");
+      if (!btn || (sectorEvent && sectorEvent.status === "DONE")) return;
+      if (!sectorEvent) {
+        camPermit[btn.dataset.cam] = !btn.classList.contains("back");
+        paintCam();
+        return;
+      }
+      const item = sectorEvent.check_items.find((c) => c.id === Number(btn.dataset.cam));
+      if (!item) return;
+      try {
+        sectorEvent = await api("/api/events/" + sectorEvent.id + "/actions", {
+          method: "POST",
+          body: { action_type: item.permitted ? "REVOKE" : "PERMIT", check_item_id: item.id },
+        });
+        paintCam();
+      } catch (err) { toast(err.message); }
     });
     function onCam2Activate() {
       if (!cam2.classList.contains("alarm-off")) openCamAlarm();
+      else location.href = "monitor-camera.html?cam=2";
     }
     cam2.addEventListener("click", onCam2Activate);
     cam2.addEventListener("keydown", (event) => {
@@ -1778,20 +1809,33 @@
     });
     document.getElementById("cam2-item").addEventListener("click", (e) => {
       e.preventDefault();
-      onCam2Activate();
+      if (!cam2.classList.contains("alarm-off")) openCamAlarm();
     });
     document.querySelector(".alerts").addEventListener("click", (e) => {
       const item = e.target.closest("a.item");
-      const st = item && item.querySelector(".status");
+      if (!item || item.id === "cam2-item" || item.id === "tc3-item") return;
+      const st = item.querySelector(".status");
+      if (st && st.classList.contains("stop")) {
+        e.preventDefault();
+        openSectorStop(item);
+        return;
+      }
       if (st && st.classList.contains("ok")) e.preventDefault();
     });
     document.getElementById("cam-cancel").addEventListener("click", closeCamAlarm);
     document.getElementById("cam-close").addEventListener("click", closeCamAlarm);
     camPop.addEventListener("click", (event) => { if (event.target === camPop) closeCamAlarm(); });
     camClear.addEventListener("click", () => {
-      setCamAlarm(false);
-      closeCamAlarm();
-      toast("CAM_0002 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
+      const done = (async () => {
+        if (sectorEvent && sectorEvent.status !== "DONE") {
+          await api("/api/events/" + sectorEvent.id + "/actions", { method: "POST", body: { action_type: "RESOLVE" } });
+        }
+        setCamAlarm(false);
+        closeCamAlarm();
+        toast(sectorEvent ? "작업 허가로 경보를 해제했습니다. 이벤트는 처리완료입니다." : "CAM_0002 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
+        if (sectorEvent) pollLive().catch(() => {});
+      })();
+      done.catch((err) => toast(err.message));
     });
 
     // ---------------- 오른쪽 패널 ↔ 이벤트 연동
@@ -1818,7 +1862,7 @@
     function sectorItem(c, rows) {
       const level = levelOf(rows);
       const desc = rows.length ? eventText(rows) : (c.work_zone_name || c.location_desc || "현장") + " · 이상 없음";
-      return '<a class="item" data-cam="' + c.id + '" href="' + (rows.length ? "event-detail.html?id=" + rows[0].id : "#") + '">'
+      return '<a class="item" data-cam="' + c.id + '" data-event="' + (rows[0] ? rows[0].id : "") + '" href="' + (rows.length ? "event-detail.html?id=" + rows[0].id : "#") + '">'
         + '<div class="item-top"><b>' + esc(c.name) + '</b><span class="status ' + level + '">' + TC_WORD[level] + "</span></div>"
         + '<div class="desc">' + esc(desc) + '</div><div class="bar ' + level + '"><i></i></div></a>';
     }
@@ -1894,7 +1938,7 @@
       go.disabled = !clearOn;
       go.toggleAttribute("disabled", !clearOn);
     }
-    async function openHookClear(index) {
+    async function openHookClear(index, fallbackId) {
       startTcWatch();
       tcSelected = index;
       document.querySelectorAll(".zone .tc-card").forEach((el) => el.classList.toggle("active", Number(el.dataset.tc) === index));
@@ -1904,24 +1948,27 @@
       tc3Pop.hidden = true;
       const spec = TC_SPEC[index];
       const hold = typeof tcHoldFor === "function" ? tcHoldFor(index) : null;
+      const liveId = liveTc[index] && liveTc[index].id;
       hookClearSeq = hold ? hold.seq : null;
       document.getElementById("hook-clear-title").textContent = spec.id + " · " + spec.code;
       const level = tcCardLevel()[index];
       document.getElementById("hook-clear-place").textContent = spec.zone + (level === "warn" ? " · 현장점검" : " · 후크 겹침");
+      const eventId = (hold && hold.id) || fallbackId || liveId || "";
       const link = document.getElementById("hook-clear-detail");
-      link.href = hold && hold.id ? "event-detail.html?id=" + hold.id : "events.html";
+      link.href = eventId ? "event-detail.html?id=" + eventId : "event-detail.html";
       hookClearEvent = null;
       HOOK_LOCAL.forEach((it) => { hookLocal[it.id] = false; });
       document.getElementById("hook-clear").hidden = false;
       document.getElementById("hook-clear-close").focus();
-      if (!hold || !hold.id) {
+      if (!eventId) {
         document.getElementById("hook-clear-lead").textContent = spec.id + "는 작업 허가가 나오기 전까지 이 상태를 유지합니다. 항목을 허가한 뒤 경보를 해제하세요.";
         paintHookClear();
         return;
       }
       document.getElementById("hook-clear-lead").textContent = spec.id + " 후크가 겹칩니다. 항목을 모두 작업 허가한 뒤 경보를 해제하면 정상으로 돌아갑니다.";
       try {
-        hookClearEvent = await api("/api/events/" + hold.id);
+        hookClearEvent = await api("/api/events/" + eventId);
+        link.href = "event-detail.html?id=" + hookClearEvent.id;
         paintHookClear();
       } catch (err) { toast(err.message); }
     }
@@ -2096,8 +2143,6 @@
       });
     });
 
-    tick();
-    setInterval(tick, 1000);
   </script>
 </body>
 </html>

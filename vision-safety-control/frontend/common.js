@@ -36,7 +36,7 @@ const MENU = [
     ["roi-draw.html", "ROI 그리기", "카메라 화면 위를 클릭해 감지 영역(ROI) 다각형 그리기", 0],
     ["roi-list.html", "ROI 목록", "만든 ROI 전체를 보고 켜고 끄기", 0],
   ] },
-  { icon: "⚙", name: "장비 현황", pages: [
+  { icon: "⚙", name: "장비 현황", link: "equipment.html", pages: [
     ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
     ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 구비 서류와 안전교육", 0, { hide: true }],
   ] },
@@ -137,6 +137,15 @@ function saveNav(open) {
 function drawerHtml(file, found) {
   const groupHtml = (g) => {
     const open = found && found.group === g ? " open" : "";
+    if (g.link) {
+      const here = file === g.link || (found && found.group === g);
+      return `
+      <section class="dgroup">
+        <a class="dgroup-btn${here ? " on" : ""}" href="${g.link}">
+          <i>${g.icon}</i><span>${g.name}</span>
+        </a>
+      </section>`;
+    }
     const items = g.pages.map((p) => {
       if (!p[0]) return `<div class="dlabel">${p[1]}</div>`;
       if ((p[4] && p[4].hide) || (pageNeed(g, p) && !can(pageNeed(g, p)))) return "";
@@ -185,6 +194,7 @@ function renderShell(file, found) {
       ${where}
       <span class="grow"></span>
       <div class="gnb-side">
+        <span class="wx-chip gnb-clock"><b id="now-time">--:--:--</b><span id="now-date">----.--.--</span></span>
         <div class="gnb-wx" id="gnb-wx" title="포항 송도동 날씨" hidden>
           <span class="wx-chip alert" id="wx-alert" hidden><b id="wx-alert-tag">주의</b><span id="wx-alert-text"></span></span>
           <span class="wx-chip"><span class="ico" id="wx-ico">⛅</span><b id="wx-temp">--°</b><span id="wx-sky"></span></span>
@@ -218,7 +228,7 @@ function renderShell(file, found) {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && narrow.matches && body.classList.contains("nav-open")) setOpen(false, false);
   });
-  document.querySelectorAll(".dgroup-btn").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("button.dgroup-btn").forEach((b) => b.addEventListener("click", () => {
     const g = b.closest(".dgroup");
     g.classList.toggle("open");
     b.setAttribute("aria-expanded", g.classList.contains("open") ? "true" : "false");
@@ -236,17 +246,15 @@ function renderHead(file, found) {
   if (found) document.title = `${pageNo(found.group, found.page)} ${found.page[1]} · 안전관제`;
   const head = document.querySelector("header.head");
   if (head && !head.children.length) {
-    let no, groupName, title, text;
+    let title, text;
     if (found) {
-      no = pageNo(found.group, found.page);
-      groupName = found.group.name;
       [, title, text] = found.page;
     } else {
       const extra = EXTRA[file] || ["", document.title, "", ""];
-      [no, title, text, groupName] = extra;
+      [, title, text] = extra;
     }
     head.innerHTML = `
-      <div class="where"><i class="dot"></i><b>${no}</b>${groupName}</div>
+      <div></div>
       <div class="title"><h1>${title}</h1><p>${text}</p></div>
       <div></div>`;
   }
@@ -912,6 +920,11 @@ function pad2(n) { return String(n).padStart(2, "0"); }
 function tickClock() {
   const now = new Date();
   const time = pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds());
+  const date = now.getFullYear() + "." + pad2(now.getMonth() + 1) + "." + pad2(now.getDate());
+  const timeEl = document.getElementById("now-time");
+  const dateEl = document.getElementById("now-date");
+  if (timeEl) timeEl.textContent = time;
+  if (dateEl) dateEl.textContent = date;
   document.querySelectorAll(".js-cam-time").forEach((el) => { el.textContent = time; });
 }
 

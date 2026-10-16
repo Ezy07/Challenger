@@ -17,6 +17,35 @@
     .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
     .info-row > span { color: var(--muted); font-weight: 700; white-space: nowrap; }
     .info-row b { text-align: right; overflow-wrap: anywhere; }
+    .full-btn, .full-exit {
+      height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line);
+      background: #121820; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700;
+      white-space: nowrap; cursor: pointer;
+    }
+    .full-btn:hover, .full-exit:hover { border-color: rgba(255, 154, 31, 0.7); }
+    .full-btn:focus-visible, .full-exit:focus-visible, .cam-pick:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+    .full-bar {
+      position: fixed; z-index: 45; top: 12px; right: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .full-exit { background: rgba(18, 24, 32, 0.88); }
+    .cam-pick {
+      height: 34px; min-width: 220px; max-width: min(420px, 70vw); padding: 0 10px; color-scheme: dark;
+      border-radius: 9px; border: 1px solid var(--line); background: #121820; color: var(--ink);
+      font: inherit; font-size: 13px; font-weight: 700;
+    }
+    .full-bar .cam-pick { height: 32px; min-width: 0; background: rgba(18, 24, 32, 0.88); font-size: 12.5px; }
+    body.cam-full { overflow: hidden; }
+    body.cam-full .gnb, body.cam-full .drawer, body.cam-full .scrim,
+    body.cam-full .head, body.cam-full .pick-bar, body.cam-full .controls,
+    body.cam-full .rail, body.cam-full .rail-toggle { display: none !important; }
+    body.cam-full .page {
+      position: fixed; inset: 0; z-index: 20; display: block;
+      height: auto; margin: 0; padding: 0; background: #000;
+    }
+    body.cam-full .main { display: block; height: 100%; min-height: 0; }
+    body.cam-full #cam-box { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; border-radius: 0; border: 0; box-shadow: none; }
+    body.cam-full .cam-time { top: 52px; }
   </style>
 </head>
 <body>
@@ -24,15 +53,13 @@
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell searchbar">
+      <section class="cell pick-bar">
         <div class="searchbar-row">
           <b class="now" id="now">카메라를 불러오는 중…</b>
-          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="pick">카메라 선택 <i class="chev">▾</i></button>
+          <select id="cam-pick" class="cam-pick" aria-label="카메라 선택"></select>
+          <button class="full-btn" type="button" id="cam-full" aria-pressed="false">전체화면</button>
           <span class="grow"></span>
           <a class="btn" href="monitor.html">← 관제화면으로 돌아가기</a>
-        </div>
-        <div class="search-panel" id="pick" hidden>
-          <div class="search-cards" id="cams"></div>
         </div>
       </section>
       <section class="cell cam" id="cam-box">
@@ -76,6 +103,10 @@
       </div>
     </aside>
   </div>
+  <div class="full-bar" id="cam-fullbar" hidden>
+    <select id="full-cam" class="cam-pick" aria-label="전체화면 카메라"></select>
+    <button type="button" class="full-exit" id="cam-exit">전체화면 종료</button>
+  </div>
 
   <script src="api.js"></script>
   <script src="roi-store.js"></script>
@@ -96,21 +127,6 @@
       return cams.find((c) => c.id === id) || cams.find((c) => c.name === key)
         || (slot && cams.find((c) => c.view_page === slot[0] && c.view_slot === slot[1]))
         || cams.find((c) => c.is_active && videoSrc(c.stream_url)) || cams[0];
-    }
-
-    function card(c) {
-      const sub = [!c.is_active && "사용 안 함", videoSrc(c.stream_url) ? "영상 파일" : c.stream_url ? "RTSP" : "영상 없음",
-        c.view_slot && `${c.view_page}페이지 ${c.view_slot}번 칸`].filter(Boolean).join(" · ");
-      return `<button class="tc-card${cam && c.id === cam.id ? " active" : ""}" type="button" data-id="${c.id}">
-        <div class="code">${esc(c.name)}</div><strong>${esc(c.work_zone_name || "구역 없음")}</strong><p>${esc(sub)}</p></button>`;
-    }
-    function drawCams() {
-      const groups = [["1페이지 · 현장 CAM", (c) => c.view_page === 1 && c.view_slot], ["2페이지 · TC 관제 CAM", (c) => c.view_page === 2 && c.view_slot],
-        ["관제화면에 안 나오는 카메라", (c) => !c.view_slot]];
-      $("cams").innerHTML = groups.map(([title, test]) => {
-        const list = cams.filter(test);
-        return list.length ? `<div class="label">${title}</div>` + list.map(card).join("") : "";
-      }).join("") || '<p class="muted">등록된 카메라가 없습니다</p>';
     }
 
     // ---------------- 영상 + ROI
@@ -253,22 +269,50 @@
       if (open) $("to-event").href = "event-detail.html?id=" + open.id;
     }
 
+    function fillPicks() {
+      const groups = [["1페이지 · 현장 CAM", (c) => c.view_page === 1 && c.view_slot], ["2페이지 · TC 관제 CAM", (c) => c.view_page === 2 && c.view_slot],
+        ["관제화면에 안 나오는 카메라", (c) => !c.view_slot]];
+      const html = groups.map(([title, test]) => {
+        const list = cams.filter(test);
+        if (!list.length) return "";
+        return `<optgroup label="${esc(title)}">` + list.map((c) =>
+          `<option value="${c.id}">${esc(c.name)}${c.work_zone_name ? " · " + esc(c.work_zone_name) : ""}</option>`).join("") + "</optgroup>";
+      }).join("") || `<option value="" disabled>등록된 카메라가 없습니다</option>`;
+      $("cam-pick").innerHTML = html;
+      $("full-cam").innerHTML = html;
+    }
+
     function show(c) {
       cam = c;
       history.replaceState(null, "", "?camera=" + c.id);
+      ["cam-pick", "full-cam"].forEach((id) => { if ($(id).value !== String(c.id)) $(id).value = String(c.id); });
       $("now").innerHTML = `${esc(c.name)}<small>${esc(c.work_zone_name || "구역 없음")}</small>`;
       $("cam-tag").textContent = c.name;
       $("cam-zone").textContent = [c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "설치 위치 없음";
-      drawCams();
       play(c);
       drawRois();
       side(c).catch((err) => toast(err.message));
     }
 
-    $("cams").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-id]");
-      if (b) { show(cams.find((c) => c.id === Number(b.dataset.id))); closeSearch(); }
-    });
+    function setCamFull(on) {
+      document.body.classList.toggle("cam-full", on);
+      $("cam-fullbar").hidden = !on;
+      $("cam-full").setAttribute("aria-pressed", on ? "true" : "false");
+      const root = document.documentElement;
+      if (on && !document.fullscreenElement && root.requestFullscreen) root.requestFullscreen().catch(() => {});
+      else if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      setTimeout(fitStage, 50);
+      setTimeout(fitStage, 280);
+    }
+    $("cam-full").addEventListener("click", () => setCamFull(true));
+    $("cam-exit").addEventListener("click", () => setCamFull(false));
+    document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) setCamFull(false); });
+    function onPick(e) {
+      const next = cams.find((c) => c.id === Number(e.target.value));
+      if (next && next !== cam) show(next);
+    }
+    $("cam-pick").addEventListener("change", onPick);
+    $("full-cam").addEventListener("change", onPick);
     $("roi-toggle").addEventListener("click", () => { // 칩 켜고 끄기는 common.js 가 한다
       drawRois();
       if (live && !livePaused) connectLive(); // 탐지 영상은 ROI 를 넣고 빼서 다시 받는다
@@ -310,9 +354,10 @@
       books = await loadRoiBooks(cams).catch(() => ({})); // ROI 를 못 불러와도 영상은 본다
       if (!cams.length) {
         $("now").textContent = "등록된 카메라가 없습니다";
-        drawCams();
+        fillPicks();
         return noVideo("등록된 카메라가 없습니다. 카메라 등록에서 먼저 추가하세요.");
       }
+      fillPicks();
       show(wanted());
     })().catch((err) => toast(err.message));
   </script>

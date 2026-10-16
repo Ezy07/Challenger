@@ -45,12 +45,19 @@ a { color: inherit; text-decoration: none; }
    ☰ 버튼을 누르면 왼쪽에서 메뉴가 나오고, 넓은 화면에서는 본문이 오른쪽으로 밀려 나란히 보인다 */
 body { transition: padding-left .24s ease; }
 body.nav-open { padding-left: var(--drawer-w); }
-body.nav-still, body.nav-still .drawer { transition: none !important; }
+body.nav-still, body.nav-still .drawer, body.nav-still .gnb { transition: none !important; }
+/* 고정된 상단 바 높이만큼 본문을 내린다. 그 아래 패널은 같이 고정하지 않는다 */
+body:not([data-no-gnb]) { padding-top: calc(var(--gnb-h) + 12px); }
 
 .gnb {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 30;
   flex: none;
   height: var(--gnb-h);
-  margin: 12px 12px 0;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -59,7 +66,21 @@ body.nav-still, body.nav-still .drawer { transition: none !important; }
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  transition: left .24s ease;
 }
+/* 화면 맨 위부터 바 아래까지 통째로 덮어, 스크롤된 내용이 틈으로 비치지 않게 한다 */
+.gnb::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--gnb-h) + 14px);
+  pointer-events: none;
+  background: var(--bg);
+}
+body.nav-open .gnb { left: calc(var(--drawer-w) + 12px); }
 .menu-btn {
   width: 38px; height: 38px; flex: none;
   display: grid; place-content: center; gap: 4px;
@@ -94,6 +115,8 @@ body.nav-open .gnb > .brand { display: none; }
   font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap;
 }
 .wx-chip b { color: var(--ink); font-size: 13.5px; font-weight: 780; font-variant-numeric: tabular-nums; }
+.gnb-clock b { font-size: 14px; letter-spacing: -0.03em; }
+.gnb-clock span { font-variant-numeric: tabular-nums; }
 .wx-chip .ico { font-size: 16px; }
 .wx-chip.alert { background: #2a1214; border-color: var(--red); color: #fff; max-width: 200px; }
 .wx-chip.alert b { flex: none; font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: var(--red); color: #fff; }
@@ -168,14 +191,17 @@ body.nav-open .drawer { transform: none; visibility: visible; box-shadow: 12px 0
   width: 100%; display: flex; align-items: center; gap: 10px;
   padding: 9px 10px; border: 0; border-radius: 10px; background: transparent;
   color: #c5d0dc; font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer;
+  text-decoration: none;
 }
 .dgroup-btn:hover { background: #18202b; color: var(--ink); }
 .dgroup-btn i { width: 26px; height: 26px; flex: none; border-radius: 8px; display: grid; place-items: center; background: #1c2430; color: var(--muted); font-style: normal; font-size: 13px; }
 .dgroup-btn span { flex: 1; }
 .dgroup-btn .chev { font-style: normal; font-size: 11px; color: var(--muted); transition: transform .2s; }
 .dgroup.open > .dgroup-btn .chev { transform: rotate(180deg); }
-.dgroup:has(.ditem.on) > .dgroup-btn { color: var(--ink); }
-.dgroup:has(.ditem.on) > .dgroup-btn i { background: var(--orange); color: #1a1206; }
+.dgroup:has(.ditem.on) > .dgroup-btn,
+a.dgroup-btn.on { color: var(--ink); }
+.dgroup:has(.ditem.on) > .dgroup-btn i,
+a.dgroup-btn.on i { background: var(--orange); color: #1a1206; }
 .dgroup-list { display: none; flex-direction: column; gap: 1px; padding: 2px 0 8px 22px; margin-left: 13px; border-left: 1px solid var(--line); }
 .dgroup.open > .dgroup-list { display: flex; }
 .ditem { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
@@ -199,11 +225,12 @@ body.nav-open .drawer { transform: none; visibility: visible; box-shadow: 12px 0
 .page {
   flex: 1;
   min-height: 0;
+  overflow: auto;
   display: grid;
   gap: 10px;
   padding: 10px 12px 12px;
   grid-template-columns: 272px minmax(0, 1fr) 312px;
-  grid-template-rows: 72px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas: "left head right" "left main right";
 }
 .page.no-right { grid-template-columns: 272px minmax(0, 1fr); grid-template-areas: "left head" "left main"; }
@@ -247,20 +274,20 @@ body.nav-open .drawer { transform: none; visibility: visible; box-shadow: 12px 0
 
 .main { min-height: 0; display: grid; gap: 10px; grid-auto-rows: minmax(0, auto); }
 .main.fill { grid-template-rows: minmax(0, 1fr); }
-/* 내용이 길어 본문 전체를 스크롤하는 화면: 카드가 줄어들어 잘리지 않게 한다 */
-.main.scroll { overflow: auto; align-content: start; grid-auto-rows: auto; }
+/* 내용이 길면 제목 패널까지 같이 올라가고, 맨 위 바만 남는다 */
+.main.scroll { overflow: visible; align-content: start; grid-auto-rows: auto; }
 .main.scroll .cell { min-height: auto; overflow: visible; }
 
 .cell {
-  min-height: 0;
-  overflow: auto;
+  min-height: auto;
+  overflow: visible;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
 }
 
-/* 제목 칸: 왼쪽 화면 번호, 가운데 화면 이름 (하위 화면 이동은 왼쪽 메뉴에서) */
+/* 제목 칸: 가운데 화면 이름 (하위 화면 이동은 왼쪽 메뉴에서) */
 .head {
   overflow: hidden;
   display: grid;
@@ -269,8 +296,6 @@ body.nav-open .drawer { transform: none; visibility: visible; box-shadow: 12px 0
   gap: 16px;
   padding: 0 18px;
 }
-.head .where { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
-.head .where b { color: var(--orange); }
 .head .title { text-align: center; min-width: 0; }
 .head h1 { font-size: 24px; font-weight: 750; letter-spacing: -0.04em; white-space: nowrap; }
 .head .title p { margin-top: 2px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -508,9 +533,11 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
     grid-template-areas: "head" "left" "main" "right";
   }
   .head { grid-template-columns: 1fr; padding: 12px 16px; text-align: center; }
-  .head .where { justify-content: center; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .gnb { height: auto; flex-wrap: wrap; padding: 8px 12px 8px 8px; }
+  .gnb { position: sticky; top: 12px; left: auto; right: auto; height: auto; margin: 12px 12px 0; flex-wrap: wrap; padding: 8px 12px 8px 8px; }
+  .gnb::before { position: absolute; top: -24px; right: -24px; bottom: 0; left: -24px; height: auto; }
+  body:not([data-no-gnb]) { padding-top: 0; }
+  body.nav-open .gnb { left: auto; }
   .gnb-where, .gnb-user { display: none; }
   /* 좁은 화면에서는 본문을 밀지 않고 메뉴가 위에 덮인다 */
   body.nav-open { padding-left: 0; overflow: hidden; }

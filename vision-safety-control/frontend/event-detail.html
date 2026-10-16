@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
+    .cam-row { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 10px; }
+    .cam-row .cam { min-height: 0; height: 100%; }
+    .detect { min-height: 0; }
     .info-bar { padding: 12px 16px; display: flex; align-items: center; gap: 14px 22px; flex-wrap: wrap; overflow: hidden; }
     .info-grid { flex: 1; display: flex; flex-wrap: wrap; gap: 8px 22px; min-width: 0; }
     .info-item > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
@@ -16,7 +19,7 @@
   </style>
 </head>
 <body>
-  <div class="page no-left rail-hidden rail-over">
+  <div class="page full">
     <header class="cell head"></header>
 
     <main class="main">
@@ -28,34 +31,28 @@
           <a class="btn primary" id="handle-link" href="event-handle.html" data-need="MANAGER">처리 기록 쓰기</a>
         </div>
       </section>
-      <section class="cell cam">
-        <div class="scene" id="scene">
-          <div class="ground-line"></div>
-          <div class="bld" style="left:10%; width:22%; height:52%;"></div>
-          <div class="mast" style="left:48%; height:64%;"></div>
-          <div class="jib" style="left:48%; top:18%; width:34%;"></div>
-          <div class="box stop" style="left:56%; top:34%; width:16%; height:36%;"><em id="box-label"></em></div>
-        </div>
-        <img id="snap" alt="탐지 순간 스냅샷" hidden style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000" />
-        <div class="cam-tag" id="cam-tag"></div>
-        <div class="cam-time" id="cam-time"></div>
-        <div class="cam-zone" id="cam-zone"></div>
-      </section>
-    </main>
-
-    <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
-    <aside class="cell right" id="rail">
-      <div class="pad">
-        <div class="label">탐지 결과</div>
-        <div id="detected"></div>
-
-        <div class="label" style="margin-top:6px">해제 전에 허가할 항목 <span id="check-count"></span></div>
-        <div id="checks"></div>
-
-        <div class="label" style="margin-top:6px">같은 구역의 최근 이벤트</div>
-        <div id="similar"></div>
+      <div class="cam-row">
+        <section class="cell cam">
+          <div class="scene" id="scene">
+            <div class="ground-line"></div>
+            <div class="bld" style="left:10%; width:22%; height:52%;"></div>
+            <div class="mast" style="left:48%; height:64%;"></div>
+            <div class="jib" style="left:48%; top:18%; width:34%;"></div>
+            <div class="box stop" style="left:56%; top:34%; width:16%; height:36%;"><em id="box-label"></em></div>
+          </div>
+          <img id="snap" alt="탐지 순간 스냅샷" hidden style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000" />
+          <div class="cam-tag" id="cam-tag"></div>
+          <div class="cam-time" id="cam-time"></div>
+          <div class="cam-zone" id="cam-zone"></div>
+        </section>
+        <aside class="cell detect" id="rail">
+          <div class="pad">
+            <div class="label">탐지 결과</div>
+            <div id="detected"></div>
+          </div>
+        </aside>
       </div>
-    </aside>
+    </main>
   </div>
   <script src="api.js"></script>
   <script src="common.js"></script>
@@ -99,22 +96,6 @@
 
       const [cls] = LABEL.severity[e.severity];
       $("detected").innerHTML = `<div class="check ${cls}"><div><b>${esc(e.detection_label)}</b><small>${esc(e.detection_code)}${e.bbox ? " · 위치 " + e.bbox.map(Math.round).join(", ") : ""}</small></div><span class="status ${cls}">${conf}</span></div>`;
-
-      const done = e.check_items.filter((c) => c.permitted).length;
-      $("check-count").textContent = e.check_items.length ? `${done} / ${e.check_items.length}` : "";
-      $("checks").innerHTML = e.check_items.length
-        ? e.check_items.map((c) => `<div class="check ${c.permitted ? "ok" : "stop"}"><div><b>${esc(c.title)}</b><small>${c.permitted ? "허가됨" : "아직 허가 안 됨"}</small></div><span class="status ${c.permitted ? "ok" : "stop"}">${c.permitted ? "✓" : "대기"}</span></div>`).join("")
-        : '<div class="hint">이 종류는 해제 항목이 없어서 확인 후 바로 처리완료할 수 있습니다.</div>';
-
-      if (e.work_zone_id) {
-        const near = (await api("/api/events", { query: { work_zone_id: e.work_zone_id, size: 6 } })).items.filter((x) => x.id !== e.id).slice(0, 5);
-        const tone = { NEW: "stop", ACK: "warn", DONE: "ok", FALSE: "" };
-        $("similar").innerHTML = near.length
-          ? near.map((x) => `<a class="item ${tone[x.status]}" href="event-detail.html?id=${x.id}"><div class="item-top"><b>EV-${x.id} ${esc(x.detection_label)}</b></div><div class="desc">${fmtTime(x.detected_at)} · ${LABEL.eventStatus[x.status][1]}</div></a>`).join("")
-          : '<div class="hint">같은 구역의 다른 이벤트가 없습니다.</div>';
-      } else {
-        $("similar").innerHTML = '<div class="hint">구역이 없는 이벤트입니다.</div>';
-      }
     }
 
     load().catch((err) => toast(err.message));

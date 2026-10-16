@@ -13,6 +13,7 @@
     .zone-sum .muted { margin-top: 2px; }
     .zone-sum div > span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
     .zone-sum div > b { font-size: 20px; font-variant-numeric: tabular-nums; }
+    .zone-pick { width: min(360px, 100%); color-scheme: dark; }
     @media (max-width: 1100px) { .zone-sum { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
@@ -21,13 +22,10 @@
     <header class="cell head"></header>
 
     <main class="main">
-      <section class="cell searchbar">
+      <section class="cell">
         <div class="searchbar-row">
-          <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="pick">작업구역 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
+          <select id="zone-pick" class="input zone-pick" aria-label="작업구역"></select>
           <span class="muted" id="n-zones">0곳</span>
-        </div>
-        <div class="search-panel" id="pick" hidden>
-          <div class="search-cards" id="zones"></div>
         </div>
       </section>
       <section class="cell zone-sum">
@@ -66,8 +64,7 @@
       const z = zones.find((x) => x.id === zoneId) || zones[0];
       if (!z) return;
       history.replaceState(null, "", "?zone=" + z.id);
-      document.querySelectorAll("#zones .tc-card").forEach((c) => c.classList.toggle("active", Number(c.dataset.z) === z.id));
-      searchSummary(z.name);
+      if ($("zone-pick").value !== String(z.id)) $("zone-pick").value = String(z.id);
       const list = works.filter((w) => w.work_zone_id === z.id);
       $("zname").textContent = z.name;
       $("zsub").textContent = [...z.equipment.filter((e) => e.kind === "TC").map((e) => e.name.split(" · ")[0]), ...z.cameras].join(" · ") || "카메라 · TC 없음";
@@ -83,16 +80,15 @@
       $("to-eq").href = "work-workers.html?zone=" + z.id;
     }
 
-    $("zones").addEventListener("click", (e) => { const c = e.target.closest(".tc-card"); if (c) { show(Number(c.dataset.z)); closeSearch(); } });
+    $("zone-pick").addEventListener("change", () => show(Number($("zone-pick").value)));
 
     (async () => {
       [zones, works] = await Promise.all([api("/api/work-zones/summary"), api("/api/works", { query: { upcoming: true } })]);
       $("n-zones").textContent = zones.length + "곳";
-      $("zones").insertAdjacentHTML("beforeend", zones.map((z) => {
+      $("zone-pick").innerHTML = zones.length ? zones.map((z) => {
         const n = works.filter((w) => w.work_zone_id === z.id).length;
-        const sub = [...z.equipment.filter((e) => e.kind === "TC").map((e) => e.name.split(" · ")[0]), ...z.cameras.slice(0, 1)].join(" · ");
-        return `<button class="tc-card" data-z="${z.id}"><strong>${esc(z.name)} <span class="muted">${n}</span></strong><p>${esc(sub || "-")}</p></button>`;
-      }).join(""));
+        return `<option value="${z.id}">${esc(z.name)} · 작업 ${n}</option>`;
+      }).join("") : `<option value="" disabled>등록된 작업구역이 없습니다</option>`;
       show(Number(new URLSearchParams(location.search).get("zone")));
     })().catch((err) => toast(err.message));
   </script>
