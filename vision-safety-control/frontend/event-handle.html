@@ -33,6 +33,7 @@
       <section class="cell sum-bar">
         <a class="cell cam" id="summary-cam" href="event-detail.html">
           <div class="scene" id="summary-scene"><div class="ground-line"></div><div class="mast" style="left:48%; height:64%;"></div><div class="jib" style="left:48%; top:18%; width:34%;"></div><div class="box stop" style="left:58%; top:34%; width:16%; height:36%;"><em id="summary-box"></em></div></div>
+          <img id="summary-snap" alt="탐지 순간 스냅샷" hidden style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000" />
           <div class="cam-tag" id="summary-tag"></div>
         </a>
         <div id="summary"></div>
@@ -153,6 +154,14 @@
       $("summary-scene").className = "scene " + { HIGH: "red", MEDIUM: "", LOW: "green" }[ev.severity];
       $("summary-box").textContent = ev.detection_label;
       $("summary-tag").textContent = ev.camera_name || "카메라 없음";
+      // 스냅샷이 열리면 예시 그림 대신 보여 주고, 없거나 못 열면 예시 그림을 그대로 둔다 (상세 화면과 같음)
+      const snap = $("summary-snap"), src = ev.snapshots[0] || "";
+      if (snap.getAttribute("src") !== src) {
+        snap.hidden = true;
+        $("summary-scene").hidden = false;
+        snap.onload = () => { snap.hidden = false; $("summary-scene").hidden = true; };
+        if (src) snap.src = src; else snap.removeAttribute("src");
+      }
       $("summary").innerHTML = `<div class="check ${cls}"><div><b>${esc(ev.detection_label)}</b><small>${fmtTime(ev.detected_at)} · ${esc(ev.work_zone_name || "-")}</small></div><span class="status ${cls}">${sev}</span></div>`
         + `<div class="check info"><div><b>신뢰도</b><small>모델 확신 정도</small></div><span class="status info">${ev.confidence == null ? "-" : Math.round(ev.confidence * 100) + "%"}</span></div>`;
     }
