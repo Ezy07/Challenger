@@ -49,7 +49,7 @@
         </div>
         <div class="label" style="margin-top:6px">소속 회원 <span>회원정보 수정에서 소속을 바꿀 수 있습니다</span></div>
         <table class="tbl">
-          <thead><tr><th>이름</th><th>아이디</th><th>역할</th><th>상태</th></tr></thead>
+          <thead><tr><th>이름</th><th>소속</th><th>아이디</th><th>역할</th><th>상태</th></tr></thead>
           <tbody id="members"></tbody>
         </table>
       </form></section>
@@ -116,6 +116,8 @@
     };
     // 이 조직 아래 전체 (자기 포함) 회원 수
     const total = (o) => members(o.id).length + children(o.id).reduce((a, c) => a + total(c), 0);
+    // 이 조직 아래 전체 (자기 포함) 회원 — 회사를 고르면 모든 부서 직원이 함께 보인다
+    const allMembers = (o) => members(o.id).concat(...children(o.id).map(allMembers));
 
     async function load(selectId) {
       [orgs, users] = await Promise.all([api("/api/orgs"), api("/api/users")]);
@@ -133,7 +135,7 @@
       $("i-name").textContent = sel.name;
       $("i-parent").textContent = parent ? names[parent.id] : "(없음 · 최상위)";
       $("i-type").textContent = sel.type === "COMPANY" ? (sel.is_prime ? "COMPANY (원청)" : "COMPANY (협력사)") : "DEPT (부서)";
-      $("i-count").textContent = members(sel.id).length + "명";
+      $("i-count").textContent = total(sel) + "명";
       $("f-name").value = sel.name;
       // 부서는 회사나 1단계 부서 아래로만 옮길 수 있다 (자기 자신 · 하위 제외)
       const below = new Set();
@@ -144,10 +146,11 @@
         ? '<option value="">(없음 · 최상위)</option>'
         : canParent.map((o) => `<option value="${o.id}"${o.id === sel.parent_id ? " selected" : ""}>${esc(names[o.id])}</option>`).join("");
       $("f-parent").disabled = sel.type === "COMPANY";
-      $("members").innerHTML = members(sel.id).map((u) => `
-        <tr data-href="user-edit.html?id=${u.id}" style="cursor:pointer"><td><b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
+      $("members").innerHTML = allMembers(sel).map((u) => `
+        <tr data-href="user-edit.html?id=${u.id}" style="cursor:pointer"><td><b>${esc(u.name)} ${esc(u.position || "")}</b></td>
+          <td>${esc(orgs.find((o) => o.id === u.org_id).name)}</td><td>${esc(u.login_id)}</td>
           <td>${badge("role", u.role)}</td><td>${badge("userStatus", u.status)}</td></tr>`).join("")
-        || '<tr><td colspan="4" class="muted" style="text-align:center; padding:20px">소속 회원이 없습니다</td></tr>';
+        || '<tr><td colspan="5" class="muted" style="text-align:center; padding:20px">소속 회원이 없습니다</td></tr>';
       $("members").querySelectorAll("tr[data-href]").forEach((tr) => tr.addEventListener("click", () => { location.href = tr.dataset.href; }));
     }
 

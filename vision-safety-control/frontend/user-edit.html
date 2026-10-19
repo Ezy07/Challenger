@@ -107,6 +107,12 @@
     async function load(id) {
       const [list, orgList] = await Promise.all([api("/api/users"), api("/api/orgs")]);
       users = list.filter((u) => u.status === "ACTIVE" || u.status === "LOCKED");
+      // 승인 대기 · 반려 회원은 여기서 고칠 수 없어 가입 승인 화면으로 보낸다 (그냥 두면 엉뚱한 첫 회원이 열림)
+      const other = id && !users.some((u) => u.id === id) && list.find((u) => u.id === id);
+      if (other) {
+        location.replace(`user-approval.html?status=${other.status}&q=${encodeURIComponent(other.login_id)}`);
+        return;
+      }
       orgs = orgNames(orgList);
       $("ue-org").innerHTML = '<option value="">소속 없음</option>' +
         orgList.map((o) => `<option value="${o.id}">${esc(orgs[o.id])}</option>`).join("");

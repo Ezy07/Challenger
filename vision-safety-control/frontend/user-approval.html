@@ -144,6 +144,12 @@
     $("filter").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
     $("q").addEventListener("input", render);
 
+    // 다른 화면에서 ?status=PENDING&q=아이디 로 들어오면 그 탭 · 검색어로 연다
+    const params = new URLSearchParams(location.search);
+    const startTab = document.querySelector(`#f-status .chip[data-v="${params.get("status")}"]`);
+    if (startTab) document.querySelectorAll("#f-status .chip").forEach((c) => c.classList.toggle("on", c === startTab));
+    if (params.get("q")) $("q").value = params.get("q");
+
     load().catch((err) => toast(err.message));
   </script>
 </body>
