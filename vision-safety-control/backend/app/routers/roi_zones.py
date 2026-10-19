@@ -46,6 +46,10 @@ class RoiZoneRow(BaseModel):
     intrusion: bool | None = None  # false 면 침입 알림을 띄우지 않음 (체류 시간의 사용안함)
     targets: list[TargetClass] | None = Field(default=None, max_length=8)  # 이 구역에서 침입으로 볼 대상. 여러 개 가능
     schedule: Schedule | None = None
+    # 목록의 붉은 점은 세 저장 버튼을 모두 눌렀을 때만 지운다. 값만 있고 저장을 안 누른 경우는 남긴다
+    savedSchedule: bool | None = None
+    savedDwell: bool | None = None
+    savedTargets: bool | None = None
 
     @field_validator("name")
     @classmethod

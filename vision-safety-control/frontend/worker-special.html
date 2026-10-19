@@ -43,7 +43,7 @@
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
             <div class="field wide">특별관리 사유
-              <div class="chips" id="f-reason" data-single>
+              <div class="chips" id="f-reason">
                 <span class="chip on" data-v="">전체 <b id="n-all">0</b></span>
                 <span class="chip" data-v="ELDERLY">고령 (만 60세 이상) <b id="n-ELDERLY">0</b></span>
                 <span class="chip" data-v="HYPERTENSION">고혈압 · 건강 주의 <b id="n-HYPERTENSION">0</b></span>
@@ -155,8 +155,13 @@
     let workers = [], popEditId = null, offId = null;
     let pickId = null, hits = [], hitIdx = -1; // 고른 작업자 · 검색 결과 · 키보드로 가리킨 줄
 
-    // 지금 유효한 사유 (신규 투입은 7일이 지나면 서버가 special_tags 에서 뺀다)
+    // 지금 유효한 사유 (신규 투입은 7일이 지나면 서버가 special_tags 에서 뺀다).
+    // 남은 사유가 없으면 사유 만료 · 해제 필요로 보고 기타에 넣는다.
     const activeReasons = (w) => (w.special_reasons || []).filter((r) => r !== "NEW" || w.special_tags.some((t) => t.startsWith("신규 투입")));
+    const shownReasons = (w) => {
+      const active = activeReasons(w);
+      return active.length ? active : ["ETC"];
+    };
 
     async function load() {
       workers = await api("/api/workers");
@@ -167,20 +172,21 @@
     function render() {
       const designated = workers.filter((w) => w.is_special_care);
       REASONS.forEach((r) => {
-        const n = designated.filter((w) => activeReasons(w).includes(r)).length;
+        const n = designated.filter((w) => shownReasons(w).includes(r)).length;
         $("n-" + r).textContent = n;
         if ($("c-" + r)) $("c-" + r).innerHTML = `${n}<i>명</i>`;
       });
       $("n-all").textContent = designated.length;
       $("c-today").innerHTML = `${designated.filter((w) => w.today_work).length}<i>명</i>`;
 
-      const chip = document.querySelector("#f-reason .chip.on"), reason = chip.dataset.v;
-      searchSummary(reason ? chip.firstChild.textContent.trim() : "");
-      const rows = designated.filter((w) => !reason || activeReasons(w).includes(reason));
+      const picked = [...document.querySelectorAll("#f-reason .chip.on")].filter((c) => c.dataset.v);
+      searchSummary(picked.map((c) => c.firstChild.textContent.trim()).join(" · "));
+      const reasons = picked.map((c) => c.dataset.v);
+      const rows = designated.filter((w) => !reasons.length || reasons.some((r) => shownReasons(w).includes(r)));
       $("n-shown").textContent = rows.length + "명";
       $("rows").innerHTML = rows.length ? rows.map((w) => `
         <tr data-id="${w.id}"><td><b>${esc(w.name)}</b></td><td>${esc([w.company, w.job_type].filter(Boolean).join(" · ") || "-")}</td>
-          <td>${w.special_tags.length ? spTags(w) : '<span class="status warn">사유 만료 · 해제 필요</span>'}</td>
+          <td>${w.special_tags.length ? spTags(w) : '<span class="sp">기타</span>'}</td>
           <td class="muted" style="max-width:220px">${esc(w.special_memo || "-")}</td>
           <td class="num">${w.special_since ? w.special_since.replaceAll("-", ".") : "-"}</td><td>${esc(w.special_by_name || "-")}</td>
           <td>${w.today_work ? esc(w.today_work.work_zone_name) : '<span class="muted">배정 없음</span>'}</td>
@@ -326,7 +332,21 @@
       const b = e.target.closest(".opt");
       if (b) pickWho(hits[Number(b.dataset.i)]);
     });
-    $("filter").addEventListener("click", (e) => { if (e.target.closest(".chip")) render(); });
+    $("filter").addEventListener("click", (e) => {
+      const chip = e.target.closest("#f-reason .chip");
+      if (!chip) return;
+      const box = $("f-reason");
+      const all = box.querySelector('.chip[data-v=""]');
+      const specs = [...box.querySelectorAll(".chip")].filter((c) => c.dataset.v);
+      if (!chip.dataset.v) {
+        specs.forEach((c) => c.classList.remove("on"));
+        all.classList.add("on");
+      } else {
+        all.classList.remove("on");
+        if (!specs.some((c) => c.classList.contains("on"))) all.classList.add("on");
+      }
+      render();
+    });
 
     load().catch((err) => toast(err.message));
   </script>

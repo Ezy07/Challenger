@@ -70,6 +70,17 @@
         try {
           if ($("remember").checked) localStorage.setItem(REMEMBER_KEY, loginId);
           else localStorage.removeItem(REMEMBER_KEY);
+          localStorage.setItem("safety.tcLoginAt", String(Date.now()));
+          const watch = JSON.parse(localStorage.getItem("safety.tcWatch") || "null");
+          if (watch) {
+            delete watch.nextMeet;
+            delete watch.firstMeet;
+            watch.latched = false;
+            localStorage.setItem("safety.tcWatch", JSON.stringify(watch));
+          }
+          localStorage.setItem("safety.tcHookHolds", "[]");
+          localStorage.setItem("safety.tcHookLag", "{}");
+          localStorage.setItem("safety.tcInspect", "[]");
         } catch (err) { /* 무시 */ }
         location.href = target;
       } catch (err) {

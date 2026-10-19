@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -38,6 +39,7 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="비전AI 안전관제 API", version="0.1.0", lifespan=lifespan)
+STARTED_AT = int(time.time() * 1000)
 
 if settings.jwt_secret == DEV_JWT_SECRET:
     logging.getLogger("uvicorn.error").warning("JWT_SECRET 이 개발용 기본값입니다. 운영 전에 .env 에서 꼭 바꾸세요.")
@@ -58,7 +60,7 @@ async def revalidate_static(request, call_next):
 
 @app.get("/api/health", tags=["상태"])
 def health():
-    return {"ok": True}
+    return {"ok": True, "started_at": STARTED_AT}
 
 
 @app.get("/api/clock", tags=["상태"])

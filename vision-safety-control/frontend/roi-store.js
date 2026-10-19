@@ -63,6 +63,9 @@ async function loadRoiBooks(cams) {
     if (Number.isInteger(r.dwell)) roi.dwell = r.dwell;
     if (typeof r.intrusion === "boolean") roi.intrusion = r.intrusion;
     if (Array.isArray(r.targets)) roi.targets = roiTargets(r.targets);
+    if (r.savedSchedule === true) roi.savedSchedule = true;
+    if (r.savedDwell === true) roi.savedDwell = true;
+    if (r.savedTargets === true) roi.savedTargets = true;
     roi.keys.push({ frame: r.frame - 1, pts: r.points, time: r.time });
   });
   Object.values(books).forEach((list) => list.forEach((roi) => roi.keys.sort((a, b) => a.frame - b.frame)));
@@ -95,6 +98,9 @@ function roiRows(books, cams) {
         if (typeof roi.intrusion === "boolean") row.intrusion = roi.intrusion;
         if (Array.isArray(roi.targets)) row.targets = roi.targets;
         if (roi.schedule) row.schedule = roi.schedule;
+        if (roi.savedSchedule === true) row.savedSchedule = true;
+        if (roi.savedDwell === true) row.savedDwell = true;
+        if (roi.savedTargets === true) row.savedTargets = true;
         rows.push(row);
       });
     });

@@ -536,14 +536,29 @@
     }
     .cmp b { font-size: 14px; }
     .cmp .k { color: rgba(255, 255, 255, 0.62); font-size: 12px; font-weight: 700; }
-    .cmp .v { color: #fff; font-size: 14px; font-weight: 750; text-align: right; }
-    .cmp.on { border-color: var(--orange); background: rgba(255, 154, 31, 0.12); }
-    .hook-slot {
-      flex: none;
-      height: 46px;
-      margin-top: 10px;
+    .cmp .status { justify-self: end; min-width: 64px; text-align: center; white-space: nowrap; }
+    .cmp .v {
+      width: 8.5em;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
     }
-    .hook-slot:has(.hook-alert[hidden]) { display: none; }
+    .cmp.on { border-color: var(--orange); background: rgba(255, 154, 31, 0.12); }
+    .tc-map-wrap { position: relative; min-width: 0; min-height: 0; height: 100%; }
+    .tc-map-wrap .hook-alert {
+      position: absolute;
+      z-index: 2;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      pointer-events: none;
+    }
+    .hook-slot {
+      display: none;
+    }
     .hook-alert {
       display: flex;
       align-items: center;
@@ -1098,19 +1113,19 @@
         <button type="button" class="pop-x" id="tc-close">닫기</button>
       </div>
       <div class="hook-slot">
-        <div class="hook-alert" id="hook-alert" hidden>
-          <b id="hook-alert-tag">사전 경보</b>
-          <span id="hook-alert-text"></span>
-        </div>
-      </div>
-      <div class="hook-slot">
         <div class="hook-alert wind" id="wind-alert" hidden>
           <b id="wind-alert-tag">강풍</b>
           <span id="wind-alert-text">순간풍속 10m/s. 인양을 멈추세요.</span>
         </div>
       </div>
       <div class="tc-body">
-        <canvas id="tc-map" width="1000" height="620"></canvas>
+        <div class="tc-map-wrap">
+          <canvas id="tc-map" width="1000" height="620"></canvas>
+          <div class="hook-alert" id="hook-alert" hidden>
+            <b id="hook-alert-tag">사전 경보</b>
+            <span id="hook-alert-text"></span>
+          </div>
+        </div>
         <div class="tc-side" id="tc-side"></div>
       </div>
       <div class="tc-msg" id="tc-msg"></div>
@@ -1248,27 +1263,22 @@
     let tcSelected = 0;
     let tcLast = 0;
     let hookQuiet = 0;
+    let tcStopLatched = false;
+    let tcStopNames = [];
 
     function mod(n, m) { return ((n % m) + m) % m; }
 
     function craneGeometry(spec, frame) {
-      if (spec.kind === "T") {
-        const angle = mod((spec.phase || 0) + frame * spec.speed, 360);
-        const trolley = spec.jib * (0.55 + 0.30 * Math.sin(frame * 0.008 + (spec.trolleyPhase || 0)));
-        const rad = angle * Math.PI / 180;
-        const tip = [spec.x + spec.jib * Math.cos(rad), spec.y + spec.jib * Math.sin(rad)];
-        const counter = [spec.x - spec.rear * Math.cos(rad), spec.y - spec.rear * Math.sin(rad)];
-        const load = [spec.x + trolley * Math.cos(rad), spec.y + trolley * Math.sin(rad)];
-        return { angle, trolley, luff: null, radius: spec.jib, counter, tip, load };
-      }
-      const angle = mod(180 + frame * spec.speed, 360);
-      const range = spec.maxLuff - spec.minLuff;
-      const luff = spec.minLuff + range / 2 + (range / 2) * Math.sin(frame * 0.006);
-      const horiz = spec.jib * Math.cos(luff * Math.PI / 180);
+      const pose = tcHookPose(spec, TC_SPEC, typeof tcShownFrame === "function" ? tcShownFrame(spec, frame) : frame);
+      const angle = pose.angle;
       const rad = angle * Math.PI / 180;
-      const tip = [spec.x + horiz * Math.cos(rad), spec.y + horiz * Math.sin(rad)];
+      const reach = pose.radius;
+      const tipR = spec.kind === "L" ? reach : spec.jib;
+      const tip = [spec.x + tipR * Math.cos(rad), spec.y + tipR * Math.sin(rad)];
       const counter = [spec.x - spec.rear * Math.cos(rad), spec.y - spec.rear * Math.sin(rad)];
-      return { angle, trolley: horiz, luff, radius: horiz, counter, tip, load: tip };
+      const load = [spec.x + reach * Math.cos(rad), spec.y + reach * Math.sin(rad)];
+      const luff = spec.kind === "L" ? Math.acos(Math.min(1, Math.max(0, reach / spec.jib))) * 180 / Math.PI : null;
+      return { angle, trolley: reach, luff, radius: tipR, counter, tip, load };
     }
 
     function mapPoint(x, y, w, h) {
@@ -1435,10 +1445,37 @@
           btn.addEventListener("click", () => openTc(Number(btn.dataset.tc)));
         });
       }
+      const nowHook = closestHooks(geos);
+      const meetPlan = typeof tcMeetPlan === "function" ? tcMeetPlan(TC_SPEC) : null;
+      const contactIn = typeof tcFramesUntilMeet === "function" ? tcFramesUntilMeet(tcFrame) : null;
+      const aheadHit = meetPlan && contactIn != null && contactIn > 0 && contactIn <= 200 && nowHook.d > HOOK_HIT
+        ? { a: meetPlan.i, b: meetPlan.j }
+        : null;
+      const held = typeof readHookHolds === "function" ? readHookHolds() : [];
+      const leftName = (i) => TC_SPEC[i].id;
+      if (nowHook.d <= HOOK_HIT) {
+        tcStopLatched = true;
+        tcStopNames = [leftName(nowHook.a), leftName(nowHook.b)];
+      }
+      if (held.length && !aheadHit) {
+        tcStopLatched = true;
+        const names = [];
+        held.forEach((hold) => (hold.names || []).forEach((name) => {
+          if (name && names.indexOf(name) < 0) names.push(name);
+        }));
+        if (names.length) tcStopNames = names;
+      }
+      if (!held.length && nowHook.d > HOOK_HIT) {
+        tcStopLatched = false;
+        tcStopNames = [];
+      }
+      const stopIds = new Set(tcStopLatched ? tcStopNames : []);
       rows.forEach((row) => {
         const btn = side.children[row.i];
-        const level = row.near.d <= TC_STOP ? "stop" : row.near.d <= TC_WARN ? "warn" : "ok";
-        const word = level === "ok" ? "정상" : level === "warn" ? "주의" : "정지";
+        const stopped = stopIds.has(TC_SPEC[row.i].id);
+        const soon = aheadHit && (row.i === aheadHit.a || row.i === aheadHit.b);
+        const level = stopped ? "stop" : soon ? "warn" : row.near.d <= TC_STOP ? "stop" : row.near.d <= TC_WARN ? "warn" : "ok";
+        const word = stopped ? "작업중지" : soon || level === "warn" ? "주의" : level === "stop" ? "정지" : "정상";
         btn.className = "cmp" + (row.i === tcSelected ? " on" : "");
         const status = btn.querySelector(".status");
         status.className = "status " + level;
@@ -1449,44 +1486,27 @@
         values[2].textContent = TC_SPEC[row.near.i].id;
         values[3].textContent = row.near.d.toFixed(1) + "m";
       });
-      const nowHook = closestHooks(geos);
-      let aheadHit = null;
-      [200, 400, 800].some((ahead) => {
-        const future = TC_SPEC.map((item) => craneGeometry(item, tcFrame + ahead));
-        const hit = closestHooks(future);
-        if (hit.d <= HOOK_HIT && hit.d < nowHook.d - 1) {
-          aheadHit = { ahead, hit };
-          return true;
-        }
-        return false;
-      });
-      /* TEMP 작업 중: 지도 안의 후크 겹침 · 순간풍속 알림을 띄우지 않는다
       const alertBox = document.getElementById("hook-alert");
-      const leftName = (i) => TC_SPEC[i].id;
-      if (nowHook.d <= HOOK_HIT) {
-        hookQuiet = 0;
+      if (tcStopLatched) {
+        const names = tcStopNames.filter((name) => name);
         alertBox.hidden = false;
         alertBox.className = "hook-alert";
-        document.getElementById("hook-alert-tag").textContent = "겹침";
-        document.getElementById("hook-alert-text").textContent =
-          leftName(nowHook.a) + " 후크와 " + leftName(nowHook.b) + " 후크가 겹쳤습니다. 인양을 멈추세요.";
+        document.getElementById("hook-alert-tag").textContent = "작업중지";
+        document.getElementById("hook-alert-text").textContent = names.length >= 2
+          ? names[0] + " · " + names[1] + " 후크 겹침. 인양을 멈추세요."
+          : (names[0] || "타워크레인") + " 후크 겹침. 인양을 멈추세요.";
       } else if (aheadHit) {
         hookQuiet = 0;
-        const sec = Math.max(1, Math.round(aheadHit.ahead * 0.025));
         alertBox.hidden = false;
         alertBox.className = "hook-alert soon";
-        document.getElementById("hook-alert-tag").textContent = "다가옴";
+        document.getElementById("hook-alert-tag").textContent = "주의";
         document.getElementById("hook-alert-text").textContent =
-          leftName(aheadHit.hit.a) + " 후크와 " + leftName(aheadHit.hit.b) + " 후크가 가까워집니다. 약 " + sec + "초 뒤 겹칩니다.";
+          leftName(aheadHit.a) + " 후크와 " + leftName(aheadHit.b) + " 후크가 약 5초 뒤 겹칩니다.";
       } else if (hookQuiet < 12) {
         hookQuiet += 1;
       } else {
         alertBox.hidden = true;
       }
-      const windBox = document.getElementById("wind-alert");
-      windBox.hidden = typeof windGustOn !== "function" || !windGustOn(tcFrame);
-      */
-      document.getElementById("hook-alert").hidden = true;
       document.getElementById("wind-alert").hidden = true;
       const msg = document.getElementById("tc-msg");
       msg.className = "tc-msg " + (worst.d <= TC_STOP ? "stop" : worst.d <= TC_WARN ? "warn" : "ok");
@@ -1503,6 +1523,7 @@
       if (now - tcLast >= 25) {
         const shared = tcFrameNow();
         tcFrame = shared == null ? tcFrame + 1 : shared;
+        if (shared != null && typeof tcHoldOverlap === "function") tcHoldOverlap(shared);
         tcLast = now;
         drawCranes();
       }
@@ -1540,7 +1561,9 @@
         const desc = card.querySelector("[data-tc-desc]");
         const bar = card.querySelector("[data-tc-bar]");
         if (card.dataset.pin === "stop") level = "stop";
-        const note = level === "warn" ? "후크 10초 전" : level === "stop" ? "후크 겹침" : TC_ZONE[i];
+        const soon = typeof tcMeetSoonIndexes === "function" && tcMeetSoonIndexes().indexOf(i) >= 0 && level !== "stop";
+        if (soon) level = "warn";
+        const note = soon ? "후크 5초 전" : level === "warn" ? "후크 10초 전" : level === "stop" ? "후크 겹침" : TC_ZONE[i];
         let text = note + " · " + TC_PCT[level] + "%";
         const live = liveTc[i]; // 이 호기 TC CAM 의 미처리 이벤트가 후크 경보만큼 심하면 그것을 보여 준다
         card.dataset.eventId = "";
@@ -1549,7 +1572,7 @@
           text = live.text;
           card.dataset.eventId = live.id;
         }
-        if (st) { st.className = "status " + level; st.textContent = TC_WORD[level]; }
+        if (st) { st.className = "status " + level; st.textContent = soon && level !== "stop" ? "주의" : TC_WORD[level]; }
         card.classList.toggle("alarm-on", level === "stop");
         if (desc) desc.textContent = text;
         if (bar) bar.className = "bar " + level;

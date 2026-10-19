@@ -446,7 +446,8 @@ function closeAlerts() {
 
 // 관제 화면 TC / 작업구역 패널을 누르면 1~4호기 후크가 움직이기 시작한다.
 // 그 시각은 이 브라우저에 남아, 다른 화면을 보고 있어도 약 5초 뒤 겹칠 때 같은 경고창과 이벤트가 생긴다.
-// 위치 계산은 monitor.html 의 craneGeometry 와 같다 (T형 트롤리 · 러핑 지브 끝).
+// 위치 계산은 monitor.html 의 craneGeometry 와 같다.
+// 마스트 좌표는 그대로 둔다. 지브는 한 바퀴씩 돌고 후크는 반경을 오가며, 겹침은 처음 1분 안에 한 번, 이후 10분마다 한 번이다.
 const TC_HOOKS = [
   { id: "1호기", kind: "T", x: -8, y: -8, jib: 55, speed: 0.08, phase: 300, trolleyPhase: 0 },
   { id: "2호기", kind: "L", x: 42, y: 52, jib: 50, speed: -0.05, minLuff: 15, maxLuff: 80 },
@@ -459,6 +460,7 @@ const TC_HOOK_AHEAD = 200; // 한 프레임 25ms × 200 = 5초 뒤. 이 시점�
 const TC_HOOK_INSPECT = 400; // 10초 뒤면 패널은 현장점검
 const TC_WATCH_KEY = "safety.tcWatch";
 const TC_HOLD_KEY = "safety.tcHookHolds"; // 겹침 경고가 만든 이벤트. 작업 허가 전까지 해당 호기는 작업중지
+const TC_LAG_KEY = "safety.tcHookLag"; // 멈춘 동안 밀린 프레임. 허가가 나면 그 자리에서 다시 움직인다
 const TC_INSPECT_KEY = "safety.tcInspect"; // 현장점검으로 올라간 호기. 작업 허가 전까지 유지
 let tcHookSeen = null;
 
@@ -473,25 +475,199 @@ function startTcWatch() {
   if (prev && prev.on) return;
   writeTcWatch({ on: 1, t0: Date.now(), latched: false, seq: 0 });
 }
+function syncTcServerBoot() {
+  fetch("/api/health").then((res) => res.ok ? res.json() : null).then((body) => {
+    const boot = body && Number(body.started_at);
+    if (!boot) return;
+    const prev = readTcWatch();
+    if (prev && prev.boot === boot && prev.on) return;
+    writeTcWatch({ on: 1, t0: boot, boot: boot, latched: false, seq: 0 });
+    writeHookHolds([]);
+    writeTcLag({});
+    writeTcInspect([]);
+  }).catch(() => { /* 서버 시각을 못 받아도 이 화면의 시계로 겹침은 진행된다 */ });
+}
 function tcFrameNow() {
   const watch = readTcWatch();
   if (!watch || !watch.on) return null;
   return Math.max(0, Math.floor((Date.now() - watch.t0) / 25));
 }
-function tcHookPoint(spec, frame) {
-  const turn = (n, m) => ((n % m) + m) % m;
-  if (spec.kind === "L") {
-    const angle = turn(180 + frame * spec.speed, 360);
-    const range = spec.maxLuff - spec.minLuff;
-    const luff = spec.minLuff + range / 2 + (range / 2) * Math.sin(frame * 0.006);
-    const horiz = spec.jib * Math.cos(luff * Math.PI / 180);
-    const rad = angle * Math.PI / 180;
-    return [spec.x + horiz * Math.cos(rad), spec.y + horiz * Math.sin(rad)];
+function tcTurn(n, m) { return ((n % m) + m) % m; }
+function tcMaxReach(spec) {
+  if (spec.kind === "L") return spec.jib * Math.cos((spec.minLuff == null ? 15 : spec.minLuff) * Math.PI / 180);
+  return spec.jib * 0.92;
+}
+function tcMinReach(spec) {
+  if (spec.kind === "L") return spec.jib * Math.cos((spec.maxLuff == null ? 80 : spec.maxLuff) * Math.PI / 180);
+  return spec.jib * 0.38;
+}
+// 러핑(2·4호기): 지브를 세우면 반경이 줄고, 눕히면 반경이 넓어진다
+function tcLuffRadius(spec, frame) {
+  const minL = spec.minLuff == null ? 15 : spec.minLuff;
+  const maxL = spec.maxLuff == null ? 80 : spec.maxLuff;
+  const range = maxL - minL;
+  const luff = minL + range / 2 + (range / 2) * Math.sin(frame * 0.006);
+  return spec.jib * Math.cos(luff * Math.PI / 180);
+}
+function tcMeetPlan(peers) {
+  let best = null;
+  for (let i = 0; i < peers.length; i++) {
+    for (let j = i + 1; j < peers.length; j++) {
+      const d = Math.hypot(peers[i].x - peers[j].x, peers[i].y - peers[j].y);
+      const can = tcMaxReach(peers[i]) + tcMaxReach(peers[j]) >= d - 14;
+      if (!best || (can && !best.can) || (can === best.can && d < best.d)) best = { i, j, d, can };
+    }
   }
-  const angle = turn((spec.phase || 0) + frame * spec.speed, 360);
-  const trolley = spec.jib * (0.55 + 0.30 * Math.sin(frame * 0.008 + (spec.trolleyPhase || 0)));
-  const rad = angle * Math.PI / 180;
-  return [spec.x + trolley * Math.cos(rad), spec.y + trolley * Math.sin(rad)];
+  return best;
+}
+function tcMeetRadii(a, b, dist) {
+  const maxA = tcMaxReach(a), maxB = tcMaxReach(b);
+  const minA = tcMinReach(a), minB = tcMinReach(b);
+  const need = Math.max(0, dist - 12);
+  let rA = Math.min(maxA, Math.max(minA, need * maxA / (maxA + maxB)));
+  let rB = Math.min(maxB, Math.max(minB, need - rA));
+  if (rA + rB < need) {
+    rA = Math.min(maxA, Math.max(rA, need - rB));
+    rB = Math.min(maxB, Math.max(rB, need - rA));
+  }
+  return [rA, rB];
+}
+function tcSmooth(t) {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
+const TC_LOGIN_WAIT = 1200; // 25ms × 1200 = 로그인 후 30초
+const TC_MEET_INN = 320;
+const TC_MEET_HOLD = 48;
+const TC_MEET_OUT = 320;
+const TC_MEET_GAP = 24000; // 25ms × 24000 = 10분
+const TC_LOGIN_KEY = "safety.tcLoginAt";
+function tcClockFrame(frame) {
+  const live = tcFrameNow();
+  return live == null ? frame : live;
+}
+function ensureFirstMeet() {
+  const watch = readTcWatch();
+  if (!watch || !watch.on || watch.firstMeet != null || watch.nextMeet != null) return;
+  const now = tcFrameNow();
+  if (now == null || !watch.t0) return;
+  let loginAt = 0;
+  try { loginAt = Number(localStorage.getItem(TC_LOGIN_KEY)) || 0; } catch (e) { /* 로그인 시각이 없으면 지금부터 센다 */ }
+  let contact = loginAt ? Math.floor((loginAt + TC_LOGIN_WAIT * 25 - watch.t0) / 25) : now + TC_LOGIN_WAIT;
+  if (contact <= now) contact = now + TC_LOGIN_WAIT;
+  watch.firstMeet = contact;
+  writeTcWatch(watch);
+}
+function tcContactFrame(clock) {
+  const watch = readTcWatch() || {};
+  const after = TC_MEET_HOLD + TC_MEET_OUT;
+  if (watch.nextMeet != null) {
+    if (clock != null && clock >= watch.nextMeet + after) return null;
+    return watch.nextMeet;
+  }
+  if (watch.firstMeet == null) return null;
+  if (clock != null && clock >= watch.firstMeet + after) return null;
+  return watch.firstMeet;
+}
+function tcMeetWindow(frame) {
+  const clock = tcClockFrame(frame);
+  const contact = tcContactFrame(clock);
+  if (contact == null) return null;
+  const begin = contact - TC_MEET_INN;
+  const span = TC_MEET_INN + TC_MEET_HOLD + TC_MEET_OUT;
+  if (clock < begin || clock >= begin + span) return null;
+  const u = clock - begin;
+  const leaving = u >= TC_MEET_INN + TC_MEET_HOLD;
+  const blend = u < TC_MEET_INN
+    ? tcSmooth(u / TC_MEET_INN)
+    : leaving
+      ? tcSmooth(1 - (u - TC_MEET_INN - TC_MEET_HOLD) / TC_MEET_OUT)
+      : 1;
+  return { begin: begin, end: begin + span, blend: blend, leaving: leaving };
+}
+function tcFramesUntilMeet(frame) {
+  const clock = tcClockFrame(frame);
+  const at = tcContactFrame(clock);
+  if (at == null || clock >= at) return null;
+  return at - clock;
+}
+function tcMeetSoonIndexes() {
+  const frame = tcFrameNow();
+  if (frame == null) return [];
+  const left = tcFramesUntilMeet(frame);
+  if (left == null || left <= 0 || left > TC_HOOK_AHEAD) return [];
+  const plan = tcMeetPlan(TC_HOOKS);
+  return plan ? [plan.i, plan.j] : [];
+}
+function tcCruiseAngle(spec, frame, idx) {
+  const period = 1800; // 45초에 한 바퀴
+  const dir = spec.speed != null && spec.speed < 0 ? -1 : 1;
+  const phase = spec.phase == null ? idx * 90 : spec.phase;
+  return tcTurn(phase + dir * (frame / period) * 360, 360);
+}
+function tcCruiseCap(spec, peers) {
+  let cap = tcMaxReach(spec);
+  peers.forEach((other) => {
+    if (other === spec) return;
+    const dist = Math.hypot(spec.x - other.x, spec.y - other.y);
+    const share = tcMaxReach(spec) / (tcMaxReach(spec) + tcMaxReach(other));
+    cap = Math.min(cap, Math.max(tcMinReach(spec), (dist - 22) * share));
+  });
+  return cap;
+}
+function tcCruiseRadius(spec, peers, frame, idx) {
+  const minR = tcMinReach(spec);
+  const cap = Math.max(minR, tcCruiseCap(spec, peers));
+  const t = spec.kind === "L"
+    ? (tcMaxReach(spec) <= minR ? 0 : (tcLuffRadius(spec, frame) - minR) / (tcMaxReach(spec) - minR))
+    : 0.5 + 0.5 * Math.sin(frame * 0.007 + idx * 1.7);
+  return minR + (cap - minR) * Math.min(1, Math.max(0, t));
+}
+function tcMeetBlend(frame) {
+  const win = tcMeetWindow(frame);
+  return win ? win.blend : 0;
+}
+function tcLerpAngle(from, to, t) {
+  return tcTurn(from + (tcTurn(to - from + 180, 360) - 180) * t, 360);
+}
+// 마스트는 움직이지 않는다. 평소에는 한 바퀴를 돌고 후크만 오간다. 겹침 구간에만 가장 가까운 두 대가 마주 본다.
+function tcHookPose(spec, peers, frame) {
+  const frozen = tcHeldPose(spec.id);
+  if (frozen) return { angle: frozen.angle, radius: frozen.radius };
+  const idx = Math.max(0, peers.indexOf(spec));
+  const cruise = tcCruiseAngle(spec, frame, idx);
+  const radiusAt = (at) => tcCruiseRadius(spec, peers, at, idx);
+  let angle = cruise, radius = radiusAt(frame);
+  const resume = (readTcLag().resume || {})[spec.id];
+  const live = tcClockFrame(frame);
+  if (resume && resume.at != null && live != null) {
+    const u = (live - resume.at) / TC_MEET_OUT;
+    if (u >= 0 && u < 1) {
+      const t = tcSmooth(u);
+      angle = tcLerpAngle(resume.angle, angle, t);
+      radius = resume.radius + (radius - resume.radius) * t;
+    }
+  }
+  const plan = tcMeetPlan(peers);
+  const win = tcMeetWindow(frame);
+  if (plan && win && (spec === peers[plan.i] || spec === peers[plan.j])) {
+    const other = spec === peers[plan.i] ? peers[plan.j] : peers[plan.i];
+    const face = tcTurn(Math.atan2(other.y - spec.y, other.x - spec.x) * 180 / Math.PI, 360);
+    const dist = Math.hypot(other.x - spec.x, other.y - spec.y);
+    const radii = tcMeetRadii(peers[plan.i], peers[plan.j], dist);
+    const want = spec === peers[plan.i] ? radii[0] : radii[1];
+    const fromLive = win.leaving ? win.end : win.begin;
+    const fromShown = tcShownFrame(spec, fromLive);
+    angle = tcLerpAngle(tcCruiseAngle(spec, fromShown, idx), face, win.blend);
+    const fromRadius = radiusAt(fromShown);
+    radius = fromRadius + (want - fromRadius) * win.blend;
+  }
+  return { angle, radius };
+}
+function tcHookPoint(spec, frame) {
+  const pose = tcHookPose(spec, TC_HOOKS, tcShownFrame(spec, frame));
+  const rad = pose.angle * Math.PI / 180;
+  return [spec.x + pose.radius * Math.cos(rad), spec.y + pose.radius * Math.sin(rad)];
 }
 function readHookHolds() {
   try {
@@ -501,6 +677,93 @@ function readHookHolds() {
 }
 function writeHookHolds(list) {
   try { localStorage.setItem(TC_HOLD_KEY, JSON.stringify(list)); } catch (e) { /* 저장을 못 해도 이 화면에서는 동작 */ }
+}
+function readTcLag() {
+  try {
+    const map = JSON.parse(localStorage.getItem(TC_LAG_KEY));
+    return map && typeof map === "object" ? map : {};
+  } catch (e) { return {}; }
+}
+function writeTcLag(map) {
+  try { localStorage.setItem(TC_LAG_KEY, JSON.stringify(map)); } catch (e) { /* 저장을 못 해도 이 화면에서는 동작 */ }
+}
+function tcHeldPin(id) {
+  let pin = null;
+  readHookHolds().forEach((hold) => {
+    if (!hold.pins || hold.pins[id] == null || !(hold.names || []).includes(id)) return;
+    pin = hold.pins[id];
+  });
+  return pin;
+}
+function tcHeldPose(id) {
+  let pose = null;
+  readHookHolds().forEach((hold) => {
+    const saved = hold.poses && hold.poses[id];
+    if (!saved || saved.angle == null || !(hold.names || []).includes(id)) return;
+    pose = saved;
+  });
+  return pose;
+}
+function tcShownFrame(spec, frame) {
+  const pin = tcHeldPin(spec.id);
+  if (pin != null) return pin;
+  const lag = Number(readTcLag()[spec.id]) || 0;
+  return Math.max(0, frame - lag);
+}
+function tcStampPins(hold, frame) {
+  hold.pins = hold.pins || {};
+  let changed = false;
+  (hold.names || []).forEach((name) => {
+    if (hold.pins[name] != null) return;
+    const spec = TC_HOOKS.find((item) => item.id === name);
+    if (!spec) return;
+    hold.pins[name] = tcShownFrame(spec, frame);
+    changed = true;
+  });
+  if (hold.pinAt == null) { hold.pinAt = frame; changed = true; }
+  return changed;
+}
+function tcHoldOverlap(frame) {
+  if (frame == null) return;
+  const poses = {};
+  const pts = TC_HOOKS.map((spec) => {
+    const pose = tcHookPose(spec, TC_HOOKS, tcShownFrame(spec, frame));
+    poses[spec.id] = { angle: pose.angle, radius: pose.radius };
+    const rad = pose.angle * Math.PI / 180;
+    return [spec.x + pose.radius * Math.cos(rad), spec.y + pose.radius * Math.sin(rad)];
+  });
+  let best = { d: Infinity, a: 0, b: 1 };
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const d = Math.hypot(pts[i][0] - pts[j][0], pts[i][1] - pts[j][1]);
+      if (d < best.d) best = { d, a: i, b: j };
+    }
+  }
+  if (best.d > TC_HOOK_HIT) return;
+  const names = [TC_HOOKS[best.a].id, TC_HOOKS[best.b].id];
+  const holds = readHookHolds();
+  const hit = holds.filter((hold) => (hold.names || []).some((name) => names.includes(name)));
+  if (!hit.length) {
+    const state = readTcWatch() || { on: 1, t0: Date.now(), latched: false, seq: 0 };
+    if (state.latched) return;
+    state.latched = true;
+    state.seq = (state.seq || 0) + 1;
+    state.names = names;
+    const hold = { seq: state.seq, names: names, id: null, pins: {}, poses: {}, pinAt: frame };
+    names.forEach((name) => {
+      const spec = TC_HOOKS.find((item) => item.id === name);
+      if (!spec) return;
+      hold.pins[name] = tcShownFrame(spec, frame);
+      if (poses[name]) hold.poses[name] = poses[name];
+    });
+    holds.push(hold);
+    writeTcWatch(state);
+    writeHookHolds(holds);
+    return;
+  }
+  let changed = false;
+  hit.forEach((hold) => { if (tcStampPins(hold, frame)) changed = true; });
+  if (changed) writeHookHolds(holds);
 }
 function tcHookDistance(frame, i, j) {
   const a = tcHookPoint(TC_HOOKS[i], frame);
@@ -532,12 +795,36 @@ function latchTcInspect(names) {
 // 이 호기만 작업 허가로 푼다. 같이 걸린 다른 호기는 그대로 둔다
 function releaseTcCrane(name) {
   writeTcInspect(readTcInspect().filter((n) => n !== name));
+  const holds = readHookHolds();
+  let pinAt = null;
+  let pose = null;
+  holds.forEach((hold) => {
+    if (!(hold.names || []).includes(name)) return;
+    if (hold.pinAt != null) pinAt = hold.pinAt;
+    if (hold.poses && hold.poses[name]) pose = hold.poses[name];
+  });
   const rest = [];
-  readHookHolds().forEach((hold) => {
+  holds.forEach((hold) => {
     const names = (hold.names || []).filter((n) => n !== name);
     if (names.length) rest.push(Object.assign({}, hold, { names: names }));
   });
   writeHookHolds(rest);
+  const live = tcFrameNow();
+  if (live != null && (pinAt != null || pose)) {
+    const lags = readTcLag();
+    if (pinAt != null) lags[name] = (Number(lags[name]) || 0) + Math.max(0, live - pinAt);
+    if (pose) {
+      lags.resume = lags.resume || {};
+      lags.resume[name] = { at: live, angle: pose.angle, radius: pose.radius };
+    }
+    writeTcLag(lags);
+  }
+  if (!rest.length && live != null) {
+    const watch = readTcWatch() || { on: 1, t0: Date.now(), latched: false, seq: 0 };
+    watch.nextMeet = live + TC_MEET_GAP;
+    watch.latched = false;
+    writeTcWatch(watch);
+  }
   return rest;
 }
 function tcCardLevel() {
@@ -651,34 +938,11 @@ async function postHookEvent() {
 function stepTcHooks() {
   const frame = tcFrameNow();
   if (frame == null) return;
+  ensureFirstMeet();
+  tcHoldOverlap(frame);
   const now = tcHookGap(frame);
   const ahead = tcHookGap(frame + TC_HOOK_AHEAD);
   const state = readTcWatch() || { on: 1, t0: Date.now(), latched: false, seq: 0 };
-  const soon = now.d > TC_HOOK_HIT && ahead.d <= TC_HOOK_HIT && ahead.d < now.d - 1;
-  if (soon && !state.latched) {
-    state.latched = true;
-    state.seq = (state.seq || 0) + 1;
-    state.names = [TC_HOOKS[ahead.a].id, TC_HOOKS[ahead.b].id];
-    writeTcWatch(state);
-    const holds = readHookHolds();
-    holds.push({ seq: state.seq, names: state.names, id: null });
-    writeHookHolds(holds);
-    tcHookSeen = state.seq;
-    /* TEMP 작업 중: 후크 겹침 경고창과 그 이벤트 알림을 띄우지 않는다
-    showHookWarn(null);
-    postHookEvent().then(async (id) => {
-      const next = readHookHolds();
-      const row = next.find((hold) => hold.seq === state.seq);
-      if (row && id && !next.some((hold) => hold !== row && hold.id === id)) {
-        row.id = id;
-        writeHookHolds(next);
-      }
-      const pop = document.getElementById("hook-warn");
-      if (id && pop && !pop.hidden) showHookWarn(id);
-    });
-    */
-    return;
-  }
   if (now.d > TC_HOOK_CLEAR && ahead.d > TC_HOOK_HIT && state.latched) {
     state.latched = false;
     writeTcWatch(state);
@@ -792,6 +1056,7 @@ function wireAlerts() {
   document.getElementById("wind-warn").addEventListener("click", (e) => {
     if (e.target.id === "wind-warn" || e.target.closest("#wind-warn-close")) document.getElementById("wind-warn").hidden = true;
   });
+  syncTcServerBoot();
   setInterval(() => { stepTcHooks(); stepWindGust(); }, 200);
   setInterval(() => { refreshHookHolds(); }, 3000);
   const pop = document.getElementById("alert-pop");
