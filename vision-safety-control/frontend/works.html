@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-columns: minmax(0, 1fr); align-content: start; }
+    .main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .pick { flex-shrink: 0; display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
     .pick .person { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
@@ -148,7 +148,7 @@
       } catch (err) { toast(err.message); }
     });
 
-    // 배정 · 빼기 버튼은 본문 작업 정보 아래 칸(#assign-box) 안에 있다
+    // 배정 · 빼기 버튼은 본문 오른쪽 칸(#assign-box) 안에 있다
     $("assign-box").addEventListener("click", async (e) => {
       const b = e.target.closest("[data-move]");
       if (!b || !work) return;
