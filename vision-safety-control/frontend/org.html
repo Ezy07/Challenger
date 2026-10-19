@@ -18,6 +18,15 @@
     .node.l2 { padding-left: 44px; }
     .node .k { font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 5px; background: #243044; color: var(--muted); }
     .node .k.main { background: rgba(255, 154, 31, 0.18); color: var(--orange); }
+    .org-row { display: flex; align-items: stretch; gap: 0; }
+    .org-row .node { flex: 1; min-width: 0; border-radius: 9px 0 0 9px; }
+    .org-arrow { position: relative; width: 46px; flex: none; border: 1px solid transparent; border-left: 0; border-radius: 0 9px 9px 0; background: transparent; color: var(--muted); font-size: 0; cursor: pointer; }
+    .org-arrow::before { content: ""; display: block; width: 14px; height: 14px; margin: -6px auto 0; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor; transform: rotate(45deg); }
+    .org-arrow.on::before { margin: 6px auto 0; transform: rotate(-135deg); }
+    .org-row:hover .org-arrow { background: var(--panel-2); }
+    .org-row:has(.node.on) .org-arrow { background: rgba(255, 154, 31, 0.12); border-color: rgba(255, 154, 31, 0.6); color: var(--orange); }
+    .org-arrow.on { color: var(--orange); }
+    .org-drop { display: grid; gap: 2px; margin: 2px 0 8px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: #121820; }
     .org-info { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 10px; align-items: start; padding: 14px 16px; }
     .org-info div span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 700; }
     .org-info div b { font-size: 15px; }
@@ -103,34 +112,51 @@
     requireLogin();
     const $ = (id) => document.getElementById(id);
     let orgs = [], users = [], names = {}, sel = null, addType = "DEPT";
+    const openIds = new Set();
 
     const depth = (o) => (o.parent_id ? 1 + depth(orgs.find((x) => x.id === o.parent_id)) : 0);
     const children = (id) => orgs.filter((o) => o.parent_id === id);
     const members = (id) => users.filter((u) => u.org_id === id && u.status !== "DELETED");
-    // 회사 → 부서 → 하위 부서 순서로 펼친 목록
-    const ordered = () => {
-      const out = [];
-      const walk = (o) => { out.push(o); children(o.id).forEach(walk); };
-      orgs.filter((o) => !o.parent_id).forEach(walk);
-      return out;
-    };
     // 이 조직 아래 전체 (자기 포함) 회원 수
     const total = (o) => members(o.id).length + children(o.id).reduce((a, c) => a + total(c), 0);
     // 이 조직 아래 전체 (자기 포함) 회원 — 회사를 고르면 모든 부서 직원이 함께 보인다
     const allMembers = (o) => members(o.id).concat(...children(o.id).map(allMembers));
 
+    function nodeBtn(o) {
+      const kind = o.type === "COMPANY" ? `<span class="k${o.is_prime ? " main" : ""}">${o.is_prime ? "원청" : "협력사"}</span>` : "";
+      return `<button type="button" class="node l${depth(o)}" data-id="${o.id}">${kind}${esc(o.name)}<span class="n">${total(o)}</span></button>`;
+    }
+    function descendants(o) {
+      const out = [];
+      const walk = (node) => children(node.id).forEach((c) => { out.push(c); walk(c); });
+      walk(o);
+      return out;
+    }
+    function renderTree() {
+      const roots = orgs.filter((o) => !o.parent_id);
+      $("tree").innerHTML = roots.map((o) => {
+        const kids = descendants(o);
+        if (!kids.length) return nodeBtn(o);
+        const open = openIds.has(o.id);
+        const drop = `<div class="org-drop"${open ? "" : " hidden"}>${kids.map(nodeBtn).join("")}</div>`;
+        return `<div class="org-row">${nodeBtn(o)}<button type="button" class="org-arrow${open ? " on" : ""}" data-toggle="${o.id}" aria-expanded="${open}" title="하위 조직">${open ? "▴" : "▾"}</button></div>${drop}`;
+      }).join("");
+      document.querySelectorAll(".node").forEach((n) => n.classList.toggle("on", sel && Number(n.dataset.id) === sel.id));
+    }
+
     async function load(selectId) {
       [orgs, users] = await Promise.all([api("/api/orgs"), api("/api/users")]);
       names = orgNames(orgs);
-      $("tree").innerHTML = ordered().map((o) => `
-        <button class="node l${depth(o)}" data-id="${o.id}">${o.type === "COMPANY" ? `<span class="k${o.is_prime ? " main" : ""}">${o.is_prime ? "원청" : "협력사"}</span>` : ""}${esc(o.name)}<span class="n">${total(o)}</span></button>`).join("");
       show(selectId || (sel && sel.id) || (orgs[0] && orgs[0].id));
     }
 
     function show(id) {
       sel = orgs.find((o) => o.id === id) || orgs[0];
       if (!sel) return;
-      document.querySelectorAll(".node").forEach((n) => n.classList.toggle("on", Number(n.dataset.id) === sel.id));
+      let top = sel;
+      while (top.parent_id) top = orgs.find((o) => o.id === top.parent_id);
+      if (top && top.id !== sel.id) openIds.add(top.id);
+      renderTree();
       const parent = orgs.find((o) => o.id === sel.parent_id);
       $("i-name").textContent = sel.name;
       $("i-parent").textContent = parent ? names[parent.id] : "(없음 · 최상위)";
@@ -167,7 +193,18 @@
       $("a-name").focus();
     }
 
-    $("tree").addEventListener("click", (e) => { const n = e.target.closest(".node"); if (n) show(Number(n.dataset.id)); });
+    $("tree").addEventListener("click", (e) => {
+      const arrow = e.target.closest("[data-toggle]");
+      if (arrow) {
+        const id = Number(arrow.dataset.toggle);
+        if (openIds.has(id)) openIds.delete(id);
+        else openIds.add(id);
+        renderTree();
+        return;
+      }
+      const n = e.target.closest(".node");
+      if (n) show(Number(n.dataset.id));
+    });
     $("add-dept").addEventListener("click", () => openAdd("DEPT"));
     $("add-co").addEventListener("click", () => openAdd("COMPANY"));
     $("add-form").addEventListener("submit", async (e) => {
