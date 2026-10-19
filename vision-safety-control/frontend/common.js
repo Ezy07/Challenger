@@ -134,9 +134,33 @@ function saveNav(open) {
   try { localStorage.setItem(NAV_KEY, open ? "1" : "0"); } catch (e) { /* 저장 못 해도 동작에는 문제 없음 */ }
 }
 
+// 메뉴에서 다른 화면으로 넘어가도, 펼쳐 둔 묶음과 스크롤 위치는 이 탭에서 유지한다
+const NAV_GROUPS_KEY = "safety.nav-groups";
+const NAV_SCROLL_KEY = "safety.nav-scroll";
+function readOpenGroups() {
+  try {
+    const list = JSON.parse(sessionStorage.getItem(NAV_GROUPS_KEY) || "[]");
+    return new Set(Array.isArray(list) ? list : []);
+  } catch (e) { return new Set(); }
+}
+function saveOpenGroups(names) {
+  try { sessionStorage.setItem(NAV_GROUPS_KEY, JSON.stringify(names)); } catch (e) { /* 저장 못 해도 동작에는 문제 없음 */ }
+}
+function readDrawerScroll() {
+  try {
+    const n = Number(sessionStorage.getItem(NAV_SCROLL_KEY));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch (e) { return 0; }
+}
+function saveDrawerScroll(y) {
+  try { sessionStorage.setItem(NAV_SCROLL_KEY, String(y)); } catch (e) { /* 저장 못 해도 동작에는 문제 없음 */ }
+}
+
 function drawerHtml(file, found) {
+  const opened = readOpenGroups();
+  if (found) opened.add(found.group.no);
   const groupHtml = (g) => {
-    const open = found && found.group === g ? " open" : "";
+    const open = opened.has(g.no);
     if (g.link) {
       const here = file === g.link || (found && found.group === g);
       return `
@@ -153,7 +177,7 @@ function drawerHtml(file, found) {
       return `<a class="ditem d${p[3] || 0}${on}" href="${p[0]}"><b>${pageNo(g, p)}</b>${p[1]}</a>`;
     }).join("");
     return `
-      <section class="dgroup${open}">
+      <section class="dgroup${open ? " open" : ""}" data-group="${g.no}">
         <button type="button" class="dgroup-btn" aria-expanded="${open ? "true" : "false"}">
           <i>${g.icon}</i><span>${g.name}</span><em class="chev" aria-hidden="true">▾</em>
         </button>
@@ -228,11 +252,20 @@ function renderShell(file, found) {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && narrow.matches && body.classList.contains("nav-open")) setOpen(false, false);
   });
+  const drawerBody = document.querySelector(".drawer-body");
+  const rememberDrawer = () => {
+    saveOpenGroups([...document.querySelectorAll(".dgroup.open")].map((g) => g.dataset.group));
+    saveDrawerScroll(drawerBody.scrollTop);
+  };
+  drawerBody.scrollTop = readDrawerScroll();
+  drawerBody.addEventListener("scroll", () => saveDrawerScroll(drawerBody.scrollTop), { passive: true });
   document.querySelectorAll("button.dgroup-btn").forEach((b) => b.addEventListener("click", () => {
     const g = b.closest(".dgroup");
     g.classList.toggle("open");
     b.setAttribute("aria-expanded", g.classList.contains("open") ? "true" : "false");
+    rememberDrawer();
   }));
+  document.querySelectorAll(".drawer a").forEach((a) => a.addEventListener("click", rememberDrawer));
   document.querySelectorAll("[data-logout]").forEach((a) => a.addEventListener("click", () => {
     try { localStorage.removeItem("safety.auth"); } catch (e) { /* 무시 */ }
   }));

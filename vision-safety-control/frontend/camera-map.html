@@ -9,13 +9,12 @@
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
     .cam-list { padding: 12px 14px; display: grid; gap: 10px; }
-    .cam-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 150px; overflow: auto; }
-    .cam-items .item { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
-    .cam-items .item.on { border-color: var(--orange); background: rgba(255, 154, 31, 0.08); }
+    .cam-pick, #edit-cam { color-scheme: dark; }
+    .cam-pick { width: min(420px, 100%); }
     .map-cell { display: flex; flex-direction: column; }
     .map-cell .pad { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
     .edit-bar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(255, 154, 31, 0.6); background: rgba(255, 154, 31, 0.06); font-size: 13px; }
-    #edit-cam { width: 220px; }
+    #edit-cam { width: min(420px, 100%); }
     .sliders { display: grid; gap: 4px; }
     .sliders label { display: grid; grid-template-columns: 30px 150px 60px; align-items: center; gap: 8px; }
     .swatches { display: flex; align-items: center; gap: 5px; }
@@ -23,7 +22,6 @@
     .swatches button.on { border-color: #fff; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); }
     .swatches input[type=color] { width: 26px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
     .swatches button:disabled, .swatches input:disabled { opacity: 0.35; cursor: default; }
-    .item .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
     #marks { position: absolute; inset: 0; width: 100%; height: 100%; }
     #marks .cam { cursor: pointer; }
     #marks .cam:hover circle, #marks .cam.on circle { stroke: #fff; stroke-width: 3; }
@@ -43,7 +41,7 @@
         <div class="row between"><div class="label">카메라 위치 <span id="n-cams">0대</span></div>
           <div class="row"><span class="muted"><b style="color:var(--ink)">부채꼴</b>은 카메라의 시야, <b style="color:var(--ink)">원</b>은 돌면서 전체를 보는 카메라입니다. 도면에서 비어 있는 곳은 카메라를 더 달아야 할 곳입니다.</span>
           <a class="btn sm primary" href="camera-edit.html" data-need="ADMIN">＋ 카메라 추가</a></div></div>
-        <div class="cam-items" id="cams"></div>
+        <select class="input cam-pick" id="cam-pick" aria-label="카메라"></select>
       </section>
 
       <section class="cell map-cell">
@@ -146,14 +144,24 @@
       }).join("");
     }
 
+    function camOptions(placeholder) {
+      const fixed = cams.filter((c) => c.camera_type !== "TC");
+      const tc = cams.filter((c) => c.camera_type === "TC");
+      const opts = (list) => list.map((c) => {
+        const place = placed(c) ? "배치됨" : "배치 안 됨";
+        const off = c.is_active ? "" : " · 사용 안 함";
+        return `<option value="${c.id}">${esc(c.name)} · ${place}${off}</option>`;
+      }).join("");
+      const groups = (fixed.length ? `<optgroup label="현장 CAM">${opts(fixed)}</optgroup>` : "")
+        + (tc.length ? `<optgroup label="TC CAM">${opts(tc)}</optgroup>` : "");
+      if (!cams.length) return '<option value="">등록된 카메라가 없습니다</option>';
+      return `<option value="">${placeholder}</option>` + groups;
+    }
+
     function drawList() {
       $("n-cams").textContent = `${cams.length}대 · 배치 ${cams.filter(placed).length}대`;
-      $("cams").innerHTML = cams.map((c) => {
-        const where = !placed(c) ? "배치도에 없음" : c.plan_dir == null ? "방향 없음" : fovOf(c) >= 360 ? "360° 회전" : `${c.plan_dir}° 방향 · 화각 ${fovOf(c)}°`;
-        return `<button class="item ${c.is_active ? "ok" : ""}${picked === c.id ? " on" : ""}" type="button" data-id="${c.id}">
-          <div class="item-top"><b><i class="dot" style="background:${color(c)}"></i>${esc(c.name)}</b><span class="status ${c.is_active ? (placed(c) ? "ok" : "warn") : "mute"}">${c.is_active ? (placed(c) ? "배치됨" : "위치 없음") : "사용 안 함"}</span></div>
-          <div class="desc">${esc([c.work_zone_name, c.location_desc].filter(Boolean).join(" · ") || "설치 위치 없음")} · ${where}</div></button>`;
-      }).join("") || '<p class="muted">등록된 카메라가 없습니다</p>';
+      $("cam-pick").innerHTML = camOptions("카메라 선택");
+      $("cam-pick").value = picked ? String(picked) : "";
     }
 
     function drawPlan() {
@@ -177,8 +185,7 @@
       $("edit-toggle").classList.toggle("primary", editing);
       $("plan-sub").textContent = editing ? "카메라 배치 수정 중" : "카메라를 누르면 그 카메라 정보로 이동";
       const c = cams.find((x) => x.id === picked);
-      $("edit-cam").innerHTML = '<option value="">카메라 선택</option>'
-        + cams.map((x) => `<option value="${x.id}">${esc(x.name)}${placed(x) ? "" : " · 위치 없음"}</option>`).join("");
+      $("edit-cam").innerHTML = camOptions("카메라 선택");
       $("edit-cam").value = c ? c.id : "";
       $("edit-help").textContent = !c ? "카메라를 고른 뒤 도면을 누르면 그 자리에 놓입니다."
         : placed(c) ? "아이콘을 끌어서 옮길 수 있습니다. 바꾸면 바로 저장됩니다." : "도면을 눌러 놓으세요.";
@@ -216,10 +223,8 @@
     }
     const round4 = (v) => Math.round(v * 10000) / 10000;
 
-    $("cams").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-id]");
-      if (!b) return;
-      picked = Number(b.dataset.id) === picked && !editing ? null : Number(b.dataset.id);
+    $("cam-pick").addEventListener("change", () => {
+      picked = Number($("cam-pick").value) || null;
       redraw();
     });
     $("edit-cam").addEventListener("change", () => {

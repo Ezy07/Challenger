@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .err { font-size: 12px; color: #ff9b9b; font-weight: 700; min-height: 16px; }
+    .caps { font-size: 12.5px; font-weight: 700; color: var(--orange); margin-top: -6px; }
     body { align-items: center; justify-content: center; padding: 16px; }
     .login { width: min(400px, 100%); display: grid; gap: 14px; padding: 28px; }
     .login .brand { justify-content: center; font-size: 22px; margin: 0; }
@@ -25,6 +26,7 @@
     <div class="site">공동주택 건설현장 · OO단지 101~103동</div>
     <label class="field">아이디<input class="input" id="login-id" autocomplete="username" required /></label>
     <label class="field">비밀번호<input class="input" id="login-pw" type="password" autocomplete="current-password" required /></label>
+    <p class="caps" id="caps" hidden>Caps Lock이 켜져 있습니다.</p>
     <div class="row between">
       <label class="row muted" style="gap:6px; font-size:12.5px"><input type="checkbox" id="remember" /> 아이디 기억</label>
       <a class="muted" style="font-size:12.5px" href="#" data-toast="관리자(최동현 과장)에게 비밀번호 초기화를 요청하세요.">비밀번호를 잊었어요</a>
@@ -38,6 +40,15 @@
   <script src="common.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
+    const pw = $("login-pw");
+    const showCaps = (e) => {
+      if (!e.getModifierState) return;
+      $("caps").hidden = !e.getModifierState("CapsLock");
+    };
+    pw.addEventListener("keydown", showCaps);
+    pw.addEventListener("keyup", showCaps);
+    pw.addEventListener("mousedown", showCaps);
+    pw.addEventListener("blur", () => { $("caps").hidden = true; });
     const REMEMBER_KEY = "safety.login-id";
     try {
       const saved = localStorage.getItem(REMEMBER_KEY);
