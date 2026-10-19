@@ -162,14 +162,6 @@
     function persist() {
       return saveRoiBooks(books, cams).then((rows) => { adoptEnabled(rows); return true; }).catch((err) => { toast(err.message); return false; });
     }
-    function candidateUrls(file) {
-      const name = encodeURIComponent(file);
-      const stored = new URL("../storage/videos/" + name, document.baseURI).href;
-      const mounted = new URL("videos/" + name, document.baseURI).href;
-      if (location.protocol === "file:") return [mounted, stored];
-      if (location.pathname.includes("/frontend/")) return [stored, mounted];
-      return [mounted, stored];
-    }
     function latestKey(roi) {
       return roi.keys && roi.keys.length ? roi.keys[roi.keys.length - 1] : null;
     }

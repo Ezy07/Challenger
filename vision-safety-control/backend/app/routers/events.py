@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from ..config import settings
 from ..deps import DB, Admin, CurrentUser, Manager, ingest_key
+from ..event_query import ZONE_ID, day_range, to_row
 from ..exporting import COLUMNS, DEFAULT_COLUMNS, to_csv, to_xlsx, to_zip
 from ..models import (
     ActionType,
@@ -20,7 +21,6 @@ from ..models import (
     EventAction,
     EventSnapshot,
     EventStatus,
-    ReleaseCheckItem,
     Roi,
     RoiRule,
     Severity,
@@ -37,7 +37,6 @@ from ..schemas import (
     EventIn,
     EventIngestOut,
     EventPage,
-    EventRow,
 )
 
 router = APIRouter(prefix="/api/events", tags=["이벤트"])
@@ -153,8 +152,6 @@ class EventFilter:
 
 Filter = Annotated[EventFilter, Depends()]
 
-# ROI 가 있으면 ROI 의 구역, 없으면 카메라가 놓인 구역
-ZONE_ID = func.coalesce(Roi.work_zone_id, Camera.work_zone_id)
 # 이벤트의 첫 스냅샷 (스냅샷 조회 화면 · 내보내기용)
 FIRST_SNAPSHOT = (
     select(func.min(EventSnapshot.image_path)).where(EventSnapshot.event_id == Event.id).correlate(Event).scalar_subquery()
@@ -191,22 +188,6 @@ def filtered(f: EventFilter) -> Select:
         "confidence": [Event.confidence.desc(), Event.detected_at.desc()],
     }[f.sort]
     return q.order_by(*order, Event.id.desc())
-
-
-def to_row(event: Event, camera_name, zone_name, code, label, snapshot=None) -> EventRow:
-    return EventRow(
-        snapshot=snapshot,
-        id=event.id,
-        detected_at=event.detected_at,
-        camera_id=event.camera_id,
-        camera_name=camera_name,
-        work_zone_name=zone_name,
-        detection_code=code,
-        detection_label=label,
-        severity=event.severity,
-        confidence=float(event.confidence) if event.confidence is not None else None,
-        status=event.status,
-    )
 
 
 @router.get("", response_model=EventPage)
@@ -456,12 +437,10 @@ def delete_range(date_from: date, date_to: date, db: DB, _: Admin):
     """date_from ~ date_to (끝일 포함) 에 감지된 이벤트 전부. 실수로 전체 기간을 지우지 않게 두 날짜 모두 받는다"""
     if date_from > date_to:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "시작일이 끝일보다 늦습니다.")
+    lo, hi = day_range(date_from, date_to)
     q = (
         select(Event)
-        .where(
-            Event.detected_at >= datetime.combine(date_from, time.min),
-            Event.detected_at < datetime.combine(date_to + timedelta(days=1), time.min),
-        )
+        .where(Event.detected_at >= lo, Event.detected_at < hi)
         .options(selectinload(Event.snapshots), selectinload(Event.actions))
     )
     return delete_events(db, list(db.scalars(q)))

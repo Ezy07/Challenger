@@ -154,7 +154,7 @@
       const [zones, types] = await Promise.all([api("/api/work-zones"), api("/api/detection-types")]);
       $("f-zone").insertAdjacentHTML("beforeend", zones.map((z) => `<option value="${z.id}">${esc(z.name)}</option>`).join(""));
       $("f-type").innerHTML = types.map((t) => `<span class="chip on" data-v="${t.code}">${esc(t.label)}</span>`).join("");
-      const weekAgo = new Date(Date.now() - 6 * 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      const weekAgo = todayStr(6);
       $("f-from").value = p.get("date_from") || weekAgo;
       $("f-to").value = p.get("date_to") || todayStr();
       linkDateRange($("f-from"), $("f-to"));

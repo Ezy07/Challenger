@@ -2,7 +2,7 @@
 
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -10,11 +10,11 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from ..deps import DB, CurrentUser
+from ..event_query import ZONE_ID, day_range
 from ..models import ActionType, Camera, DetectionType, Event, EventAction, EventStatus, Roi, Severity, WorkZone
 
 router = APIRouter(prefix="/api/stats", tags=["통계"])
 
-ZONE_ID = func.coalesce(Roi.work_zone_id, Camera.work_zone_id)
 CLOSING = (ActionType.RESOLVE, ActionType.FALSE_ALARM)  # 처리 끝 (처리 시간 계산 기준)
 MAX_DAYS = 366
 
@@ -70,10 +70,6 @@ class HighEvent(BaseModel):
 
 class Report(Summary):
     high_events: list[HighEvent]
-
-
-def day_range(start: date, end: date):
-    return datetime.combine(start, time.min), datetime.combine(end + timedelta(days=1), time.min)
 
 
 def load(db: DB, start: date, end: date, *, codes: list[str] | None = None, zone_id: int | None = None,

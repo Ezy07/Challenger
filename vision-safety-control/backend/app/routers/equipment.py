@@ -1,10 +1,11 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import func, inspect, or_, select
 from sqlalchemy.orm import selectinload
 
 from ..deps import DB, CurrentUser, Manager
+from ..event_query import ZONE_ID, day_range, to_row
 from ..models import (
     Camera,
     DetectionType,
@@ -26,7 +27,6 @@ from ..schemas import (
     EquipmentIn,
     EquipmentOut,
     EquipmentUpdate,
-    EventRow,
     NamedRef,
 )
 
@@ -65,13 +65,6 @@ def save_checks(db: DB, equipment_id: int, field: str, allowed: tuple[str, ...],
     setattr(e, field, list(dict.fromkeys(items)))
     db.commit()
     return detail(db, e.id)
-
-ZONE_ID = func.coalesce(Roi.work_zone_id, Camera.work_zone_id)  # 이벤트의 구역 (events.py 와 같은 기준)
-
-
-def day_range(day: date):
-    return datetime.combine(day, time.min), datetime.combine(day + timedelta(days=1), time.min)
-
 
 def log_out(log: EquipmentDailyLog) -> DailyLogOut:
     return DailyLogOut(
@@ -167,12 +160,7 @@ def detail(db: DB, equipment_id: int) -> EquipmentDetail:
             .order_by(Event.detected_at.desc())
             .limit(10)
         )
-        for ev, cam_name, zone_name, code, label in db.execute(q):
-            rows.append(EventRow(
-                id=ev.id, detected_at=ev.detected_at, camera_name=cam_name, work_zone_name=zone_name,
-                detection_code=code, detection_label=label, severity=ev.severity,
-                confidence=float(ev.confidence) if ev.confidence is not None else None, status=ev.status,
-            ))
+        rows = [to_row(*r) for r in db.execute(q)]
     return EquipmentDetail(
         **to_out(e, cams, logs, zone_events).model_dump(),
         logs=[log_out(log) for log in history],

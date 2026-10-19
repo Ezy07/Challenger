@@ -97,8 +97,10 @@ const LABEL = {
 const EQUIP_ICON = { TC: "🏗", PUMP_CAR: "🚒", MIXER_TRUCK: "🚛", DUMP_TRUCK: "🚚", EXCAVATOR: "🚜", CRANE: "🏗", FORKLIFT: "🛻", ETC: "⚙" };
 const labelOf = (kind, value) => (LABEL[kind][value] || ["", value])[1];
 
-// 오늘 날짜 "2026-10-04" (브라우저 시간대 기준)
-const todayStr = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+// Date → "2026-10-04" (브라우저 시간대 기준)
+const dateStr = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+// 오늘 날짜 "2026-10-04". daysAgo 를 주면 그만큼 앞 날짜 (todayStr(6) = 일주일 범위의 첫날)
+const todayStr = (daysAgo = 0) => dateStr(new Date(Date.now() - daysAgo * 86400000));
 // "2026-10-04" → "10.04"
 const md = (d) => (d ? d.slice(5).replace("-", ".") : "");
 // 작업 기간 "09.22 ~ 10.15" (하루짜리는 "10.04")

@@ -115,8 +115,7 @@
   <script>
     requireLogin();
     const $ = (id) => document.getElementById(id);
-    const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    const day = (offset) => iso(new Date(Date.now() + offset * 86400000));
+    const day = (offset) => todayStr(-offset);
     // 보고서 종류는 고른 기간 길이로: 하루 = 일간, 7일까지 = 주간, 31일까지 = 월간, 그보다 길면 기간
     function kindOf(from, to) {
       const n = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;

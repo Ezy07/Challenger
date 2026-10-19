@@ -6,13 +6,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from ..deps import DB, CurrentUser, Manager
+from ..event_query import ZONE_ID
 from ..models import Camera, Equipment, Event, EventStatus, Roi, Severity, Work, WorkAssignment, WorkZone
 from ..schemas import NamedRef, WorkZoneIn, WorkZoneOut, WorkZoneUpdate, ZoneSummary
 from ..today import OPEN_WORK, special_tags, work_active_on, worker_load
 
 router = APIRouter(prefix="/api/work-zones", tags=["작업구역"])
-
-ZONE_ID = func.coalesce(Roi.work_zone_id, Camera.work_zone_id)
 
 
 MAX_POINTS = 40  # 화면(zones.html)에서 찍을 수 있는 꼭짓점 수와 같게

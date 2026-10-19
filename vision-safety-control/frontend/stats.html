@@ -79,7 +79,6 @@
   <script>
     requireLogin();
     const $ = (id) => document.getElementById(id);
-    const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const dot = (s) => s.slice(5).replace("-", ".");
     const today = new Date();
 
@@ -144,9 +143,9 @@
     });
     // 처음에는 오늘 하루 (어제와 비교). 다른 화면에서 ?date_from=&date_to= 로 오면 그 기간
     const p = new URLSearchParams(location.search);
-    $("c-from").value = p.get("date_from") || iso(today);
+    $("c-from").value = p.get("date_from") || dateStr(today);
     $("c-to").value = p.get("date_to") || $("c-from").value;
-    $("c-to").max = $("c-from").max = iso(today);
+    $("c-to").max = $("c-from").max = dateStr(today);
     linkDateRange($("c-from"), $("c-to"));
     attachTips($("stats-main"));
     load($("c-from").value, $("c-to").value).catch((err) => toast(err.message));

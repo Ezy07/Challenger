@@ -428,14 +428,6 @@
       const len = Number(res.headers.get("Content-Length"));
       return len || fallback;
     }
-    function candidateUrls(file) {
-      const name = encodeURIComponent(file);
-      const stored = new URL("../storage/videos/" + name, document.baseURI).href;
-      const mounted = new URL("videos/" + name, document.baseURI).href;
-      if (location.protocol === "file:") return [mounted, stored];
-      if (location.pathname.includes("/frontend/")) return [stored, mounted];
-      return [mounted, stored];
-    }
     function guessTrack(duration) {
       const candidates = [24000 / 1001, 24, 25, 30000 / 1001, 30, 50, 60000 / 1001, 60];
       let fps = 30;

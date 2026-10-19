@@ -277,7 +277,7 @@
 
     // 처음에는 최근 14일. 끝일은 오늘까지
     $("f-to").value = $("f-to").max = $("f-from").max = todayStr();
-    $("f-from").value = new Date(Date.now() - 13 * 86400000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    $("f-from").value = todayStr(13);
     linkDateRange($("f-from"), $("f-to"));
 
     (async () => {

@@ -13,6 +13,16 @@ const ROI_KINDS = {
 // 구역 이름 (타워크레인 하부 등). 이름을 안 정한 예전 구역은 등급으로 부른다
 const roiName = (roi) => roi.name || (ROI_KINDS[roi.kind] ? ROI_KINDS[roi.kind].label : "");
 const ROI_NAME_MAX = 40;
+
+// 영상 파일 주소 후보 (서버가 띄운 /videos/ 와 저장소 폴더 storage/videos/). 앞의 것부터 열어 보고 안 되면 다음 것
+function candidateUrls(file) {
+  const name = encodeURIComponent(file);
+  const stored = new URL("../storage/videos/" + name, document.baseURI).href;
+  const mounted = new URL("videos/" + name, document.baseURI).href;
+  if (location.protocol === "file:") return [mounted, stored];
+  if (location.pathname.includes("/frontend/")) return [stored, mounted];
+  return [mounted, stored];
+}
 const ROI_ORPHAN = "cam:"; // 영상 파일이 없는 줄의 books 열쇠 앞머리
 const ROI_TARGETS = [
   { id: "person", label: "사람" },
