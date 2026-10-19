@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
-from sqlalchemy import Select, case, func, select
+from sqlalchemy import Select, case, extract, func, select
 from sqlalchemy.orm import selectinload
 
 from ..config import settings
@@ -147,6 +147,7 @@ class EventFilter:
     detection_type: Annotated[list[str] | None, Query(description="detection_type.code")] = None
     work_zone_id: int | None = None
     camera_id: int | None = None
+    hour: Annotated[int | None, Query(ge=0, le=23, description="그 시간대(시)에 감지된 것만 (추이 차트 시간대 막대)")] = None
     sort: Literal["latest", "severity", "confidence"] = "latest"
 
 
@@ -182,6 +183,8 @@ def filtered(f: EventFilter) -> Select:
         q = q.where(ZONE_ID == f.work_zone_id)
     if f.camera_id is not None:
         q = q.where(Event.camera_id == f.camera_id)
+    if f.hour is not None:
+        q = q.where(extract("hour", Event.detected_at) == f.hour)
     order = {
         "latest": [Event.detected_at.desc()],
         "severity": [SEVERITY_RANK, Event.detected_at.desc()],

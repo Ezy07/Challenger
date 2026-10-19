@@ -7,13 +7,15 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="common.css" />
   <style>
-    .main { grid-template-rows: auto minmax(0, 1.2fr) minmax(0, 1fr); }
+    .main { grid-template-rows: auto minmax(0, 1fr); }
     .main .cell:not(.searchbar) { display: flex; flex-direction: column; }
+    .main .cell[hidden] { display: none; }
+    #view { width: auto; }
     .main .pad { flex: 1; min-height: 0; }
     /* 꺾은선: 칸 크기 그대로 그린다 (늘이면 글자 · 점이 찌그러짐). x축 글자 칸까지 높이에 포함 */
     .plot { flex: 1; min-height: 180px; position: relative; }
     .plot svg { position: absolute; inset: 0; display: block; }
-    .plot svg #hit { cursor: crosshair; outline: none; }
+    .plot svg #hit { cursor: pointer; outline: none; }
     /* 시간대 막대: 굵기 최대 24px, 위만 둥글게. 가장 많은 시간대만 주황 · 나머지는 회색 */
     .cols { flex: 1; min-height: 120px; display: grid; gap: 4px; align-items: end; }
     .col { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; font-size: 10.5px; color: var(--muted); font-weight: 700; border-radius: 6px; outline: none; }
@@ -21,6 +23,11 @@
     .col i { width: 100%; max-width: 24px; border-radius: 4px 4px 0 0; background: #5f6f86; }
     .col b { color: var(--ink); font-size: 12px; min-height: 15px; }
     .col.peak i { background: var(--orange); }
+    .col { cursor: pointer; }
+    /* 날짜 · 시간대를 누르면 뜨는 이벤트 목록 팝업 */
+    #ev-pop .pop-card { width: min(860px, 100%); max-height: calc(100vh - 84px); display: flex; flex-direction: column; }
+    #ev-pop .ev-body { min-height: 0; overflow: auto; }
+    #ev-rows tr[data-href] { cursor: pointer; }
   </style>
 </head>
 <body>
@@ -31,7 +38,8 @@
       <section class="cell searchbar">
         <div class="searchbar-row">
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filters">차트 설정 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
-          <span class="muted"><b style="color:var(--ink)">선이 내려가면</b> 안전 조치가 효과가 있다는 뜻입니다. 갑자기 오르는 날은 그날 작업 내용과 함께 확인하세요.</span>
+          <select class="input" id="view" aria-label="차트 보기 방식"><option value="daily">일별</option><option value="hour">시간대별</option></select>
+          <span class="muted" id="view-hint"></span>
         </div>
         <div class="search-panel" id="filters" hidden>
           <div class="search-fields">
@@ -46,24 +54,38 @@
           <div class="row end"><button class="btn primary" type="button" data-search-close>닫기</button></div>
         </div>
       </section>
-      <section class="cell">
+      <section class="cell" id="sec-daily">
         <div class="pad">
           <div class="row between">
             <div class="label">일별 이벤트 수 <span id="range"></span></div>
             <span class="muted" id="avg"></span>
           </div>
-          <div class="plot" id="line-box"><svg id="line" role="img" aria-label="일별 이벤트 수 꺾은선 차트"></svg></div>
-          <details class="viz-table"><summary>표로 보기</summary><table class="tbl" id="t-daily"></table></details>
+          <div class="plot" id="line-box"><svg id="line" role="img" aria-label="일별 이벤트 수 꺾은선 차트 (날짜를 누르면 그날 이벤트 목록)"></svg></div>
         </div>
       </section>
-      <section class="cell">
+      <section class="cell" id="sec-hour" hidden>
         <div class="pad">
           <div class="label">시간대별 이벤트 수 <span id="hour-sub"></span></div>
           <div class="cols" id="cols"></div>
-          <details class="viz-table"><summary>표로 보기</summary><table class="tbl" id="t-hour"></table></details>
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="pop" id="ev-pop" hidden>
+    <div class="pop-card">
+      <div class="pop-head">
+        <div><span class="role" id="ev-tag">이벤트</span><h2 id="ev-title">이벤트 목록</h2><p id="ev-sub"></p></div>
+        <button class="btn sm" data-close>닫기</button>
+      </div>
+      <div class="pop-body ev-body">
+        <table class="tbl">
+          <thead><tr><th>번호</th><th>시각</th><th>카메라</th><th>구역</th><th>종류</th><th>심각도</th><th>처리 상태</th></tr></thead>
+          <tbody id="ev-rows"></tbody>
+        </table>
+        <div class="pagers" id="ev-pagers"></div>
+      </div>
+    </div>
   </div>
 
   <script src="api.js"></script>
@@ -141,7 +163,16 @@
       let focusIdx = n - 1;
       $("hit").addEventListener("pointermove", (e) => { if (e.isTrusted) tip(nearest(e.clientX)); });
       $("hit").addEventListener("pointerleave", () => ["cross", "cross-dot"].forEach((id) => $(id).setAttribute("visibility", "hidden")));
+      $("hit").addEventListener("click", (e) => {
+        const d = pts[nearest(e.clientX)];
+        showEvents(d.key.replaceAll("-", ".") + " 이벤트", { date_from: d.key, date_to: d.key });
+      });
       $("hit").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const d = pts[focusIdx];
+          showEvents(d.key.replaceAll("-", ".") + " 이벤트", { date_from: d.key, date_to: d.key });
+          return;
+        }
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
         focusIdx = Math.max(0, Math.min(n - 1, focusIdx + (e.key === "ArrowRight" ? 1 : -1)));
         tip(focusIdx);
@@ -158,12 +189,55 @@
       $("cols").style.gridTemplateColumns = `repeat(${to - from + 1}, minmax(0, 1fr))`;
       $("cols").innerHTML = h.slice(from, to + 1).map((v, k) => {
         const hr = from + k, isPeak = hr === peak && v > 0;
-        return `<div class="col${isPeak ? " peak" : ""}" tabindex="0" data-tip-value="${v}건" data-tip-label="${pad2(hr)}~${pad2(hr + 1)}시">
+        return `<div class="col${isPeak ? " peak" : ""}" tabindex="0" data-hour="${hr}" data-tip-value="${v}건" data-tip-label="${pad2(hr)}~${pad2(hr + 1)}시">
           <b>${isPeak ? v : ""}</b><i style="height:${v ? Math.max(3, (v / max) * 100) : 0}%"></i>${pad2(hr)}</div>`;
       }).join("");
-      $("t-hour").innerHTML = "<thead><tr><th>시간</th><th>건수</th></tr></thead><tbody>"
-        + h.map((v, hr) => (v ? `<tr><td>${pad2(hr)}~${pad2(hr + 1)}시</td><td class="num">${v}</td></tr>` : "")).join("") + "</tbody>";
     }
+
+    // 날짜 · 시간대를 누르면 지금 차트 조건(종류 · 구역 · 심각도)에 맞는 이벤트를 팝업으로 보여 준다 (10건씩 페이지)
+    const EV_SIZE = 10;
+    let evSeq = 0, evQuery = null;
+    function showEvents(title, extra) {
+      $("ev-title").textContent = title;
+      $("ev-rows").innerHTML = "";
+      $("ev-pagers").innerHTML = "";
+      $("ev-pop").hidden = false;
+      evQuery = { ...query(), ...extra, size: EV_SIZE };
+      loadEvents(1);
+    }
+    async function loadEvents(page) {
+      const seq = ++evSeq; // 빨리 연달아 누르면 마지막 것만 그린다
+      $("ev-sub").textContent = "불러오는 중…";
+      let res;
+      try {
+        res = await api("/api/events", { query: { ...evQuery, page } });
+      } catch (err) {
+        if (seq === evSeq) $("ev-sub").textContent = "";
+        return toast(err.message);
+      }
+      if (seq !== evSeq) return;
+      const { total, items } = res;
+      $("ev-sub").textContent = `${total}건 · 줄을 누르면 이벤트 상세로 이동합니다`;
+      if (total > EV_SIZE) renderPagers($("ev-pagers"), page, total, EV_SIZE);
+      else $("ev-pagers").innerHTML = "";
+      $("ev-rows").innerHTML = items.length ? items.map((e) => `
+        <tr data-href="event-detail.html?id=${e.id}"><td class="num">EV-${e.id}</td><td class="num">${fmtTime(e.detected_at).slice(5)}</td>
+          <td>${esc(e.camera_name || "-")}</td><td>${esc(e.work_zone_name || "-")}</td><td>${esc(e.detection_label)}</td>
+          <td>${badge("severity", e.severity)}</td><td>${badge("eventStatus", e.status)}</td></tr>`).join("")
+        : '<tr><td colspan="7" class="muted" style="text-align:center; padding:28px">이벤트가 없습니다</td></tr>';
+    }
+    $("ev-pagers").addEventListener("click", (e) => { if (e.target.dataset.p) loadEvents(Number(e.target.dataset.p)); });
+    $("ev-rows").addEventListener("click", (e) => {
+      const tr = e.target.closest("tr[data-href]");
+      if (tr) location.href = tr.dataset.href;
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("ev-pop").hidden = true; });
+    const openHour = (col) => {
+      const hr = Number(col.dataset.hour);
+      showEvents(`${pad2(hr)}~${pad2(hr + 1)}시 이벤트`, { date_from: data.date_from, date_to: data.date_to, hour: hr });
+    };
+    $("cols").addEventListener("click", (e) => { const c = e.target.closest(".col"); if (c) openHour(c); });
+    $("cols").addEventListener("keydown", (e) => { const c = e.target.closest(".col"); if (c && e.key === "Enter") openHour(c); });
 
     async function load() {
       $("trend-main").style.opacity = 0.55;
@@ -175,17 +249,30 @@
       searchSummary([rangeText(data.date_from, data.date_to), sel("f-type"), sel("f-zone")].filter(Boolean).join(" · "));
       $("avg").innerHTML = `하루 평균 <b style="color:var(--ink)">${data.avg_per_day}건</b> · 최근 7일 평균 <b style="color:var(--ink)">${data.avg_last7}건</b>`;
       $("hour-sub").textContent = `${md(data.date_from)} ~ ${md(data.date_to)} 합계 · 가장 많은 시간대만 숫자 표시`;
-      $("t-daily").innerHTML = "<thead><tr><th>날짜</th><th>건수</th></tr></thead><tbody>"
-        + data.daily.map((d) => `<tr><td>${d.key.replaceAll("-", ".")}</td><td class="num">${d.count}</td></tr>`).join("") + "</tbody>";
-      drawLine();
-      drawHours();
+      draw();
     }
 
     const reload = () => load().catch((err) => toast(err.message));
     $("filters").addEventListener("change", reload);
     $("filters").addEventListener("click", (e) => { if (e.target.closest(".chip")) reload(); });
     let rt = 0;
-    window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => data && drawLine(), 120); });
+    window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => data && draw(), 120); });
+
+    // 보기 방식: 일별 · 시간대별 중 하나만 보여 준다 (숨긴 칸은 크기가 0이라 고른 것만 그린다)
+    const HINT = {
+      daily: '<b style="color:var(--ink)">선이 내려가면</b> 안전 조치가 효과가 있다는 뜻입니다. 날짜를 누르면 그날 이벤트를 볼 수 있습니다.',
+      hour: '<b style="color:var(--ink)">막대가 높은 시간대</b>에 순찰 · 작업 전 점검을 집중하세요. 막대를 누르면 그 시간대 이벤트를 볼 수 있습니다.',
+    };
+    function draw() {
+      const v = $("view").value;
+      $("sec-daily").hidden = v !== "daily";
+      $("sec-hour").hidden = v !== "hour";
+      $("view-hint").innerHTML = HINT[v];
+      if (!data) return;
+      if (v === "daily") drawLine(); else drawHours();
+    }
+    $("view").addEventListener("change", draw);
+    draw();
     attachTips($("trend-main"));
 
     // 처음에는 최근 14일. 끝일은 오늘까지

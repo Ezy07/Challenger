@@ -121,6 +121,13 @@ def test_list_filters(client, manager):
     paged = client.get("/api/events", params={"size": 4, "page": 3}, headers=manager).json()
     assert len(paged["items"]) == 1
 
+    # 시간대: 추이 차트 막대를 누르면 그 시간에 감지된 이벤트만
+    hour = datetime.fromisoformat(res["items"][0]["detected_at"]).hour
+    at_hour = client.get("/api/events", params={"hour": hour}, headers=manager).json()
+    assert at_hour["total"] >= 1
+    assert all(datetime.fromisoformat(i["detected_at"]).hour == hour for i in at_hour["items"])
+    assert client.get("/api/events", params={"hour": 24}, headers=manager).status_code == 422
+
 
 def test_resolve_requires_all_permits(client, manager):
     items = client.get("/api/events", params={"detection_type": "LOAD_OVERHEAD_WORKER"}, headers=manager).json()["items"]
