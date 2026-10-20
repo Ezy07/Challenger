@@ -6,7 +6,7 @@ from sqlalchemy import select
 from ..config import settings
 from ..deps import DB, CurrentUser
 from ..models import Organization, User, UserStatus
-from ..schemas import LoginIn, SignupIn, TokenOut, UserOut
+from ..schemas import LoginIn, ProfileUpdate, SignupIn, TokenOut, UserOut
 from ..security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["로그인 · 회원가입"])
@@ -69,4 +69,19 @@ def login(body: LoginIn, db: DB):
 
 @router.get("/me", response_model=UserOut)
 def me(user: CurrentUser):
+    return user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(body: ProfileUpdate, db: DB, user: CurrentUser):
+    """자기 계정의 이름 · 전화번호 · 비밀번호만 바꾼다."""
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "이름을 입력하세요.")
+    user.name = name
+    user.phone = body.phone.strip() if body.phone and body.phone.strip() else None
+    if body.password:
+        user.password_hash = hash_password(body.password)
+    db.commit()
+    db.refresh(user)
     return user

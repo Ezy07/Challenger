@@ -245,9 +245,29 @@ function renderShell(file, found) {
         </div>
         <button type="button" class="gnb-btn" id="gnb-alert" title="실시간 알림" aria-haspopup="dialog" aria-controls="alert-pop">🔔 알림 <span class="badge zero" id="alert-badge" hidden>0</span></button>
         <span class="gnb-user"><b>${USER.name}</b><br>${USER.role}</span>
+        <button type="button" class="gnb-btn" id="me-edit">회원정보 수정</button>
         <a class="gnb-btn" href="login.html" data-logout>로그아웃</a>
       </div>
-    </nav>`);
+    </nav>
+    <div class="pop" id="me-pop" hidden>
+      <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="me-title">
+        <div class="pop-head">
+          <div>
+            <span class="role">내 계정</span>
+            <h2 id="me-title">회원정보 수정</h2>
+            <p>이름 · 전화번호 · 비밀번호만 바꿀 수 있습니다.</p>
+          </div>
+          <button type="button" class="btn sm" data-close>닫기</button>
+        </div>
+        <form class="pop-body" id="me-form">
+          <label class="field">이름<input class="input" id="me-name" maxlength="50" required /></label>
+          <label class="field">전화번호<input class="input" id="me-phone" maxlength="20" placeholder="010-0000-0000" autocomplete="tel" /></label>
+          <label class="field">비밀번호<input class="input" id="me-pw" type="password" maxlength="72" placeholder="바꾸지 않으면 비워 두세요" autocomplete="new-password" /></label>
+          <label class="field">비밀번호 확인<input class="input" id="me-pw2" type="password" maxlength="72" autocomplete="new-password" /></label>
+          <div class="row end"><button type="button" class="btn" data-close>취소</button><button type="submit" class="btn primary">저장</button></div>
+        </form>
+      </div>
+    </div>`);
 
   const body = document.body;
   const btn = document.getElementById("menu-btn");
@@ -287,10 +307,69 @@ function renderShell(file, found) {
   document.querySelectorAll("[data-logout]").forEach((a) => a.addEventListener("click", () => {
     try { localStorage.removeItem("safety.auth"); } catch (e) { /* 무시 */ }
   }));
+  wireMeEdit();
   document.getElementById("gnb-alert").addEventListener("click", () => {
     if (document.getElementById("alert-pop").hidden) openAlerts(); else closeAlerts();
   });
   if (typeof mountModeChange === "function") mountModeChange();
+}
+
+// 회원 목록의 최동현 과장(이름 최동현, 직급 과장)을 로그인 전 초기값으로 쓴다.
+const ME_FALLBACK = { name: "최동현", phone: "" };
+
+function savedAuthUser() {
+  try { return JSON.parse(localStorage.getItem("safety.auth")).user; } catch (e) { return null; }
+}
+
+function fillMeForm(user) {
+  document.getElementById("me-name").value = (user && user.name) || ME_FALLBACK.name;
+  document.getElementById("me-phone").value = (user && user.phone) || ME_FALLBACK.phone;
+  document.getElementById("me-pw").value = "";
+  document.getElementById("me-pw2").value = "";
+}
+
+function wireMeEdit() {
+  const btn = document.getElementById("me-edit");
+  const pop = document.getElementById("me-pop");
+  const form = document.getElementById("me-form");
+  if (!btn || !pop || !form) return;
+  btn.addEventListener("click", async () => {
+    fillMeForm(savedAuthUser());
+    pop.hidden = false;
+    if (!authToken()) return;
+    try { fillMeForm(await alertFetch("/api/auth/me")); } catch (e) { /* 저장해 둔 값을 유지 */ }
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("me-name").value.trim();
+    const phone = document.getElementById("me-phone").value.trim();
+    const pw = document.getElementById("me-pw").value;
+    const pw2 = document.getElementById("me-pw2").value;
+    if (!name) { toast("이름을 입력하세요."); return; }
+    if (pw || pw2) {
+      if (pw !== pw2) { toast("비밀번호가 서로 다릅니다."); return; }
+      if (pw.length < 8) { toast("비밀번호는 8자 이상이어야 합니다."); return; }
+    }
+    if (!authToken()) { toast("로그인 후 저장할 수 있습니다."); return; }
+    const body = { name, phone: phone || null };
+    if (pw) body.password = pw;
+    try {
+      const user = await alertFetch("/api/auth/me", { method: "PATCH", body: JSON.stringify(body) });
+      try {
+        const auth = JSON.parse(localStorage.getItem("safety.auth"));
+        auth.user = user;
+        localStorage.setItem("safety.auth", JSON.stringify(auth));
+      } catch (err) { /* 다음 화면에서 다시 읽는다 */ }
+      const label = [user.name, user.position].filter(Boolean).join(" ");
+      document.querySelectorAll(".gnb-user b").forEach((el) => { el.textContent = label; });
+      document.dispatchEvent(new CustomEvent("profile-changed", { detail: user }));
+      try { localStorage.setItem("safety.profileChanged", JSON.stringify({ at: Date.now(), user })); } catch (err2) { /* 다른 창은 다음 새로 고침 때 반영 */ }
+      pop.hidden = true;
+      toast("회원정보를 저장했습니다.");
+    } catch (err) {
+      toast(err.message === "login" ? "로그인이 필요합니다." : (err.message || "저장하지 못했습니다."));
+    }
+  });
 }
 
 function renderHead(file, found) {

@@ -25,7 +25,7 @@
     <main class="main">
       <section class="cell searchbar">
         <div class="searchbar-row">
-          <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디로 찾기" />
+          <input class="input" id="q" style="width:240px" placeholder="이름 · 아이디 · 휴대폰으로 찾기" />
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <b id="n-shown"></b>
           <span class="grow"></span>
@@ -51,7 +51,7 @@
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
-          <thead><tr><th>이름</th><th>아이디</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>아이디</th><th>휴대폰</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
@@ -136,7 +136,7 @@
       const q = $("q").value.trim().toLowerCase(), role = pickedChip("f-role"), st = pickedChip("f-status");
       searchSummary([role && LABEL.role[role][1], st && LABEL.userStatus[st][1]].filter(Boolean).join(" · "));
       const rows = members.filter((u) => (!role || u.role === role) && (!st || u.status === st)
-        && (!q || (u.name + " " + u.login_id).toLowerCase().includes(q)));
+        && (!q || (u.name + " " + u.login_id + " " + (u.phone || "")).toLowerCase().includes(q)));
       $("n-shown").textContent = `${rows.length}명`;
       $("rows").innerHTML = rows.length ? rows.map((u) => {
         const self = me && me.id === u.id;
@@ -144,10 +144,11 @@
         const del = self ? '<button class="btn sm" disabled title="본인 계정은 삭제할 수 없습니다">삭제</button>' : '<button class="btn sm" data-del>삭제</button>';
         return `<tr data-id="${u.id}">
           <td><span class="av">${esc(u.name[0])}</span><b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
+          <td class="num">${esc(u.phone || "-")}</td>
           <td>${badge("role", u.role)}</td><td>${esc(orgs[u.org_id] || "-")}</td><td>${lastLogin}</td>
           <td>${badge("userStatus", u.status)}</td>
           <td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html?id=${u.id}">수정</a>${del}</div></td></tr>`;
-      }).join("") : '<tr><td colspan="7" class="muted" style="text-align:center; padding:28px">해당하는 회원이 없습니다</td></tr>';
+      }).join("") : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 회원이 없습니다</td></tr>';
     }
 
     $("rows").addEventListener("click", (e) => {
@@ -195,6 +196,20 @@
       render();
     });
     $("q").addEventListener("input", render);
+
+    function applyProfile(user) {
+      if (!user || !users.length) return;
+      const i = users.findIndex((u) => u.id === user.id);
+      if (i < 0) return;
+      users[i] = { ...users[i], name: user.name, phone: user.phone };
+      if (me && me.id === user.id) { me.name = user.name; me.phone = user.phone; }
+      render();
+    }
+    document.addEventListener("profile-changed", (e) => applyProfile(e.detail));
+    window.addEventListener("storage", (e) => {
+      if (e.key !== "safety.profileChanged" || !e.newValue) return;
+      try { applyProfile(JSON.parse(e.newValue).user); } catch (err) { /* 다른 창 알림만 무시 */ }
+    });
 
     load().catch((err) => toast(err.message));
   </script>

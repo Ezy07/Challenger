@@ -518,6 +518,7 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
 
 /* ------------------------------------------------ 팝업 · 알림 띠 */
 .pop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: rgba(6, 8, 12, 0.72); }
+#me-pop { z-index: 47; }
 .pop[hidden] { display: none; }
 .pop-card { width: min(480px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); padding: 18px; }
 .pop-body { display: grid; gap: 10px; margin-top: 14px; }

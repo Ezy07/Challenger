@@ -190,6 +190,19 @@
       } catch (err) { toast(err.message); }
     });
 
+    function applyProfile(changed) {
+      if (!changed) return;
+      const i = users.findIndex((u) => u.id === changed.id);
+      if (i >= 0) users[i] = { ...users[i], name: changed.name, phone: changed.phone };
+      if (me && me.id === changed.id) { me.name = changed.name; me.phone = changed.phone; }
+      if (user && user.id === changed.id) show(users[i] || { ...user, name: changed.name, phone: changed.phone });
+    }
+    document.addEventListener("profile-changed", (e) => applyProfile(e.detail));
+    window.addEventListener("storage", (e) => {
+      if (e.key !== "safety.profileChanged" || !e.newValue) return;
+      try { applyProfile(JSON.parse(e.newValue).user); } catch (err) { /* 다른 창 알림만 무시 */ }
+    });
+
     load(Number(new URLSearchParams(location.search).get("id"))).catch((err) => toast(err.message));
   </script>
 </body>

@@ -62,6 +62,14 @@ class LoginIn(BaseModel):
     password: str
 
 
+class ProfileUpdate(BaseModel):
+    """로그인한 사람이 자기 이름 · 전화번호 · 비밀번호만 바꾼다. 비밀번호를 비우면 그대로 둔다."""
+
+    name: str = Field(min_length=1, max_length=50)
+    phone: str | None = Field(default=None, max_length=20)
+    password: str | None = Field(default=None, min_length=8, max_length=72)
+
+
 class UserOut(Out):
     id: int
     login_id: str

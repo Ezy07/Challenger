@@ -150,6 +150,29 @@ def test_pending_status_not_changed_by_patch(client, admin):
     assert client.patch(f"/api/users/{uid}", json={"status": "ACTIVE"}, headers=admin).status_code == 409
 
 
+def test_me_updates_own_name_phone_and_password(client, manager):
+    me = client.get("/api/auth/me", headers=manager).json()
+    res = client.patch("/api/auth/me", json={
+        "name": "김안전", "phone": "010-1234-5678", "password": "new-pass-1234",
+    }, headers=manager)
+    assert res.status_code == 200
+    body = res.json()
+    assert body["id"] == me["id"]
+    assert body["name"] == "김안전"
+    assert body["phone"] == "010-1234-5678"
+    assert body["role"] == me["role"]
+    assert "password" not in body and "password_hash" not in body
+    login(client, me["login_id"], "new-pass-1234")
+    assert client.post("/api/auth/login", json={"login_id": me["login_id"], "password": "manager-pass-1234"}).status_code == 401
+
+
+def test_me_keeps_password_when_omitted(client, manager):
+    res = client.patch("/api/auth/me", json={"name": "김안전", "phone": "  "}, headers=manager)
+    assert res.status_code == 200
+    assert res.json()["phone"] is None
+    login(client, "manager.test", "manager-pass-1234")
+
+
 def test_demo_users_can_log_in(client):
     from .conftest import DEMO_PASSWORD
     headers = login(client, "oh.sy", DEMO_PASSWORD)
