@@ -23,16 +23,18 @@ from .config import settings
 log = logging.getLogger("uvicorn.error")
 
 IDLE_SECONDS = 15
+PEOPLE_FRESH_SEC = 2.0  # 작업자 수 · 착용 표시: 이만큼 안에 본 사람을 지금 있는 것으로 센다
 ROI_W, ROI_H = 1000, 600  # ROI 그리기 화면 좌표 (영상 크기와 상관없이 가로 0~1000, 세로 0~600)
 # frontend/roi-store.js 의 ROI_KINDS 와 같은 색 (RGB)
 ROI_COLORS = {"위험구역": (255, 93, 93), "통제구역": (255, 154, 31), "관리구역": (108, 182, 255), "안전구역": (61, 220, 132)}
 ZONE_ORDER = tuple(ROI_COLORS)  # 구역이 겹치면 앞쪽 종류로 본다 (위험 > 통제 > 관리 > 안전). 같은 종류끼리는 번호 순
 BOX_COLOR = (255, 214, 10)  # ROI 밖에서 잡힌 물체
-NEAR_COLOR = (255, 59, 48)  # 장비 근접 (작업자 ↔ 장비 선)
+NEAR_COLOR = (255, 59, 48)  # 장비 근접 (작업자 ↔ 장비 선) · 미착용 작업자
+PPE_PARTS = ("helmet", "vest")  # PPE 모델에서 쓰는 클래스 (사람은 기본 모델 것을 쓴다)
 MASK_COLOR = (192, 132, 252)  # 세그 모델 윤곽 (굴삭기 등)
 TEXT_DARK = (12, 16, 22)
 NAMES_KO = {"person": "사람", "car": "차량", "truck": "트럭", "bus": "버스", "motorcycle": "오토바이", "bicycle": "자전거",
-            "excavator": "굴삭기"}
+            "excavator": "굴삭기", "helmet": "안전모", "vest": "조끼"}
 FONTS = ("C:/Windows/Fonts/malgunbd.ttf", "C:/Windows/Fonts/malgun.ttf",
          "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf", "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
          "/System/Library/Fonts/AppleSDGothicNeo.ttc")
@@ -132,11 +134,13 @@ def _open_model(path: str):
 
 class Detector:
     """YOLO 모델 하나를 모든 카메라가 같이 쓴다 (탐지 스레드 하나에서만 부름).
-    YOLO_SEG_MODEL 을 주면 세그 모델을 하나 더 돌려 윤곽(mask)까지 받는다 (시험용. 그만큼 느려짐)."""
+    YOLO_SEG_MODEL 을 주면 세그 모델을 하나 더 돌려 윤곽(mask)까지 받는다 (시험용. 그만큼 느려짐).
+    YOLO_PPE_MODEL 을 주면 PPE 모델을 하나 더 돌려 안전모 · 조끼 박스를 더한다 (그만큼 느려짐)."""
 
     def __init__(self):
         self._model = None
         self._seg = None
+        self._ppe = None
         self.error: str | None = None
         self._lock = threading.Lock()
 
@@ -164,6 +168,16 @@ class Detector:
                     self._seg = _open_model(settings.yolo_seg_model)
                 except Exception:  # 세그 모델은 덤. 못 열어도 기본 탐지는 그대로
                     log.exception("세그 모델(%s)을 열지 못했습니다", settings.yolo_seg_model)
+            if settings.yolo_ppe_model:
+                try:
+                    self._ppe = _open_model(settings.yolo_ppe_model)
+                except Exception:  # 못 열면 미착용 판정만 안 함
+                    log.exception("PPE 모델(%s)을 열지 못했습니다", settings.yolo_ppe_model)
+
+    @property
+    def ppe_ready(self) -> bool:
+        """안전모 · 조끼를 잡을 수 있는지. 못 잡는데 판정하면 모든 작업자가 미착용이 되므로 이걸 꼭 확인한다"""
+        return self._ppe is not None
 
     @property
     def ready(self) -> bool:
@@ -190,7 +204,15 @@ class Detector:
             segs = self._run(self._seg, frame, settings.yolo_conf if floor is None else conf)
             # 기본 모델이 같은 물체를 트럭 등으로 또 잡은 박스는 뺀다 (많이 겹치면 같은 물체로 봄)
             boxes = [b for b in boxes if b.name == "person" or not any(_iou(b, s) > 0.5 for s in segs)] + segs
+        if self._ppe is not None:
+            low = min(conf, settings.ppe_part_conf)
+            boxes += [b for b in self._run(self._ppe, frame, low) if b.name in PPE_PARTS]
         return boxes
+
+
+def keep_box(b: Box) -> bool:
+    """화면 · 판정에 넘길 박스인지. 안전모 · 조끼는 낮은 confidence 도 착용 증거로 받는다"""
+    return b.conf >= keep_conf() or (b.name in PPE_PARTS and b.conf >= settings.ppe_part_conf)
 
 
 def _iou(a: Box, b: Box) -> float:
@@ -316,6 +338,7 @@ class Feed:
         self.latest: Snapshot | None = None
         self.detected_seq = -1  # 탐지 스레드가 마지막으로 본 프레임
         self.tracker = make_tracker() if detector.ready else None
+        self._people: dict[int, float] = {}  # 추적 번호 → 마지막으로 본 시각 (작업자 수를 프레임마다 흔들리지 않게)
         self.viewers = 0
         self.idle_since = time.monotonic()
         self.stopped = False
@@ -355,10 +378,26 @@ class Feed:
             self.latest = Snapshot((prev.seq + 1) if prev else 0, frame, video_time, prev.boxes if prev else [])
 
     def set_boxes(self, seq: int, boxes: list[Box]) -> None:
+        now = time.monotonic()
         with self._lock:
             self.detected_seq = seq
             if self.latest:  # 그 사이 새 프레임이 왔어도 박스는 최신 결과로
                 self.latest.boxes = boxes
+            for b in boxes:
+                if b.name == "person" and b.track_id is not None:
+                    self._people[b.track_id] = now
+            for tid in [t for t, at in self._people.items() if now - at > PEOPLE_FRESH_SEC]:
+                del self._people[tid]
+
+    def workers(self, now: float | None = None) -> int:
+        """지금 작업자 수: PEOPLE_FRESH_SEC 안에 본 추적 번호 수 + 최신 프레임에서 번호 없는 사람
+        (잠깐 놓친 프레임에 0 명으로 흔들리지 않게. 추적을 끄면 최신 프레임의 사람 수)"""
+        now = time.monotonic() if now is None else now
+        with self._lock:
+            tracked = sum(now - at <= PEOPLE_FRESH_SEC for at in self._people.values())
+            snap = self.latest
+        loose = sum(b.name == "person" and b.track_id is None for b in snap.boxes) if snap else 0
+        return tracked + loose
 
     def _run(self) -> None:
         import cv2
@@ -439,7 +478,7 @@ def _detect_loop() -> None:
                 boxes = detector.detect(snap.frame, tracker.low if tracker else None)
                 if tracker:
                     # 낮은 박스는 추적을 잇는 데만 쓰고, 화면 · 판정에는 예전처럼 기준 이상만 넘긴다
-                    boxes = [b for b in tracker.update(boxes, snap.frame) if b.conf >= keep_conf()]
+                    boxes = [b for b in tracker.update(boxes, snap.frame) if keep_box(b)]
                 failed = False
             except Exception:
                 if not failed:  # 같은 오류로 로그가 넘치지 않게 한 번만
@@ -472,6 +511,12 @@ def open_feed(camera_id: int, source: str, is_file: bool, camera_name: str) -> F
             _detect_thread = threading.Thread(target=_detect_loop, daemon=True, name="yolo-detect")
             _detect_thread.start()
     return feed
+
+
+def live_feeds() -> list[Feed]:
+    """지금 읽고 있는(탐지 중인) 카메라 영상들"""
+    with _feeds_lock:
+        return [f for f in _feeds.values() if not f.stopped]
 
 
 def shutdown() -> None:
@@ -529,9 +574,10 @@ def _paste(img, sprite, x: int, y: int) -> None:
 
 
 def render(snap: Snapshot, rois: list[tuple[int, str, list, str]], show_roi: bool, show_boxes: bool = True,
-           links: list[tuple[Box, Box, float]] = ()) -> bytes:
+           links: list[tuple[Box, Box, float]] = (), marks: list[tuple[Box, str]] = ()) -> bytes:
     """프레임 하나에 ROI · 탐지 박스를 그려 JPEG 로. 둘 다 끄면 원본 프레임 (탐지 · 판정은 그대로)
-    links 는 장비 근접 스냅샷용 [(작업자, 장비, 거리 m)]: 작업자 발밑에서 장비까지 붉은 선과 거리를 그린다"""
+    links 는 장비 근접 스냅샷용 [(작업자, 장비, 거리 m)]: 작업자 발밑에서 장비까지 붉은 선과 거리를 그린다
+    marks 는 미착용 스냅샷용 [(작업자, 글)]: 그 작업자를 붉은 박스로 두르고 아래에 글을 붙인다"""
     import cv2
     import numpy as np
 
@@ -582,6 +628,11 @@ def render(snap: Snapshot, rois: list[tuple[int, str, list, str]], show_roi: boo
         cv2.line(img, foot, near, _bgr(NEAR_COLOR), line * 2, cv2.LINE_AA)
         sprite = _text_sprite(f"장비 근접 {meters:.1f}m", max(12, h // 36), (255, 255, 255), NEAR_COLOR)
         _paste(img, sprite, (foot[0] + near[0]) // 2 - sprite[0].shape[1] // 2, (foot[1] + near[1]) // 2)
+
+    for box, text in marks:
+        cv2.rectangle(img, (box.x1, box.y1), (box.x2, box.y2), _bgr(NEAR_COLOR), line * 2, cv2.LINE_AA)
+        sprite = _text_sprite(text, max(12, h // 36), (255, 255, 255), NEAR_COLOR)
+        _paste(img, sprite, box.x1, box.y2 + line)
 
     ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, settings.stream_jpeg_quality])
     return buf.tobytes() if ok else b""

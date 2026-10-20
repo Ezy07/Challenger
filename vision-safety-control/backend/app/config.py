@@ -56,5 +56,12 @@ class Settings(BaseSettings):
     proximity_m: float = 3.0
     proximity_hold_sec: float = 1.0
 
+    # 안전모 · 조끼 미착용(NO_HELMET · NO_VEST). tools/train/ppe_finetune.ipynb 로 학습한 모델(person · helmet · vest)을
+    # 하나 더 돌려 안전모 · 조끼 박스만 더한다. 비우면 미착용 판정을 안 함
+    yolo_ppe_model: str = ""        # 예: ppe_openvino_model
+    ppe_part_conf: float = 0.30     # 안전모 · 조끼 박스는 이만큼만 넘어도 착용으로 본다 (놓치면 미착용 오탐이라 낮게)
+    ppe_window_sec: float = 3.0     # 작업자마다 이만큼 지켜본 뒤 다수결로 판정
+    ppe_min_person_px: int = 100    # 키가 이보다 작게 보이는 작업자는 판정하지 않음 (현장 영상에서 이보다 작으면 안전모를 거의 못 찾음)
+
 
 settings = Settings()

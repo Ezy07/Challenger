@@ -2,12 +2,13 @@
 나머지 화면은 지금처럼 원본 영상 파일(/videos/...)을 그대로 튼다."""
 
 import asyncio
+import time
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from .. import vision
+from .. import ppe, vision
 from ..config import settings
 from ..deps import DB, CurrentUser, StreamUser
 from .cameras import get_camera
@@ -26,6 +27,35 @@ class StreamStatus(BaseModel):
 async def stream_status(_: CurrentUser):
     ok, reason = await asyncio.to_thread(vision.status)
     return StreamStatus(enabled=ok, reason=reason, model=settings.yolo_model if ok else None)
+
+
+class PpeCount(BaseModel):
+    checked: int  # 착용을 판정하는 작업자 (화면에서 충분히 크게 보이고 추적 중)
+    helmet: int   # 그중 안전모를 쓴 사람
+    vest: int     # 그중 조끼를 입은 사람
+
+
+class PeopleNow(BaseModel):
+    camera_id: int
+    workers: int              # 지금 화면의 작업자 수 (2초 안에 본 사람)
+    ppe: PpeCount | None      # PPE 모델 · 미착용 판정을 안 쓰면 None
+
+
+@router.get("/people", response_model=list[PeopleNow])
+def people_now(_: CurrentUser):
+    """지금 탐지 중인 카메라마다 작업자 수 · 안전모 · 조끼 착용 수 (관제화면 섹터 감지경보).
+    탐지 중이 아닌 카메라(아무도 안 보고 이벤트 감시도 안 함)는 빠진다."""
+    from ..zone_events import rules
+
+    worn = vision.detector.ppe_ready and any(r.active for c, r in rules.items() if c in ppe.CODES)
+    now = time.monotonic()
+    out = []
+    for feed in vision.live_feeds():
+        if feed.latest is None:
+            continue
+        out.append(PeopleNow(camera_id=feed.camera_id, workers=feed.workers(now),
+                             ppe=PpeCount(**ppe.summary(feed.camera_id, now)) if worn else None))
+    return out
 
 
 async def frames(feed: vision.Feed, camera_name: str, show_roi: bool, show_boxes: bool):

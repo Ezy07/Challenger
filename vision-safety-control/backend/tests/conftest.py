@@ -3,6 +3,7 @@ import os
 # 테스트는 backend/.env 값과 상관없이 항상 같은 설정으로 돈다 (환경 변수가 .env 보다 우선)
 os.environ["JWT_SECRET"] = "test-jwt-secret-0123456789abcdef0123456789"
 os.environ["INGEST_API_KEY"] = "test-ingest-key"
+os.environ["YOLO_PPE_MODEL"] = ""  # 로컬 .env 에 PPE 모델을 켜 둬도 테스트는 끈 상태에서 시작
 
 from datetime import datetime
 

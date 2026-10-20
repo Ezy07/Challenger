@@ -35,7 +35,7 @@ def equipment_classes() -> set[str]:
     return {c.strip() for c in settings.proximity_classes.split(",") if c.strip()}
 
 
-def _inside_ratio(a: vision.Box, b: vision.Box) -> float:
+def inside_ratio(a: vision.Box, b: vision.Box) -> float:
     """a 박스 넓이 중 b 박스 안에 든 비율"""
     ix = max(0, min(a.x2, b.x2) - max(a.x1, b.x1))
     iy = max(0, min(a.y2, b.y2) - max(a.y1, b.y1))
@@ -49,7 +49,7 @@ def distance_m(person: vision.Box, equip: vision.Box) -> float | None:
     if ph <= 0 or eh <= 0:
         return None
     fx, fy = (person.x1 + person.x2) / 2, person.y2
-    if _inside_ratio(person, equip) >= ONBOARD_INSIDE and fy < equip.y2 - ONBOARD_ABOVE * eh:
+    if inside_ratio(person, equip) >= ONBOARD_INSIDE and fy < equip.y2 - ONBOARD_ABOVE * eh:
         return None
     dx = max(equip.x1 - fx, 0.0, fx - equip.x2)
     dy = max(equip.y2 - GROUND_BAND * eh - fy, 0.0, fy - equip.y2)

@@ -11,7 +11,8 @@
   한 번 머무는 동안 이벤트는 한 번만 만든다 (나갔다 다시 들어오면 다시, 같은 경보는 쿨다운 동안 막힘).
 - 이벤트가 생기면 그 순간 화면(ROI · 탐지 박스를 그린 JPEG)을 storage/snapshots/날짜/ 에 저장한다.
 - 보는 사람이 없어도 판정할 구역이 있는 카메라는 계속 읽는다 (EVENT_WATCH=false 면 화면을 볼 때만 판정).
-- 장비 근접(proximity.py)도 여기서 같은 판정 기준 · 기록 스레드로 돌린다 (ROI 와 상관없이 탐지 중인 카메라 전체).
+- 장비 근접(proximity.py) · 안전모 · 조끼 미착용(ppe.py)도 여기서 같은 판정 기준 · 기록 스레드로 돌린다
+  (ROI 와 상관없이 탐지 중인 카메라 전체).
 """
 
 import logging
@@ -28,7 +29,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from . import proximity, vision
+from . import ppe, proximity, vision
 from .config import settings
 from .database import SessionLocal
 from .models import Camera, DetectionType, Roi
@@ -37,9 +38,13 @@ from .schemas import EventIn
 log = logging.getLogger("uvicorn.error")
 
 INTRUSION, DWELL = "ZONE_INTRUSION", "ZONE_DWELL"
-LIVE_CODES = (INTRUSION, DWELL, proximity.PROXIMITY)  # 서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시)
 GAP_SEC = 2.0
 RULE_REFRESH_SEC = 5
+
+
+def live_codes() -> tuple[str, ...]:
+    """서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시). 미착용은 PPE 모델을 줬을 때만"""
+    return (INTRUSION, DWELL, proximity.PROXIMITY) + (ppe.CODES if settings.yolo_ppe_model else ())
 
 
 @dataclass(frozen=True)
@@ -132,7 +137,7 @@ class Judge:
 def load_rules(db) -> dict[str, Rule]:
     from .routers.events import DEFAULT_RULE
 
-    types = db.scalars(select(DetectionType).where(DetectionType.code.in_(LIVE_CODES))
+    types = db.scalars(select(DetectionType).where(DetectionType.code.in_(live_codes()))
                        .options(selectinload(DetectionType.rule)))
     out = {}
     for t in types:
@@ -222,6 +227,11 @@ def on_detect(feed: vision.Feed, snap: vision.Snapshot) -> None:
         for trig in proximity.judge.observe(feed.camera_id, snap.boxes, near.min_conf, now):
             _submit(partial(proximity.record, SessionLocal, proximity.Job(trig, feed.camera_name, snap, rois)),
                     f"{feed.camera_name} 장비 근접")
+    worn = {code: r.min_conf for code in ppe.CODES if (r := rules.get(code)) and r.active}
+    if worn and vision.detector.ppe_ready:
+        for trig in ppe.judge.observe(feed.camera_id, snap.boxes, worn, now):
+            _submit(partial(ppe.record, SessionLocal, ppe.Job(trig, feed.camera_name, snap, rois)),
+                    f"{feed.camera_name} {ppe.LABEL[trig.code]}")
 
 
 def _submit(task: Callable[[], object], what: str) -> None:
