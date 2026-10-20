@@ -90,10 +90,8 @@ body.nav-open .gnb { left: calc(var(--drawer-w) + 12px); }
 .menu-btn span { display: block; width: 16px; height: 2px; border-radius: 2px; background: var(--ink); transition: transform .2s, opacity .2s; }
 .menu-btn:hover { border-color: rgba(255, 154, 31, 0.7); }
 .menu-btn:focus-visible, .dgroup-btn:focus-visible, .ditem:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
-body.nav-open .menu-btn { background: rgba(255, 154, 31, 0.14); border-color: rgba(255, 154, 31, 0.7); }
-body.nav-open .menu-btn span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-body.nav-open .menu-btn span:nth-child(2) { opacity: 0; }
-body.nav-open .menu-btn span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+/* 메뉴가 열린 동안 본문 상단의 접기(X 모양)는 숨긴다. 닫기는 전체 메뉴의 X만 쓴다 */
+body.nav-open .menu-btn { display: none; }
 .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 16px; letter-spacing: -0.03em; white-space: nowrap; }
 .brand i { width: 22px; height: 22px; border-radius: 7px; background: var(--orange); display: grid; place-items: center; color: #1a1206; font-style: normal; font-size: 13px; }
 body.nav-open .gnb > .brand { display: none; }
