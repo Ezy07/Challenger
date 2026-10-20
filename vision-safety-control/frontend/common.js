@@ -295,6 +295,7 @@ function renderHead(file, found) {
 
 /* ---------------------------------------------------------------- 실시간 알림 (헤더 🔔)
    어느 화면에서든 미처리 · 확인중 이벤트를 보여 준다. 30초마다 새로 불러오고, 새 미처리 이벤트가 오면 안내한다.
+   작업 허가 대기 중(holding)인 이벤트가 하나라도 있으면 허가될 때까지 🔔 배지가 계속 경보한다.
    api.js 가 없는 예시 화면에서도 쓰므로 로그인 토큰(safety.auth)을 직접 읽어 부른다. */
 const ALERT_POLL_MS = 30 * 1000;
 const ALERT_TONE = { HIGH: "stop", MEDIUM: "warn", LOW: "ok" };
@@ -392,14 +393,21 @@ function renderAlerts(items, newTotal, openTotal) {
   document.getElementById("alert-time").textContent = "마지막 확인 " + new Date().toTimeString().slice(0, 8);
   document.getElementById("feed").innerHTML = items.length ? items.map((e) => {
     const conf = e.confidence == null ? "" : ` · 신뢰도 ${Math.round(e.confidence * 100)}%`;
+    const hold = e.holding ? ' · <b class="hold-tag">작업 허가 대기 · 경보 지속</b>' : "";
     const ack = e.status === "NEW" && canHandle ? `<button type="button" class="mini-btn" data-ack="${e.id}">확인</button>` : "";
     const state = e.status === "NEW" ? '<span class="status stop">미처리</span>' : '<span class="status warn">확인중</span>';
-    return `<div class="alert ${ALERT_TONE[e.severity]}${e.status === "ACK" ? " seen" : ""}">
+    return `<div class="alert ${ALERT_TONE[e.severity]}${e.status === "ACK" && !e.holding ? " seen" : ""}${e.holding ? " holding" : ""}">
       <time>${e.detected_at.slice(11, 16)}</time>
-      <div><b>${escHtml(e.detection_label)} · ${escHtml(e.camera_name || "카메라 없음")}</b><small>EV-${e.id} · ${escHtml(e.work_zone_name || "구역 없음")}${conf}</small></div>
+      <div><b>${escHtml(e.detection_label)} · ${escHtml(e.camera_name || "카메라 없음")}</b><small>EV-${e.id} · ${escHtml(e.work_zone_name || "구역 없음")}${conf}${hold}</small></div>
       <div class="acts">${state}${ack}<a class="mini-btn primary" href="${canHandle ? "event-handle" : "event-detail"}.html?id=${e.id}">${canHandle ? "처리" : "상세"}</a></div>
     </div>`;
   }).join("") : '<p class="muted" style="padding:18px 4px">처리할 알림이 없습니다 👍</p>';
+
+  // 작업 허가 대기 중인 이벤트가 있으면 허가될 때까지 🔔 이 계속 경보한다
+  const holding = items.filter((e) => e.holding);
+  badge.classList.toggle("hold", holding.length > 0);
+  document.getElementById("gnb-alert").classList.toggle("holding", holding.length > 0);
+  document.getElementById("gnb-alert").title = holding.length ? `작업 허가 대기 ${holding.length}건 · 허가될 때까지 경보` : "실시간 알림";
 
   // 새로 들어온 미처리 이벤트가 있으면 안내
   const ids = new Set(fresh.map((e) => e.id));

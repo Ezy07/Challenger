@@ -4,7 +4,7 @@ from decimal import Decimal
 from sqlalchemy import select
 
 from app.config import settings
-from app.models import Camera, DetectionType, Event, EventSnapshot, Roi, RoiRule, Severity
+from app.models import Camera, DetectionType, Event, EventSnapshot, EventStatus, Roi, RoiRule, Severity
 
 
 def cam_id(db_session, name="CAM_0001"):
@@ -66,6 +66,45 @@ def test_ingest_threshold_and_cooldown(client, ingest, db_session):
 
     later = {**body, "confidence": 0.9, "detected_at": (t0 + timedelta(seconds=61)).isoformat()}
     assert client.post("/api/events", json=later, headers=ingest).json()["created"]
+
+
+def test_unpermitted_event_holds_alarm_instead_of_new(client, ingest, manager, db_session):
+    """해제 항목이 있는 유형(장비 근접)은 작업 허가 전이면 새 이벤트를 만들지 않고, 그 이벤트가 허가 대기(holding)로 남는다"""
+    cam, other = cam_id(db_session), cam_id(db_session, "CAM_0002")
+    with db_session() as db:  # 시연 데이터의 처리 전 장비 근접은 치워 둔다
+        for ev in db.scalars(select(Event).join(DetectionType).where(DetectionType.code == "EQUIPMENT_PROXIMITY")):
+            ev.status = EventStatus.DONE
+        db.commit()
+    t0 = datetime.now().replace(microsecond=0) - timedelta(minutes=10)
+    body = {"detection_type": "EQUIPMENT_PROXIMITY", "camera_id": cam, "confidence": 0.9}
+    post = lambda sec, **kw: client.post("/api/events", headers=ingest, json={
+        **body, **kw, "detected_at": (t0 + timedelta(seconds=sec)).isoformat()}).json()
+    holding = lambda ev_id: client.get(f"/api/events/{ev_id}", headers=manager).json()["holding"]
+
+    first = post(0)
+    assert first["created"] and holding(first["event_id"])
+    soon = post(5)  # 쿨다운(30초) 안
+    assert (soon["created"], soon["event_id"]) == (False, first["event_id"]) and "경보 지속" in soon["reason"]
+    later = post(100)  # 쿨다운이 지나도 허가 전이면 그대로
+    assert (later["created"], later["event_id"]) == (False, first["event_id"])
+    assert post(110, camera_id=other)["created"]  # 다른 카메라는 따로
+
+    rows = client.get("/api/events", params={"status": "NEW", "size": 200}, headers=manager).json()["items"]
+    assert next(r for r in rows if r["id"] == first["event_id"])["holding"]
+    helmet = client.post("/api/events", headers=ingest, json={"detection_type": "NO_HELMET", "camera_id": cam,
+                                                               "confidence": 0.9}).json()
+    assert not holding(helmet["event_id"])  # 해제 항목이 없는 유형은 허가 대기가 아님
+
+    # 항목을 모두 허가하면 (처리완료 전이라도) 경보가 풀리고 다음 탐지는 새 이벤트
+    url = f"/api/events/{first['event_id']}/actions"
+    checks = client.get(f"/api/events/{first['event_id']}", headers=manager).json()["check_items"]
+    client.post(url, json={"action_type": "PERMIT", "check_item_id": checks[0]["id"]}, headers=manager)
+    assert not post(200)["created"] and holding(first["event_id"])  # 하나만 허가 → 아직 허가 대기
+    for c in checks[1:]:
+        client.post(url, json={"action_type": "PERMIT", "check_item_id": c["id"]}, headers=manager)
+    assert not holding(first["event_id"])
+    again = post(300)
+    assert again["created"] and again["event_id"] != first["event_id"]
 
 
 def test_roi_rule_overrides_default(client, ingest, manager, db_session):

@@ -14,7 +14,7 @@ import json
 import logging
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from pathlib import Path
 
@@ -28,6 +28,7 @@ ROI_W, ROI_H = 1000, 600  # ROI 그리기 화면 좌표 (영상 크기와 상관
 ROI_COLORS = {"위험구역": (255, 93, 93), "통제구역": (255, 154, 31), "관리구역": (108, 182, 255), "안전구역": (61, 220, 132)}
 ZONE_ORDER = tuple(ROI_COLORS)  # 구역이 겹치면 앞쪽 종류로 본다 (위험 > 통제 > 관리 > 안전). 같은 종류끼리는 번호 순
 BOX_COLOR = (255, 214, 10)  # ROI 밖에서 잡힌 물체
+NEAR_COLOR = (255, 59, 48)  # 장비 근접 (작업자 ↔ 장비 선)
 MASK_COLOR = (192, 132, 252)  # 세그 모델 윤곽 (굴삭기 등)
 TEXT_DARK = (12, 16, 22)
 NAMES_KO = {"person": "사람", "car": "차량", "truck": "트럭", "bus": "버스", "motorcycle": "오토바이", "bicycle": "자전거",
@@ -112,6 +113,7 @@ class Box:
     name: str
     conf: float
     mask: list | None = field(default=None, compare=False)  # 세그 모델이면 윤곽 [[x, y], ...] (화면 좌표)
+    track_id: int | None = None  # 추적기가 붙인 번호 (같은 카메라 안에서 같은 물체면 프레임이 바뀌어도 같음)
 
 
 def _open_model(path: str):
@@ -180,12 +182,12 @@ class Detector:
                 for (x1, y1, x2, y2), p, c, m in zip(result.boxes.xyxy.tolist(), result.boxes.conf.tolist(),
                                                       result.boxes.cls.tolist(), masks)]
 
-    def detect(self, frame) -> list[Box]:
-        # 판정 기준(8-8)을 화면용 기준보다 낮게 잡았으면 그만큼 낮은 박스도 받아야 이벤트 판정을 할 수 있다
-        conf = min(settings.yolo_conf, min_conf) if min_conf is not None else settings.yolo_conf
+    def detect(self, frame, floor: float | None = None) -> list[Box]:
+        """floor 를 주면 그 confidence 까지 낮춰 받는다 (추적기가 낮은 박스로도 이어 붙이게)"""
+        conf = keep_conf() if floor is None else min(keep_conf(), floor)
         boxes = self._run(self._model, frame, conf)
         if self._seg is not None:
-            segs = self._run(self._seg, frame, settings.yolo_conf)
+            segs = self._run(self._seg, frame, settings.yolo_conf if floor is None else conf)
             # 기본 모델이 같은 물체를 트럭 등으로 또 잡은 박스는 뺀다 (많이 겹치면 같은 물체로 봄)
             boxes = [b for b in boxes if b.name == "person" or not any(_iou(b, s) > 0.5 for s in segs)] + segs
         return boxes
@@ -200,6 +202,86 @@ def _iou(a: Box, b: Box) -> float:
 
 detector = Detector()
 min_conf: float | None = None  # 이벤트 판정에 쓰는 가장 낮은 판정 기준 (zone_events 가 채움)
+
+
+def keep_conf() -> float:
+    """화면 · 판정에 넘기는 박스의 가장 낮은 confidence.
+    판정 기준(8-8)을 화면용 기준보다 낮게 잡았으면 그만큼 낮은 박스도 받아야 이벤트 판정을 할 수 있다"""
+    return min(settings.yolo_conf, min_conf) if min_conf is not None else settings.yolo_conf
+
+
+# ---------------------------------------------------------------- 추적 (ByteTrack · BoT-SORT)
+TRACKERS = ("bytetrack", "botsort")
+
+
+class _Dets:
+    """추적기에 넣는 탐지 묶음. ultralytics 의 Boxes 처럼 conf · cls · xywh · xyxy 와 [마스크] 를 갖춘다"""
+
+    def __init__(self, xyxy, conf, cls):
+        self.xyxy, self.conf, self.cls = xyxy, conf, cls
+
+    @property
+    def xywh(self):
+        import numpy as np
+
+        x1, y1, x2, y2 = self.xyxy.T
+        return np.stack([(x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1], axis=1)
+
+    def __len__(self) -> int:
+        return len(self.conf)
+
+    def __getitem__(self, idx) -> "_Dets":
+        return _Dets(self.xyxy[idx], self.conf[idx], self.cls[idx])
+
+
+@lru_cache(maxsize=4)
+def tracker_config(name: str):
+    """bytetrack · botsort 는 ultralytics 기본 설정, .yaml 이면 그 파일. 다른 추적기는 받지 않는다"""
+    from ultralytics.utils import YAML, IterableSimpleNamespace
+    from ultralytics.utils.checks import check_yaml
+
+    cfg = IterableSimpleNamespace(**YAML.load(check_yaml(name if name.endswith(".yaml") else f"{name}.yaml")))
+    if cfg.tracker_type not in TRACKERS:
+        raise ValueError(f"추적기는 {' · '.join(TRACKERS)} 만 쓸 수 있습니다 (받은 값: {cfg.tracker_type})")
+    return cfg
+
+
+class Tracker:
+    """카메라 하나의 추적기. 탐지 스레드에서만 부른다.
+    탐지 박스에 track_id 를 붙여 돌려준다 (막 생긴 물체는 다음 탐지에서 다시 잡혀야 번호가 붙음)."""
+
+    def __init__(self, name: str):
+        from ultralytics.trackers import BOTSORT, BYTETracker
+        from ultralytics.trackers.basetrack import BaseTrack
+
+        cfg = tracker_config(name)
+        self.low = float(cfg.track_low_thresh)  # 이 confidence 까지 받아야 ByteTrack 의 2단계 매칭(낮은 박스로 잇기)이 돈다
+        count = BaseTrack._count
+        self._tracker = (BOTSORT if cfg.tracker_type == "botsort" else BYTETracker)(cfg)
+        BaseTrack._count = count  # 새 추적기는 번호를 0 으로 되돌린다. 다른 카메라가 쓰던 번호와 겹치지 않게 이어 간다
+        self._names: dict[str, int] = {}
+
+    def update(self, boxes: list[Box], frame) -> list[Box]:
+        import numpy as np
+
+        if boxes:
+            dets = _Dets(np.array([[b.x1, b.y1, b.x2, b.y2] for b in boxes], np.float32),
+                         np.array([b.conf for b in boxes], np.float32),
+                         np.array([self._names.setdefault(b.name, len(self._names)) for b in boxes], np.float32))
+        else:
+            dets = _Dets(np.zeros((0, 4), np.float32), np.zeros(0, np.float32), np.zeros(0, np.float32))
+        ids = {int(row[-1]): int(row[4]) for row in self._tracker.update(dets, frame)}
+        return [replace(b, track_id=ids.get(i)) for i, b in enumerate(boxes)]
+
+
+def make_tracker() -> Tracker | None:
+    if not settings.tracker:
+        return None
+    try:
+        return Tracker(settings.tracker)
+    except Exception:  # 설정 파일 오류 등. 추적 없이 탐지만
+        log.exception("추적기(%s)를 만들지 못했습니다", settings.tracker)
+        return None
 
 
 def status() -> tuple[bool, str | None]:
@@ -233,6 +315,7 @@ class Feed:
         self._lock = threading.Lock()
         self.latest: Snapshot | None = None
         self.detected_seq = -1  # 탐지 스레드가 마지막으로 본 프레임
+        self.tracker = make_tracker() if detector.ready else None
         self.viewers = 0
         self.idle_since = time.monotonic()
         self.stopped = False
@@ -352,7 +435,11 @@ def _detect_loop() -> None:
             if snap is None or snap.seq == feed.detected_seq:
                 continue
             try:
-                boxes = detector.detect(snap.frame)
+                tracker = feed.tracker
+                boxes = detector.detect(snap.frame, tracker.low if tracker else None)
+                if tracker:
+                    # 낮은 박스는 추적을 잇는 데만 쓰고, 화면 · 판정에는 예전처럼 기준 이상만 넘긴다
+                    boxes = [b for b in tracker.update(boxes, snap.frame) if b.conf >= keep_conf()]
                 failed = False
             except Exception:
                 if not failed:  # 같은 오류로 로그가 넘치지 않게 한 번만
@@ -441,8 +528,10 @@ def _paste(img, sprite, x: int, y: int) -> None:
     area[:] = (rgb * alpha + area * (1 - alpha)).astype(area.dtype)
 
 
-def render(snap: Snapshot, rois: list[tuple[int, str, list, str]], show_roi: bool, show_boxes: bool = True) -> bytes:
-    """프레임 하나에 ROI · 탐지 박스를 그려 JPEG 로. 둘 다 끄면 원본 프레임 (탐지 · 판정은 그대로)"""
+def render(snap: Snapshot, rois: list[tuple[int, str, list, str]], show_roi: bool, show_boxes: bool = True,
+           links: list[tuple[Box, Box, float]] = ()) -> bytes:
+    """프레임 하나에 ROI · 탐지 박스를 그려 JPEG 로. 둘 다 끄면 원본 프레임 (탐지 · 판정은 그대로)
+    links 는 장비 근접 스냅샷용 [(작업자, 장비, 거리 m)]: 작업자 발밑에서 장비까지 붉은 선과 거리를 그린다"""
     import cv2
     import numpy as np
 
@@ -481,9 +570,18 @@ def render(snap: Snapshot, rois: list[tuple[int, str, list, str]], show_roi: boo
         zone = next(((kind, title) for _, kind, poly, title in polys if cv2.pointPolygonTest(poly, foot, False) >= 0), None)
         color = ROI_COLORS[zone[0]] if zone else BOX_COLOR
         cv2.rectangle(img, (b.x1, b.y1), (b.x2, b.y2), _bgr(color), line, cv2.LINE_AA)
-        label = f"{NAMES_KO.get(b.name, b.name)} {b.conf:.0%}" + (f" · {zone[1]}" if zone else "")
+        tid = f"#{b.track_id}" if b.track_id is not None else ""
+        label = f"{NAMES_KO.get(b.name, b.name)}{tid} {b.conf:.0%}" + (f" · {zone[1]}" if zone else "")
         sprite = _text_sprite(label, max(12, h // 40), TEXT_DARK, color)
         _paste(img, sprite, b.x1 - line // 2, b.y1 - sprite[0].shape[0])
+
+    for person, equip, meters in links:
+        foot = (int((person.x1 + person.x2) / 2), person.y2)
+        near = (int(min(max(foot[0], equip.x1), equip.x2)), int(min(max(foot[1], equip.y1), equip.y2)))
+        cv2.rectangle(img, (equip.x1, equip.y1), (equip.x2, equip.y2), _bgr(NEAR_COLOR), line * 2, cv2.LINE_AA)
+        cv2.line(img, foot, near, _bgr(NEAR_COLOR), line * 2, cv2.LINE_AA)
+        sprite = _text_sprite(f"장비 근접 {meters:.1f}m", max(12, h // 36), (255, 255, 255), NEAR_COLOR)
+        _paste(img, sprite, (foot[0] + near[0]) // 2 - sprite[0].shape[1] // 2, (foot[1] + near[1]) // 2)
 
     ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, settings.stream_jpeg_quality])
     return buf.tobytes() if ok else b""

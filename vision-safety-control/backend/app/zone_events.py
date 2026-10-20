@@ -11,6 +11,7 @@
   한 번 머무는 동안 이벤트는 한 번만 만든다 (나갔다 다시 들어오면 다시, 같은 경보는 쿨다운 동안 막힘).
 - 이벤트가 생기면 그 순간 화면(ROI · 탐지 박스를 그린 JPEG)을 storage/snapshots/날짜/ 에 저장한다.
 - 보는 사람이 없어도 판정할 구역이 있는 카메라는 계속 읽는다 (EVENT_WATCH=false 면 화면을 볼 때만 판정).
+- 장비 근접(proximity.py)도 여기서 같은 판정 기준 · 기록 스레드로 돌린다 (ROI 와 상관없이 탐지 중인 카메라 전체).
 """
 
 import logging
@@ -18,14 +19,16 @@ import queue
 import re
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import partial
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from . import vision
+from . import proximity, vision
 from .config import settings
 from .database import SessionLocal
 from .models import Camera, DetectionType, Roi
@@ -34,7 +37,7 @@ from .schemas import EventIn
 log = logging.getLogger("uvicorn.error")
 
 INTRUSION, DWELL = "ZONE_INTRUSION", "ZONE_DWELL"
-LIVE_CODES = (INTRUSION, DWELL)  # 서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시)
+LIVE_CODES = (INTRUSION, DWELL, proximity.PROXIMITY)  # 서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시)
 GAP_SEC = 2.0
 RULE_REFRESH_SEC = 5
 
@@ -158,7 +161,10 @@ def roi_id_for(db, camera_id: int, zone: dict) -> int:
 
 def save_snapshot(snap: vision.Snapshot, rois: list, camera_name: str, code: str, at: datetime) -> str | None:
     """그 순간 화면(ROI · 탐지 박스)을 JPEG 로 저장하고 "snapshots/..." 경로를 돌려준다."""
-    jpeg = vision.render(snap, rois, True)
+    return write_snapshot(vision.render(snap, rois, True), camera_name, code, at)
+
+
+def write_snapshot(jpeg: bytes, camera_name: str, code: str, at: datetime) -> str | None:
     if not jpeg:
         return None
     safe = re.sub(r"[^\w.-]", "_", camera_name)
@@ -196,7 +202,7 @@ def record(Session, job: Job):
 # ---------------------------------------------------------------- 스레드
 judge = Judge()
 rules: dict[str, Rule] = {}
-_jobs: queue.Queue[Job] = queue.Queue(maxsize=100)
+_jobs: queue.Queue[Callable[[], object]] = queue.Queue(maxsize=100)  # 기록 스레드가 차례로 부른다
 _started = False
 
 
@@ -205,23 +211,34 @@ def on_detect(feed: vision.Feed, snap: vision.Snapshot) -> None:
     if not rules:
         return
     zones = vision.zones_at(vision.roi_rows(), feed.camera_name, snap.video_time)
+    rois = [(z["no"], z["kind"], z["points"], vision.zone_title(z)) for z in zones]
     height, width = snap.frame.shape[:2]
-    for trig in judge.observe(feed.camera_id, zones, snap.boxes, width, height, rules, time.monotonic()):
-        rois = [(z["no"], z["kind"], z["points"], vision.zone_title(z)) for z in zones]
-        try:
-            _jobs.put_nowait(Job(trig, feed.camera_name, snap, rois))
-        except queue.Full:
-            log.warning("이벤트 기록이 밀려 %s %s번 구역 이벤트를 버렸습니다", feed.camera_name, trig.zone["no"])
+    now = time.monotonic()
+    for trig in judge.observe(feed.camera_id, zones, snap.boxes, width, height, rules, now):
+        _submit(partial(record, SessionLocal, Job(trig, feed.camera_name, snap, rois)),
+                f"{feed.camera_name} {trig.zone['no']}번 구역")
+    near = rules.get(proximity.PROXIMITY)
+    if near and near.active:
+        for trig in proximity.judge.observe(feed.camera_id, snap.boxes, near.min_conf, now):
+            _submit(partial(proximity.record, SessionLocal, proximity.Job(trig, feed.camera_name, snap, rois)),
+                    f"{feed.camera_name} 장비 근접")
+
+
+def _submit(task: Callable[[], object], what: str) -> None:
+    try:
+        _jobs.put_nowait(task)
+    except queue.Full:
+        log.warning("이벤트 기록이 밀려 %s 이벤트를 버렸습니다", what)
 
 
 def _record_loop() -> None:
     while not vision.stopping():
         try:
-            job = _jobs.get(timeout=1)
+            task = _jobs.get(timeout=1)
         except queue.Empty:
             continue
         try:
-            record(SessionLocal, job)
+            task()
         except HTTPException as exc:  # 그 사이 카메라가 지워진 경우 등
             log.warning("이벤트를 만들지 못했습니다: %s", exc.detail)
         except Exception:

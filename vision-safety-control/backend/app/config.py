@@ -48,5 +48,13 @@ class Settings(BaseSettings):
     stream_jpeg_quality: int = 80
     event_watch: bool = True        # 보는 사람이 없어도 ROI 를 판정할 카메라는 계속 탐지해 이벤트를 남김 (false 면 화면을 볼 때만)
 
+    # 객체 추적 (카메라마다 따로). bytetrack | botsort | 직접 고친 설정 파일(.yaml) 경로. 비우면 추적 · 장비 근접 판정을 안 함
+    # botsort 는 카메라 흔들림 보정(GMC)이 있어 TC 카메라처럼 움직이는 화면에 낫지만 CPU 를 더 씀
+    tracker: str = "bytetrack"
+    # 장비 근접(EQUIPMENT_PROXIMITY): 작업자 발밑이 장비에서 proximity_m 미터 안에 proximity_hold_sec 초 넘게 있으면 경보
+    proximity_classes: str = "truck,excavator"  # 장비로 볼 YOLO 클래스 (쉼표로 구분)
+    proximity_m: float = 3.0
+    proximity_hold_sec: float = 1.0
+
 
 settings = Settings()

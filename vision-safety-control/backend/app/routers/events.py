@@ -37,6 +37,7 @@ from ..schemas import (
     EventIn,
     EventIngestOut,
     EventPage,
+    EventRow,
 )
 
 router = APIRouter(prefix="/api/events", tags=["이벤트"])
@@ -53,6 +54,8 @@ SEVERITY_KO = {Severity.HIGH: "높음", Severity.MEDIUM: "중간", Severity.LOW:
 def create_event(db: DB, body: EventIn, snapshot: Callable[[], str | None] | None = None, *, cooldown_sec: int | None = None) -> EventIngestOut:
     """규칙(ROI별 덮어쓰기 → 판정 기준 화면의 기본값)을 적용하고, 통과하면 이벤트를 만든다.
     외부 탐지 프로그램(POST /api/events)과 서버 안의 YOLO 판정(zone_events)이 같이 쓴다.
+    해제 항목(작업 허가)이 있는 유형은 같은 카메라 · ROI 에 아직 허가가 안 끝난 이벤트가 있으면 새로 만들지 않는다
+    (쿨다운과 상관없이). 그 이벤트의 경보는 허가될 때까지 화면에 계속 떠 있다 (EventRow.holding).
     snapshot 은 규칙을 통과했을 때만 불러서 스냅샷 파일을 만들고 그 경로("snapshots/...")를 받는다.
     cooldown_sec 를 주면 판정 기준의 쿨다운 대신 그 초만 같은 경보를 건너뛴다."""
     dtype = db.scalar(select(DetectionType).where(DetectionType.code == body.detection_type))
@@ -83,6 +86,10 @@ def create_event(db: DB, body: EventIn, snapshot: Callable[[], str | None] | Non
     detected_at = body.detected_at or now
     if detected_at > now + FUTURE_SLACK:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "감지 시각이 서버 시각보다 미래입니다. AI 프로그램 PC 시계를 확인하세요.")
+    held = open_hold(db, dtype, body)
+    if held:
+        return EventIngestOut(created=False, event_id=held.id, reason=f"작업 허가 전 (EV-{held.id} 경보 지속 중)")
+
     cool = rule.cooldown_sec if cooldown_sec is None else cooldown_sec
     recent = None
     if cool > 0:
@@ -113,6 +120,41 @@ def create_event(db: DB, body: EventIn, snapshot: Callable[[], str | None] | Non
     db.add(event)
     db.commit()
     return EventIngestOut(created=True, event_id=event.id)
+
+
+def open_hold(db: DB, dtype: DetectionType, body: EventIn) -> Event | None:
+    """같은 카메라 · ROI 의 같은 유형 중 아직 작업 허가가 안 끝난 이벤트 (해제 항목이 있는 유형만).
+    처리완료 · 오탐이거나 해제 항목을 모두 허가했으면 끝난 것으로 본다.
+    카메라가 없는 경보(TC 후크 겹침 등)는 같은 자리인지 알 수 없어 따로 둔다."""
+    if body.camera_id is None or not dtype.check_items:
+        return None
+    rows = db.scalars(
+        select(Event).where(
+            Event.detection_type_id == dtype.id,
+            Event.camera_id == body.camera_id,
+            Event.roi_id.is_not_distinct_from(body.roi_id),
+            Event.status.not_in(CLOSED),
+        ).options(selectinload(Event.actions)).order_by(Event.id.desc())
+    )
+    return next((e for e in rows if holding(e)), None)
+
+
+def holding(event: Event) -> bool:
+    """작업 허가 대기 중인지: 처리 전이고, 해제 항목이 있는데 아직 다 허가하지 않았다"""
+    need = {i.id for i in event.detection_type.check_items}
+    return event.status not in CLOSED and bool(need) and not need <= permitted_items(event)
+
+
+def mark_holding(db: DB, rows: list[EventRow]) -> list[EventRow]:
+    """목록 줄에 holding 을 채운다 (처리 전인 줄만 한 번에 읽어서)"""
+    ids = [r.id for r in rows if r.status not in CLOSED]
+    if ids:
+        events = db.scalars(select(Event).where(Event.id.in_(ids)).options(
+            selectinload(Event.actions), selectinload(Event.detection_type).selectinload(DetectionType.check_items)))
+        held = {e.id for e in events if holding(e)}
+        for r in rows:
+            r.holding = r.id in held
+    return rows
 
 
 @router.post("", response_model=EventIngestOut, dependencies=[Depends(ingest_key)])
@@ -201,7 +243,7 @@ def list_events(
     q = filtered(f)
     total = db.scalar(select(func.count()).select_from(q.order_by(None).subquery()))
     rows = db.execute(q.limit(size).offset((page - 1) * size)).all()
-    return EventPage(total=total, page=page, size=size, items=[to_row(*r) for r in rows])
+    return EventPage(total=total, page=page, size=size, items=mark_holding(db, [to_row(*r) for r in rows]))
 
 
 ExportFormat = Literal["csv", "xlsx", "zip"]
@@ -344,6 +386,7 @@ def to_detail(event: Event) -> EventDetail:
         event.detection_type.code,
         event.detection_type.label,
     )
+    row.holding = holding(event)
     done = permitted_items(event)
     return EventDetail(
         **row.model_dump(),

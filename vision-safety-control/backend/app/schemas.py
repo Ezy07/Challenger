@@ -255,7 +255,7 @@ class EventIn(BaseModel):
 class EventIngestOut(BaseModel):
     created: bool
     event_id: int | None = None
-    reason: str | None = None  # 만들지 않은 이유 (기준 미달 · 쿨다운)
+    reason: str | None = None  # 만들지 않은 이유 (기준 미달 · 쿨다운 · 허가 전이면 그 이벤트 번호도 event_id 로)
 
 
 class EventRow(BaseModel):
@@ -270,6 +270,7 @@ class EventRow(BaseModel):
     severity: Severity
     confidence: float | None
     status: EventStatus
+    holding: bool = False  # 작업 허가 대기 중 (해제 항목이 남음). 화면은 이 동안 경보를 계속 띄운다 (목록 · 상세만 채움)
 
 
 class EventPage(BaseModel):

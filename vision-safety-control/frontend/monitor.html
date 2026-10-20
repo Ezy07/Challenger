@@ -732,6 +732,15 @@
       background: rgba(230, 30, 30, 0.6); animation: ev-flash 0.6s ease-in-out 3 both;
     }
     @keyframes ev-flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    /* 작업 허가 대기 이벤트가 걸린 칸은 허가될 때까지 계속 깜빡인다 */
+    .alerts a.item.ev-hold:not(.ev-flash)::after, .zone .tc-card.ev-hold:not(.ev-flash)::after {
+      content: ""; position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+      background: rgba(230, 30, 30, 0.6); animation: ev-flash 1.2s ease-in-out infinite;
+    }
+    .cam.ev-hold:not(.ev-flash)::after {
+      content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+      background: rgba(230, 30, 30, 0.45); animation: ev-flash 1.2s ease-in-out infinite;
+    }
     .zone button.tc-card:has([data-tc-status].ok)::before { content: none; display: none; animation: none; }
     .zone button.tc-card:has([data-tc-status].stop) > * { position: relative; z-index: 1; }
     .permit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--red); }
@@ -1567,6 +1576,7 @@
         let text = note + " · " + TC_PCT[level] + "%";
         const live = liveTc[i]; // 이 호기 TC CAM 의 미처리 이벤트가 후크 경보만큼 심하면 그것을 보여 준다
         card.dataset.eventId = "";
+        card.classList.toggle("ev-hold", !!(live && live.hold));
         if (live && LEVEL_RANK[live.level] >= LEVEL_RANK[level]) {
           level = live.level;
           text = live.text;
@@ -1866,6 +1876,7 @@
     // ---------------- 오른쪽 패널 ↔ 이벤트 연동
     // 로그인했으면 미처리 · 확인중 이벤트를 5초마다 받아, 섹터 감지경보(카메라별)와 TC 카드(TC CAM 칸 번호별)에 붙인다.
     // 높음이 하나라도 있으면 작업중지, 그 밖은 현장점검. 처음 보는 이벤트가 들어온 칸은 빨갛게 세 번 깜빡인다.
+    // 작업 허가 대기 중(holding)인 이벤트가 걸린 칸은 허가될 때까지 계속 깜빡인다 (그동안 같은 경보는 새 이벤트를 만들지 않음).
     // 로그인 전이거나 서버에 닿지 않으면 예시 화면을 그대로 둔다
     const LIVE_POLL_MS = 5000;
     let liveCams = null, liveSeen = null;
@@ -1882,12 +1893,13 @@
     function eventText(rows) {
       const top = rows[0];
       return top.detection_label + (top.confidence != null ? " · " + Math.round(top.confidence * 100) + "%" : "")
+        + (rows.some((r) => r.holding) ? " · 허가 대기" : "")
         + (rows.length > 1 ? " 외 " + (rows.length - 1) + "건" : "");
     }
     function sectorItem(c, rows) {
       const level = levelOf(rows);
       const desc = rows.length ? eventText(rows) : (c.work_zone_name || c.location_desc || "현장") + " · 이상 없음";
-      return '<a class="item" data-cam="' + c.id + '" data-event="' + (rows[0] ? rows[0].id : "") + '" href="' + (rows.length ? "event-detail.html?id=" + rows[0].id : "#") + '">'
+      return '<a class="item' + (rows.some((r) => r.holding) ? " ev-hold" : "") + '" data-cam="' + c.id + '" data-event="' + (rows[0] ? rows[0].id : "") + '" href="' + (rows.length ? "event-detail.html?id=" + rows[0].id : "#") + '">'
         + '<div class="item-top"><b>' + esc(c.name) + '</b><span class="status ' + level + '">' + TC_WORD[level] + "</span></div>"
         + '<div class="desc">' + esc(desc) + '</div><div class="bar ' + level + '"><i></i></div></a>';
     }
@@ -1907,6 +1919,7 @@
         if (liveSeen && !liveSeen.has(r.id)) liveFlash.add("cam" + r.camera_id); // 처음 불러올 때는 깜빡이지 않는다
       });
       liveSeen = new Set([...(liveSeen || []), ...page.items.map((r) => r.id)]);
+      const holdOf = (id) => (byCam.get(id) || []).some((r) => r.holding);
 
       [["1", liveCams.filter((c) => c.camera_type !== "TC")], ["2", liveCams.filter((c) => c.camera_type === "TC")]].forEach(([p, list]) => {
         const box = document.querySelector('.alerts .page-group[data-page="' + p + '"]');
@@ -1917,12 +1930,13 @@
       liveTc.fill(null);
       liveCams.filter((c) => c.camera_type === "TC" && c.view_page === 2 && c.view_slot >= 1 && c.view_slot <= 4).forEach((c) => {
         const rows = byCam.get(c.id) || [];
-        if (rows.length) liveTc[c.view_slot - 1] = { level: levelOf(rows), text: eventText(rows), id: rows[0].id };
+        if (rows.length) liveTc[c.view_slot - 1] = { level: levelOf(rows), text: eventText(rows), id: rows[0].id, hold: holdOf(c.id) };
         if (liveFlash.has("cam" + c.id)) liveFlash.add("tc" + (c.view_slot - 1));
       });
       // CCTV 4분할에서 그 카메라가 걸린 칸도 같이 깜빡인다 (지금 보고 있는 페이지의 칸만)
       liveCams.forEach((c) => {
         const cell = c.view_slot && document.querySelector('.cam.cam-' + c.view_slot + '[data-page="' + c.view_page + '"]');
+        if (cell) cell.classList.toggle("ev-hold", holdOf(c.id)); // 허가 대기는 허가될 때까지 계속
         if (liveFlash.has("cam" + c.id) && cell && !cell.hidden) flashEl(cell);
       });
       [...liveFlash].forEach((k) => { if (k.startsWith("cam")) liveFlash.delete(k); });

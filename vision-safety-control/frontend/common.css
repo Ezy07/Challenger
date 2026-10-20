@@ -128,6 +128,12 @@ body.nav-open #wx-sky { display: none; }
 .gnb-btn .badge.zero { background: #3a4554; animation: none; }
 .gnb-btn .badge.ping { animation: badge-ping .6s ease 3, pulse 1.6s infinite; }
 @keyframes badge-ping { 50% { transform: scale(1.35); } }
+/* 작업 허가 대기 이벤트가 있으면 허가될 때까지 🔔 이 계속 깜빡인다 */
+.gnb-btn.holding { border-color: var(--red); animation: hold-blink 1.2s ease-in-out infinite; }
+.gnb-btn .badge.hold { animation: badge-ping 1.2s ease-in-out infinite, pulse 1.2s infinite; }
+@keyframes hold-blink { 50% { background: rgba(230, 30, 30, 0.35); } }
+.alert.holding { border-color: var(--red); }
+.alert .hold-tag { color: var(--red); font-weight: 750; }
 
 /* 실시간 알림 팝업 (헤더 🔔 · common.js 의 wireAlerts): 헤더 바로 아래 오른쪽에 뜬다 */
 #alert-pop { place-items: start end; padding: 64px 18px 18px; }

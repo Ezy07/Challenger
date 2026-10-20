@@ -75,6 +75,7 @@
       const row = (k, v) => `<div class="info-item"><span>${k}</span><b>${v}</b></div>`;
 
       $("info").innerHTML = row("번호", "EV-" + e.id) + row("발생 시각", fmtTime(e.detected_at))
+        + (e.holding ? row("경보", '<span style="color:var(--red)">작업 허가 대기 · 허가될 때까지 지속</span>') : "")
         + row("카메라", esc(e.camera_name || "없음")) + row("구역", esc(e.work_zone_name || "-"))
         + (e.roi_name ? row("ROI", esc(e.roi_name)) : "")
         + row("종류", esc(e.detection_label)) + row("심각도", badge("severity", e.severity))
