@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: minmax(0, 1fr); }
+    .main > .cell { min-height: 0; overflow: auto; }
     .tbl td { vertical-align: middle; }
     .rng { display: flex; align-items: center; gap: 10px; min-width: 240px; }
     .rng b { width: 44px; text-align: right; font-variant-numeric: tabular-nums; }

@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: minmax(0, 1fr) auto; }
+    .page.no-right > .left { min-height: 0; height: 100%; overflow: auto; align-self: stretch; }
     .left { display: flex; flex-direction: column; }
     .left > .pad { flex: none; }
     .draw-set { border-top: 1px solid var(--line); }
@@ -29,10 +30,10 @@
       border-radius: 12px; border: 1px solid var(--line); border-left-width: 3px;
       background: var(--panel-2); color: inherit; font: inherit; text-align: left; cursor: pointer;
     }
-    .roi-item b { grid-row: span 2; font-size: 18px; font-variant-numeric: tabular-nums; }
-    .roi-item span { font-size: 13px; font-weight: 700; }
-    .roi-item small { color: var(--muted); font-size: 11px; font-weight: 700; }
-    .roi-item .mini-btn { grid-row: span 2; }
+    .roi-item b { grid-column: 1; grid-row: 1 / span 2; font-size: 18px; font-variant-numeric: tabular-nums; }
+    .roi-item span { grid-column: 2; grid-row: 1; min-width: 0; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+    .roi-item small { grid-column: 2; grid-row: 2; min-width: 0; color: var(--muted); font-size: 11px; font-weight: 700; overflow-wrap: anywhere; }
+    .roi-item .mini-btn { grid-column: 3; grid-row: 1 / span 2; justify-self: end; }
     .roi-item.on { background: rgba(255, 154, 31, 0.1); }
     .colors { display: flex; gap: 6px; }
     .colors i { width: 26px; height: 26px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }

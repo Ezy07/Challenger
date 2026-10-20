@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: auto auto minmax(0, 1fr); }
+    .sum-strip { grid-template-columns: 150px 150px minmax(0, 1fr); }
     .tbl td { vertical-align: middle; }
     .sp { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
   </style>
@@ -22,10 +23,6 @@
         <div class="kpi-box"><span>등록 작업자</span><strong id="k-all">0<i>명</i></strong></div>
         <div class="kpi-box"><span>특별관리</span><strong style="color:var(--orange)" id="k-sp">0<i>명</i></strong></div>
         <div class="sum-list" id="idle"></div>
-        <div class="sum-acts">
-          <a class="btn" href="worker-special.html" data-need="MANAGER">특별관리 작업자 보기 →</a>
-          <a class="btn" href="works.html" data-need="MANAGER">작업 등록 및 배정으로 →</a>
-        </div>
       </section>
       <section class="cell searchbar">
         <div class="searchbar-row">

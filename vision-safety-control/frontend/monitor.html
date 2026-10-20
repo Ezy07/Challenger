@@ -1129,7 +1129,7 @@
       </div>
       <div class="tc-body">
         <div class="tc-map-wrap">
-          <canvas id="tc-map" width="1000" height="620"></canvas>
+        <canvas id="tc-map" width="1000" height="620"></canvas>
           <div class="hook-alert" id="hook-alert" hidden>
             <b id="hook-alert-tag">사전 경보</b>
             <span id="hook-alert-text"></span>
@@ -1280,11 +1280,11 @@
     function craneGeometry(spec, frame) {
       const pose = tcHookPose(spec, TC_SPEC, typeof tcShownFrame === "function" ? tcShownFrame(spec, frame) : frame);
       const angle = pose.angle;
-      const rad = angle * Math.PI / 180;
+        const rad = angle * Math.PI / 180;
       const reach = pose.radius;
       const tipR = spec.kind === "L" ? reach : spec.jib;
       const tip = [spec.x + tipR * Math.cos(rad), spec.y + tipR * Math.sin(rad)];
-      const counter = [spec.x - spec.rear * Math.cos(rad), spec.y - spec.rear * Math.sin(rad)];
+        const counter = [spec.x - spec.rear * Math.cos(rad), spec.y - spec.rear * Math.sin(rad)];
       const load = [spec.x + reach * Math.cos(rad), spec.y + reach * Math.sin(rad)];
       const luff = spec.kind === "L" ? Math.acos(Math.min(1, Math.max(0, reach / spec.jib))) * 180 / Math.PI : null;
       return { angle, trolley: reach, luff, radius: tipR, counter, tip, load };
@@ -1333,9 +1333,11 @@
       const w = tcCanvas.width;
       const h = tcCanvas.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = "#10151c";
+      const lightMap = document.documentElement.dataset.mode === "light";
+      const mapInk = lightMap ? "#111111" : "#ffffff";
+      ctx.fillStyle = lightMap ? "#f7f8fa" : "#10151c";
       ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      ctx.strokeStyle = lightMap ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.06)";
       ctx.lineWidth = 1;
       for (let g = 1; g < 8; g++) {
         ctx.beginPath();
@@ -1391,25 +1393,25 @@
         ctx.fillStyle = "#ff5d5d";
         ctx.fill();
         ctx.lineWidth = Math.max(2, 2 * dpr);
-        ctx.strokeStyle = "#ffffff";
+        ctx.strokeStyle = mapInk;
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(mast[0], mast[1], 4, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = mapInk;
         ctx.fill();
         const arcR = 26 * dpr;
         ctx.beginPath();
         ctx.arc(mast[0], mast[1], arcR, 0, -geo.angle * Math.PI / 180, true);
-        ctx.strokeStyle = "#ffffff";
+        ctx.strokeStyle = mapInk;
         ctx.lineWidth = Math.max(1, dpr);
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(mast[0], mast[1]);
         ctx.lineTo(mast[0] + arcR, mast[1]);
-        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.strokeStyle = lightMap ? "rgba(0,0,0,0.28)" : "rgba(255,255,255,0.35)";
         ctx.stroke();
         const labelAt = geo.angle * Math.PI / 180;
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = mapInk;
         ctx.font = "700 " + Math.round(14 * dpr) + "px Malgun Gothic, sans-serif";
         ctx.fillText(spec.id + "  " + geo.angle.toFixed(1) + "°", mast[0] + Math.cos(labelAt) * (arcR + 8 * dpr), mast[1] - Math.sin(labelAt) * (arcR + 8 * dpr));
       });
@@ -1423,7 +1425,7 @@
       ctx.setLineDash([6, 4]);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = mapInk;
       ctx.font = "700 " + Math.round(15 * dpr) + "px Malgun Gothic, sans-serif";
       ctx.fillText(worst.d.toFixed(1) + " m", (ta[0] + tb[0]) / 2 + 8, (ta[1] + tb[1]) / 2);
 
@@ -1462,7 +1464,8 @@
         : null;
       const held = typeof readHookHolds === "function" ? readHookHolds() : [];
       const leftName = (i) => TC_SPEC[i].id;
-      if (nowHook.d <= HOOK_HIT) {
+      const hooksMeet = nowHook.d <= HOOK_HIT && typeof tcHooksMeet === "function" && tcHooksMeet(TC_SPEC, nowHook.a, nowHook.b, tcFrame);
+      if (hooksMeet) {
         tcStopLatched = true;
         tcStopNames = [leftName(nowHook.a), leftName(nowHook.b)];
       }
@@ -1703,8 +1706,8 @@
       const btn = e.target.closest("[data-tc3]");
       if (!btn || (tc3Event && tc3Event.status === "DONE")) return;
       if (!tc3Event) {
-        tc3Permit[btn.dataset.tc3] = !btn.classList.contains("back");
-        paintTc3();
+      tc3Permit[btn.dataset.tc3] = !btn.classList.contains("back");
+      paintTc3();
         return;
       }
       const item = tc3Event.check_items.find((c) => c.id === Number(btn.dataset.tc3));
@@ -1866,7 +1869,7 @@
           await api("/api/events/" + sectorEvent.id + "/actions", { method: "POST", body: { action_type: "RESOLVE" } });
         }
         setCamAlarm(false);
-        closeCamAlarm();
+      closeCamAlarm();
         toast(sectorEvent ? "작업 허가로 경보를 해제했습니다. 이벤트는 처리완료입니다." : "CAM_0002 경보를 해제했습니다. 처리 기록에 남습니다. (예시)");
         if (sectorEvent) pollLive().catch(() => {});
       })();
@@ -2135,23 +2138,23 @@
     }));
 
     function showOriginalVideo(cell, c) {
-      // 브라우저는 숨겨진 영상의 자동재생을 시작하지 않으므로, 영상은 처음부터 보이게 두고(첫 화면 전에는 투명)
-      // 재생이 시작되면 뒤의 예시 그림을 숨긴다
-      const video = document.createElement("video");
-      video.className = "cam-video";
-      video.muted = true;
-      video.loop = true;
-      video.playsInline = true;
-      ["muted", "loop", "playsinline", "autoplay"].forEach((a) => video.setAttribute(a, ""));
-      video.src = "/" + encodeURI(c.stream_url);
-      video.addEventListener("playing", () => { cell.querySelector(".scene").style.visibility = "hidden"; });
-      playWhenAllowed(video);
-      video.addEventListener("error", () => {
-        video.remove();
-        const zone = cell.querySelector(".cam-zone");
-        if (zone) zone.textContent += " · 영상을 재생할 수 없음 (형식 확인)";
-      });
-      cell.querySelector(".scene").after(video);
+        // 브라우저는 숨겨진 영상의 자동재생을 시작하지 않으므로, 영상은 처음부터 보이게 두고(첫 화면 전에는 투명)
+        // 재생이 시작되면 뒤의 예시 그림을 숨긴다
+        const video = document.createElement("video");
+        video.className = "cam-video";
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        ["muted", "loop", "playsinline", "autoplay"].forEach((a) => video.setAttribute(a, ""));
+        video.src = "/" + encodeURI(c.stream_url);
+        video.addEventListener("playing", () => { cell.querySelector(".scene").style.visibility = "hidden"; });
+        playWhenAllowed(video);
+        video.addEventListener("error", () => {
+          video.remove();
+          const zone = cell.querySelector(".cam-zone");
+          if (zone) zone.textContent += " · 영상을 재생할 수 없음 (형식 확인)";
+        });
+        cell.querySelector(".scene").after(video);
     }
 
     // 오른쪽 패널 전체 숨기기 · 꺼내기 (상태는 이 브라우저에 기억)

@@ -10,6 +10,18 @@
    - 아직 API 를 연결하지 않은 화면의 저장 · 삭제 버튼은 안내 문구(toast)만 띄운다
    - API 를 쓰는 화면은 api.js 를 이 파일보다 먼저 넣는다 */
 
+(function bootModeChange() {
+  const base = document.currentScript && document.currentScript.src;
+  const src = base ? new URL("mode_change.js", base).href : "mode_change.js";
+  if (document.readyState === "loading") {
+    document.write('<script src="' + src + '"><\/script>');
+    return;
+  }
+  const tag = document.createElement("script");
+  tag.src = src;
+  document.head.appendChild(tag);
+})();
+
 const MENU = [
   { icon: "▣", name: "관제화면", pages: [
     ["monitor.html", "관제화면", "CCTV 4분할 · TC/작업구역 · 섹터 감지경보 · 특별관리근로자", 0],
@@ -36,7 +48,7 @@ const MENU = [
     ["roi-draw.html", "ROI 그리기", "카메라 화면 위를 클릭해 감지 영역(ROI) 다각형 그리기", 0],
     ["roi-list.html", "ROI 목록", "만든 ROI 전체를 보고 켜고 끄기", 0],
   ] },
-  { icon: "⚙", name: "장비 현황", link: "equipment.html", pages: [
+  { icon: "⚙", name: "장비 목록", link: "equipment.html", pages: [
     ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
     ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 구비 서류와 안전교육", 0, { hide: true }],
   ] },
@@ -197,8 +209,14 @@ function drawerHtml(file, found) {
         ${admin && `<div class="drawer-sep"><span>관리자 전용</span></div>${admin}`}
       </nav>
       <div class="drawer-foot">
-        <a href="index.html">🗺 페이지 지도</a>
-        <a href="login.html" data-logout>로그아웃</a>
+        <div class="mode-change" id="mode-change" role="group" aria-label="화면 모드">
+          <button type="button" data-mode-set="light" aria-pressed="false">☀ 라이트</button>
+          <button type="button" data-mode-set="dark" aria-pressed="true">☾ 다크</button>
+        </div>
+        <div class="drawer-foot-links">
+          <a href="index.html">🗺 페이지 지도</a>
+          <a href="login.html" data-logout>로그아웃</a>
+        </div>
       </div>
     </aside>
     <div class="scrim" id="scrim"></div>`;
@@ -272,6 +290,7 @@ function renderShell(file, found) {
   document.getElementById("gnb-alert").addEventListener("click", () => {
     if (document.getElementById("alert-pop").hidden) openAlerts(); else closeAlerts();
   });
+  if (typeof mountModeChange === "function") mountModeChange();
 }
 
 function renderHead(file, found) {
@@ -599,6 +618,41 @@ function tcFramesUntilMeet(frame) {
   if (at == null || clock >= at) return null;
   return at - clock;
 }
+function tcAngleOff(from, to) {
+  return Math.abs(tcTurn(to - from + 180, 360) - 180);
+}
+// 작동중지는 두 지브가 서로를 향해 후크가 맞닿을 때만. 간격만 좁아진 상태는 경고로 남긴다.
+function tcPosesMeet(a, b, pa, pb) {
+  if (!a || !b || !pa || !pb) return false;
+  const mast = Math.hypot(a.x - b.x, a.y - b.y);
+  if (pa.radius + pb.radius < mast) return false;
+  const faceA = tcTurn(Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI, 360);
+  const faceB = tcTurn(Math.atan2(a.y - b.y, a.x - b.x) * 180 / Math.PI, 360);
+  if (tcAngleOff(pa.angle, faceA) > 20 || tcAngleOff(pb.angle, faceB) > 20) return false;
+  const ax = a.x + pa.radius * Math.cos(pa.angle * Math.PI / 180);
+  const ay = a.y + pa.radius * Math.sin(pa.angle * Math.PI / 180);
+  const bx = b.x + pb.radius * Math.cos(pb.angle * Math.PI / 180);
+  const by = b.y + pb.radius * Math.sin(pb.angle * Math.PI / 180);
+  return Math.hypot(ax - bx, ay - by) <= TC_HOOK_HIT;
+}
+function tcHooksMeet(peers, i, j, frame) {
+  const a = peers[i], b = peers[j];
+  if (!a || !b) return false;
+  return tcPosesMeet(a, b, tcHookPose(a, peers, tcShownFrame(a, frame)), tcHookPose(b, peers, tcShownFrame(b, frame)));
+}
+function dropMissedHolds() {
+  const holds = readHookHolds();
+  const left = holds.filter((hold) => {
+    const names = hold.names || [];
+    const pa = hold.poses && hold.poses[names[0]];
+    const pb = hold.poses && hold.poses[names[1]];
+    if (!pa || !pb) return true;
+    const a = TC_HOOKS.find((spec) => spec.id === names[0]);
+    const b = TC_HOOKS.find((spec) => spec.id === names[1]);
+    return tcPosesMeet(a, b, pa, pb);
+  });
+  if (left.length !== holds.length) writeHookHolds(left);
+}
 function tcMeetSoonIndexes() {
   const frame = tcFrameNow();
   if (frame == null) return [];
@@ -733,6 +787,7 @@ function tcStampPins(hold, frame) {
 }
 function tcHoldOverlap(frame) {
   if (frame == null) return;
+  dropMissedHolds();
   const poses = {};
   const pts = TC_HOOKS.map((spec) => {
     const pose = tcHookPose(spec, TC_HOOKS, tcShownFrame(spec, frame));
@@ -747,7 +802,7 @@ function tcHoldOverlap(frame) {
       if (d < best.d) best = { d, a: i, b: j };
     }
   }
-  if (best.d > TC_HOOK_HIT) return;
+  if (best.d > TC_HOOK_HIT || !tcHooksMeet(TC_HOOKS, best.a, best.b, frame)) return;
   const names = [TC_HOOKS[best.a].id, TC_HOOKS[best.b].id];
   const holds = readHookHolds();
   const hit = holds.filter((hold) => (hold.names || []).some((name) => names.includes(name)));

@@ -1,0 +1,188 @@
+/* 화면 모드 버튼. 흰 배경 · 어두운 배경 모두에서 구분되게 주황 테두리와 채워진 선택을 쓴다. */
+.drawer-foot { flex-direction: column; align-items: stretch; }
+.drawer-foot-links { display: flex; gap: 6px; }
+.drawer-foot-links a { flex: 1; }
+.mode-change {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid #ff9a1f;
+  border-radius: 12px;
+  background: #fff;
+}
+.mode-change button {
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #1a1206;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mode-change button[data-mode-set="dark"].on {
+  background: #1a1206;
+  color: #fff;
+}
+.mode-change button[data-mode-set="light"].on {
+  background: #ff9a1f;
+  color: #1a1206;
+}
+
+/* 라이트 모드. 다크 모드 색은 common.css 에 그대로 둔다. */
+html[data-mode="light"] {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f4f6f8;
+  --ink: #111111;
+  --muted: #3a4450;
+  --line: rgba(0, 0, 0, 0.12);
+  color-scheme: light;
+}
+html[data-mode="light"],
+html[data-mode="light"] body {
+  background: #ffffff;
+  color: #111111;
+}
+html[data-mode="light"] .gnb { border-bottom-color: #111; }
+html[data-mode="light"] .menu-btn,
+html[data-mode="light"] .gnb-btn,
+html[data-mode="light"] .wx-chip,
+html[data-mode="light"] .mini-btn,
+html[data-mode="light"] .drawer,
+html[data-mode="light"] .drawer-x,
+html[data-mode="light"] .drawer-foot a,
+html[data-mode="light"] .btn,
+html[data-mode="light"] .input,
+html[data-mode="light"] select.input,
+html[data-mode="light"] textarea.input,
+html[data-mode="light"] .chip,
+html[data-mode="light"] .pager,
+html[data-mode="light"] .full-btn,
+html[data-mode="light"] .full-exit,
+html[data-mode="light"] .pop-act,
+html[data-mode="light"] .cam-pages,
+html[data-mode="light"] .dgroup-btn i {
+  background: #ffffff;
+  color: #111111;
+}
+html[data-mode="light"] .btn.primary,
+html[data-mode="light"] .mini-btn.primary,
+html[data-mode="light"] .pager.on { background: var(--orange); color: #1a1206; }
+html[data-mode="light"] .btn.danger,
+html[data-mode="light"] .pop-act.stop { background: var(--red); color: #fff; }
+html[data-mode="light"] .pop-act.go { background: var(--green); color: #07351c; }
+html[data-mode="light"] .dgroup-btn,
+html[data-mode="light"] .label,
+html[data-mode="light"] .node,
+html[data-mode="light"] .node.l0 { color: #111111; }
+html[data-mode="light"] .dgroup-btn:hover,
+html[data-mode="light"] .ditem:hover,
+html[data-mode="light"] .node:hover,
+html[data-mode="light"] .rail-toggle:hover { background: #f3f5f8; color: #111111; }
+html[data-mode="light"] .dlabel,
+html[data-mode="light"] .ditem b { color: #4a5566; }
+html[data-mode="light"] .chip.on { color: #111111; background: rgba(255, 154, 31, 0.16); }
+html[data-mode="light"] .wx-chip.alert { background: #fff1f1; color: #111111; }
+html[data-mode="light"] input[type="date"],
+html[data-mode="light"] select,
+html[data-mode="light"] option,
+html[data-mode="light"] .zone-pick,
+html[data-mode="light"] .cam-pick,
+html[data-mode="light"] #edit-cam {
+  color-scheme: light;
+  background-color: #fff;
+  color: #111;
+}
+html[data-mode="light"] .who-list,
+html[data-mode="light"] .who-list .opt,
+html[data-mode="light"] .org-drop,
+html[data-mode="light"] .pop-x,
+html[data-mode="light"] .mv {
+  background: #fff;
+  color: #111;
+}
+html[data-mode="light"] .hint {
+  color: #16375c;
+  background: rgba(108, 182, 255, 0.22);
+}
+html[data-mode="light"] .hint b { color: #0c2744; }
+html[data-mode="light"] .sec .ext { color: #15406e; }
+html[data-mode="light"] .sec .mvp { color: #8d1d1d; }
+html[data-mode="light"] .intro p,
+html[data-mode="light"] .perm td:first-child,
+html[data-mode="light"] .req dd { color: #243040; }
+html[data-mode="light"] .permit-btn { color: #0d6b3a; background: rgba(61, 220, 132, 0.22); }
+html[data-mode="light"] .permit-btn.back { color: #9a1c1c; background: rgba(255, 93, 93, 0.16); }
+html[data-mode="light"] .zone-tag,
+html[data-mode="light"] .zone-tag small,
+html[data-mode="light"] .status.mute,
+html[data-mode="light"] .mute,
+html[data-mode="light"] .toast,
+html[data-mode="light"] .thumb span,
+html[data-mode="light"] .camcard .src-tag,
+html[data-mode="light"] .no-video,
+html[data-mode="light"] .hook-alert,
+html[data-mode="light"] .cam,
+html[data-mode="light"] .cam-time,
+html[data-mode="light"] .cam-zone { color: #fff; }
+html[data-mode="light"] .safe {
+  background: #fff;
+  color: #111;
+}
+html[data-mode="light"] .safe .label,
+html[data-mode="light"] .safe .label span,
+html[data-mode="light"] .safe .kpi .cap,
+html[data-mode="light"] .safe .kpi .cap em,
+html[data-mode="light"] .safe .ring span,
+html[data-mode="light"] .safe .ring span i { color: #111; }
+html[data-mode="light"] .safe .ring span { background: #fff; }
+html[data-mode="light"] .viz-tip {
+  background: #fff;
+  color: #111;
+  border-color: rgba(0, 0, 0, 0.14);
+}
+html[data-mode="light"] .viz-tip b { color: #111; }
+html[data-mode="light"] .viz-tip span { color: #3a4450; }
+html[data-mode="light"] .sum-strip .kpi-box,
+html[data-mode="light"] .sum-strip .check {
+  background: #fff;
+  color: #111;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+html[data-mode="light"] .av,
+html[data-mode="light"] .who .av {
+  background: #fff;
+  color: #111;
+  border: 1.5px solid #111;
+}
+html[data-mode="light"] #tc-map { background: #f7f8fa; }
+html[data-mode="light"] .tc-pop .pop-card,
+html[data-mode="light"] .cmp,
+html[data-mode="light"] .tc-msg {
+  background: #fff;
+  color: #111;
+}
+html[data-mode="light"] .cmp .k,
+html[data-mode="light"] .tc-pop .check small { color: #3a4450; }
+html[data-mode="light"] .cmp .v,
+html[data-mode="light"] .tc-pop .check b { color: #111; }
+html[data-mode="light"] .cmp.on { background: rgba(255, 154, 31, 0.12); }
+html[data-mode="light"] .tc-pop .status.ok { color: #07351c; }
+html[data-mode="light"] .tc-pop .status.warn { color: #3a2500; }
+html[data-mode="light"] .tc-pop .status.info { color: #061018; }
+html[data-mode="light"] .tc-pop .status.stop { color: #fff; }
+html[data-mode="light"] .label a,
+html[data-mode="light"] .doc-more,
+html[data-mode="light"] a.pop-act,
+html[data-mode="light"] a.btn[href*="detail"],
+html[data-mode="light"] #to-event,
+html[data-mode="light"] #to-detail,
+html[data-mode="light"] #detail-link {
+  color: #e8870d;
+  border-color: #e8870d;
+}
+html[data-mode="light"] .doc-more:hover,
+html[data-mode="light"] .label a:hover { color: #c46d00; }

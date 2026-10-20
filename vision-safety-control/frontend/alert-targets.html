@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="common.css" />
   <style>
     .main { grid-template-rows: minmax(0, 1fr); }
+    .page.rail-over > .right > .pad:first-child { flex: none; }
     .tbl td, .tbl th { text-align: center; vertical-align: middle; }
     .tbl td:first-child, .tbl th:first-child { text-align: left; }
     .tbl .switch { display: inline-block; }
@@ -55,9 +56,6 @@
         <label class="field" data-need="ADMIN">받는 사람<select class="input"><option>최동현 과장</option><option>박진우 차장</option><option>전체</option></select></label>
         <label class="field" data-need="ADMIN">수단<select class="input"><option>문자</option><option>메신저</option><option>관제 화면</option></select></label>
         <button class="btn primary block" data-need="ADMIN" data-toast="테스트 알림을 보냈습니다. (예시)">🔔 테스트 알림 보내기</button>
-        <div class="label" style="margin-top:8px">조용한 시간</div>
-        <div class="check"><div><b>야간 문자 끄기</b><small>22:00 ~ 06:00 · 높음은 예외</small></div><span class="switch on"></span></div>
-        <div class="hint"><b>높음</b> 알림은 조용한 시간에도 꼭 보냅니다.</div>
       </div>
       <div class="pad" data-pick>
         <div class="label">받는 사람 묶음</div>
