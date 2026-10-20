@@ -38,11 +38,13 @@
     applyMode(btn.dataset.modeSet, true);
   });
 
-  const css = document.createElement("link");
-  css.rel = "stylesheet";
-  const base = document.currentScript && document.currentScript.src;
-  css.href = base ? new URL("mode_change.css", base).href : "mode_change.css";
-  document.head.appendChild(css);
+  if (!document.querySelector('link[href="mode_change.css"]')) {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    const base = document.currentScript && document.currentScript.src;
+    css.href = base ? new URL("mode_change.css", base).href : "mode_change.css";
+    document.head.appendChild(css);
+  }
 
   window.mountModeChange = mountModeChange;
   applyMode(savedMode(), false);

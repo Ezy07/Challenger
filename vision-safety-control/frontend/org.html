@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>조직 · 부서 관리 · 안전관제</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script>
+  try { if (localStorage.getItem("safety.mode") === "light") document.documentElement.dataset.mode = "light"; } catch (e) {}
+  </script>
   <link rel="stylesheet" href="common.css" />
+  <link rel="stylesheet" href="mode_change.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
     .tree { display: grid; gap: 2px; }
