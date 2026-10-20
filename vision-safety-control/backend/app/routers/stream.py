@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from .. import ppe, vision
+from .. import ppe, signalman, vision
 from ..config import settings
 from ..deps import DB, CurrentUser, StreamUser
 from .cameras import get_camera
@@ -39,22 +39,25 @@ class PeopleNow(BaseModel):
     camera_id: int
     workers: int              # 지금 화면의 작업자 수 (2초 안에 본 사람)
     ppe: PpeCount | None      # PPE 모델 · 미착용 판정을 안 쓰면 None
+    signalmen: int | None     # 지금 보이는 신호수(빨간 계열 조끼) 수. 신호수 미배치 판정을 안 쓰면 None
 
 
 @router.get("/people", response_model=list[PeopleNow])
 def people_now(_: CurrentUser):
-    """지금 탐지 중인 카메라마다 작업자 수 · 안전모 · 조끼 착용 수 (관제화면 섹터 감지경보).
+    """지금 탐지 중인 카메라마다 작업자 수 · 안전모 · 조끼 착용 수 · 신호수 수 (관제화면 섹터 감지경보).
     탐지 중이 아닌 카메라(아무도 안 보고 이벤트 감시도 안 함)는 빠진다."""
     from ..zone_events import rules
 
     worn = vision.detector.ppe_ready and any(r.active for c, r in rules.items() if c in ppe.CODES)
+    signal = vision.detector.ppe_ready and (r := rules.get(signalman.NO_SIGNALMAN)) is not None and r.active
     now = time.monotonic()
     out = []
     for feed in vision.live_feeds():
         if feed.latest is None:
             continue
         out.append(PeopleNow(camera_id=feed.camera_id, workers=feed.workers(now),
-                             ppe=PpeCount(**ppe.summary(feed.camera_id, now)) if worn else None))
+                             ppe=PpeCount(**ppe.summary(feed.camera_id, now)) if worn else None,
+                             signalmen=signalman.count(feed.camera_id, now) if signal else None))
     return out
 
 

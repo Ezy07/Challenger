@@ -133,11 +133,11 @@ def test_people_api(client, admin, monkeypatch):
     monkeypatch.setattr(vision, "live_feeds", lambda: [feed])
     monkeypatch.setattr(ppe, "summary", lambda cam, now: {"checked": 1, "helmet": 1, "vest": 0})
     # PPE 모델이 없으면 작업자 수만
-    assert client.get("/api/stream/people", headers=admin).json() == [{"camera_id": 5, "workers": 1, "ppe": None}]
+    assert client.get("/api/stream/people", headers=admin).json() == [{"camera_id": 5, "workers": 1, "ppe": None, "signalmen": None}]
     monkeypatch.setattr(vision.detector, "_ppe", "ppe")
     monkeypatch.setattr(zone_events, "rules", {NO_HELMET: Rule(True, 0.8, 60)})
     assert client.get("/api/stream/people", headers=admin).json() == [
-        {"camera_id": 5, "workers": 1, "ppe": {"checked": 1, "helmet": 1, "vest": 0}}]
+        {"camera_id": 5, "workers": 1, "ppe": {"checked": 1, "helmet": 1, "vest": 0}, "signalmen": None}]
 
 
 def test_feed_counts_recent_workers(monkeypatch):

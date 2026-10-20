@@ -63,5 +63,14 @@ class Settings(BaseSettings):
     ppe_window_sec: float = 3.0     # 작업자마다 이만큼 지켜본 뒤 다수결로 판정
     ppe_min_person_px: int = 100    # 키가 이보다 작게 보이는 작업자는 판정하지 않음 (현장 영상에서 이보다 작으면 안전모를 거의 못 찾음)
 
+    # 신호수 미배치(NO_SIGNALMAN): 빨간 계열 조끼 = 신호수, 노란 계열 = 일반 작업자 (PPE 모델의 조끼 박스 색으로 가림).
+    # 카메라에 장비(signal_classes)가 있는데 신호수가 signal_hold_sec 초 넘게 안 보이면 경보. PPE 모델이 없으면 판정 안 함
+    signal_classes: str = "truck,excavator"  # 신호수가 있어야 하는 장비 YOLO 클래스 (쉼표로 구분)
+    signal_hold_sec: float = 10.0
+    signal_min_person_px: int = 60  # 조끼 색은 안전모보다 멀리서도 보여 미착용 판정보다 작게 잡는다
+    # 빨강 쪽 · 노랑 쪽을 가르는 색상(OpenCV H 0~179). 주황도 이 경계로 판정한다. 15 = 30도:
+    # 형광 주황(255,100,0 · H 12) 은 신호수, 진한 노랑 주황(255,160,0 · H 19) 은 일반 작업자
+    signal_hue_split: int = 15
+
 
 settings = Settings()

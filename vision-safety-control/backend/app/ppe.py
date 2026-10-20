@@ -36,17 +36,22 @@ ONBOARD_INSIDE = 0.8
 FORGET_SEC = 60.0
 
 
-def wearing(person: vision.Box, parts: list[vision.Box]) -> dict[str, bool]:
-    """{"helmet": 머리에 안전모가 있는지, "vest": 몸통에 조끼가 있는지}"""
+def part_on(person: vision.Box, parts: list[vision.Box], name: str) -> vision.Box | None:
+    """작업자 머리(안전모) · 몸통(조끼) 자리에 있는 그 부위 박스 (여럿이면 confidence 가 가장 높은 것)"""
     w, h = person.x2 - person.x1, person.y2 - person.y1
+    top, bottom = HEAD if name == "helmet" else TORSO
 
-    def on(b: vision.Box, top: float, bottom: float) -> bool:
+    def on(b: vision.Box) -> bool:
         cx, cy = (b.x1 + b.x2) / 2, (b.y1 + b.y2) / 2
         return (person.x1 - SIDE * w <= cx <= person.x2 + SIDE * w
                 and person.y1 + top * h <= cy <= person.y1 + bottom * h)
 
-    return {"helmet": any(b.name == "helmet" and on(b, *HEAD) for b in parts),
-            "vest": any(b.name == "vest" and on(b, *TORSO) for b in parts)}
+    return max((b for b in parts if b.name == name and on(b)), key=lambda b: b.conf, default=None)
+
+
+def wearing(person: vision.Box, parts: list[vision.Box]) -> dict[str, bool]:
+    """{"helmet": 머리에 안전모가 있는지, "vest": 몸통에 조끼가 있는지}"""
+    return {name: part_on(person, parts, name) is not None for name in vision.PPE_PARTS}
 
 
 @dataclass

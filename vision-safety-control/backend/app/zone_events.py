@@ -11,7 +11,7 @@
   한 번 머무는 동안 이벤트는 한 번만 만든다 (나갔다 다시 들어오면 다시, 같은 경보는 쿨다운 동안 막힘).
 - 이벤트가 생기면 그 순간 화면(ROI · 탐지 박스를 그린 JPEG)을 storage/snapshots/날짜/ 에 저장한다.
 - 보는 사람이 없어도 판정할 구역이 있는 카메라는 계속 읽는다 (EVENT_WATCH=false 면 화면을 볼 때만 판정).
-- 장비 근접(proximity.py) · 안전모 · 조끼 미착용(ppe.py)도 여기서 같은 판정 기준 · 기록 스레드로 돌린다
+- 장비 근접(proximity.py) · 안전모 · 조끼 미착용(ppe.py) · 신호수 미배치(signalman.py)도 여기서 같은 판정 기준 · 기록 스레드로 돌린다
   (ROI 와 상관없이 탐지 중인 카메라 전체).
 """
 
@@ -29,7 +29,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from . import ppe, proximity, vision
+from . import ppe, proximity, signalman, vision
 from .config import settings
 from .database import SessionLocal
 from .models import Camera, DetectionType, Roi
@@ -43,8 +43,9 @@ RULE_REFRESH_SEC = 5
 
 
 def live_codes() -> tuple[str, ...]:
-    """서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시). 미착용은 PPE 모델을 줬을 때만"""
-    return (INTRUSION, DWELL, proximity.PROXIMITY) + (ppe.CODES if settings.yolo_ppe_model else ())
+    """서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시). 미착용 · 신호수는 PPE 모델을 줬을 때만"""
+    worn = ppe.CODES + (signalman.NO_SIGNALMAN,) if settings.yolo_ppe_model else ()
+    return (INTRUSION, DWELL, proximity.PROXIMITY) + worn
 
 
 @dataclass(frozen=True)
@@ -232,6 +233,11 @@ def on_detect(feed: vision.Feed, snap: vision.Snapshot) -> None:
         for trig in ppe.judge.observe(feed.camera_id, snap.boxes, worn, now):
             _submit(partial(ppe.record, SessionLocal, ppe.Job(trig, feed.camera_name, snap, rois)),
                     f"{feed.camera_name} {ppe.LABEL[trig.code]}")
+    signal = rules.get(signalman.NO_SIGNALMAN)
+    if signal and signal.active and vision.detector.ppe_ready:
+        for trig in signalman.judge.observe(feed.camera_id, snap.frame, snap.boxes, signal.min_conf, now):
+            _submit(partial(signalman.record, SessionLocal, signalman.Job(trig, feed.camera_name, snap, rois)),
+                    f"{feed.camera_name} {signalman.LABEL}")
 
 
 def _submit(task: Callable[[], object], what: str) -> None:

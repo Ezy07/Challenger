@@ -1914,6 +1914,7 @@
       let html = "<span>작업자 <b>" + p.workers + "</b>명</span>";
       if (p.ppe && p.ppe.checked) html += part("안전모", p.ppe.helmet, p.ppe.checked) + part("조끼", p.ppe.vest, p.ppe.checked);
       else if (p.ppe && p.workers) html += "<span>착용 판정: 멀리 있음</span>";
+      if (p.signalmen != null) html += "<span>신호수 <b>" + p.signalmen + "</b>명</span>";
       return '<div class="crew">' + html + "</div>";
     }
     function sectorItem(c, rows, people) {
