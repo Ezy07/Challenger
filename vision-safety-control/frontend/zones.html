@@ -116,7 +116,7 @@
             <small class="muted">점이 없으면 배치도에 표시하지 않습니다. 점 3개 이상이면 다각형이 됩니다.</small>
           </div>
           <div class="row between">
-            <button class="btn sm" type="button" id="del" style="color:var(--red)">구역 삭제</button>
+            <button class="btn sm" type="button" id="del" style="color:var(--red)" disabled title="오늘 작업이 없고 작업 · 인원 · 장비 · 카메라가 0일 때만 삭제할 수 있습니다">구역 삭제</button>
             <div class="row">
               <button class="btn sm" type="button" id="cancel">취소</button>
               <button class="btn sm primary">저장</button>
@@ -125,6 +125,19 @@
         </form>
       </div>
     </aside>
+  </div>
+
+  <div class="pop" id="del-pop" hidden style="z-index:47">
+    <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="del-title">
+      <div class="pop-head">
+        <div><span class="status stop">삭제</span><h2 id="del-title">구역 삭제</h2><p id="del-ask">정말로 삭제하시겠습니까?</p></div>
+        <button class="btn sm" type="button" data-close>닫기</button>
+      </div>
+      <div class="row end" style="margin-top:14px">
+        <button class="btn" type="button" data-close>아니오</button>
+        <button class="btn danger" type="button" id="del-yes">예</button>
+      </div>
+    </div>
   </div>
   <script src="api.js"></script>
   <script src="common.js"></script>
@@ -207,6 +220,8 @@
       $("new").hidden = editing;
       $("z-pick").disabled = mode === "new";
       $("del").hidden = mode !== "edit";
+      $("del").disabled = !canDelete(current);
+      $("del").title = $("del").disabled ? "오늘 작업이 없고 작업 · 인원 · 장비 · 카메라가 0일 때만 삭제할 수 있습니다" : "";
       $("form-title").textContent = mode === "new" ? "새 구역 만들기" : "구역 수정";
       if (editing) {
         $("e-name").value = mode === "new" ? "" : current.name;
@@ -217,6 +232,8 @@
       }
       drawPlan();
     }
+    const canDelete = (z) => Boolean(z) && state(z)[2] === "오늘 작업 없음"
+      && z.works.length === 0 && z.worker_count === 0 && z.equipment.length === 0 && camCount(z) === 0;
     const dirty = () => mode !== "view" && JSON.stringify([$("e-name").value.trim(), draft]) !== saved;
     const leave = () => !dirty() || confirm("저장하지 않은 변경이 있습니다. 버리고 갈까요?");
 
@@ -333,8 +350,14 @@
         await load(res.id);
       } catch (err) { toast(err.message); }
     });
-    $("del").addEventListener("click", async () => {
-      if (!confirm(`${current.name} 구역을 삭제할까요?`)) return;
+    $("del").addEventListener("click", () => {
+      if (!canDelete(current)) return;
+      $("del-ask").textContent = `${current.name} 구역을 정말로 삭제하시겠습니까?`;
+      $("del-pop").hidden = false;
+    });
+    $("del-yes").addEventListener("click", async () => {
+      $("del-pop").hidden = true;
+      if (!canDelete(current)) return;
       try {
         await api(`/api/work-zones/${current.id}`, { method: "DELETE" });
         toast("구역을 삭제했습니다.");
