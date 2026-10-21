@@ -4,7 +4,7 @@
    - 화면을 추가하려면 MENU 에 [파일 이름, 화면 이름, 설명, 깊이] 한 줄만 넣으면 된다
      깊이 0 = 메모장의 "-" 화면, 1 = "ㄴ" 화면, 2 = "ㄴㄴ" 화면
      파일 이름이 빈 줄("")은 메뉴 안의 소제목으로만 쓴다 (예: 관리자 > 카메라 관리)
-     다섯째 칸 { hide: true } = 메뉴에는 안 보이고 목록에서 한 항목을 골라 들어가는 화면 (번호 · 제목은 그대로)
+     다섯째 칸 { hide: true } = 메뉴에는 안 보이고 목록에서 한 항목을 골라 들어가는 화면 (번호도 차지하지 않음)
               { need: "MANAGER" } = 그 역할 미만이면 메뉴에서 빠지고, 주소로 열어도 관제화면으로 돌려보낸다
      묶음의 admin: true = 왼쪽 메뉴 "관리자 전용" 칸에 둔다 (need 를 같이 주면 화면도 막는다)
    - 아직 API 를 연결하지 않은 화면의 저장 · 삭제 버튼은 안내 문구(toast)만 띄운다
@@ -136,7 +136,13 @@ function pageNeed(group, page) {
 }
 
 function pageNo(group, page) {
-  return `${group.no}-${realPages(group).indexOf(page) + 1}`;
+  const shown = realPages(group).filter((p) => !(p[4] && p[4].hide));
+  let i = shown.indexOf(page);
+  if (i < 0) {
+    const all = realPages(group);
+    i = all.slice(0, all.indexOf(page)).filter((p) => !(p[4] && p[4].hide)).length - 1;
+  }
+  return `${group.no}-${i + 1}`;
 }
 
 function readNav() {

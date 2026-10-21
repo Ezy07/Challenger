@@ -207,17 +207,14 @@ body.nav-open .drawer { transform: none; visibility: visible; box-shadow: 12px 0
 a.dgroup-btn.on { color: var(--ink); }
 .dgroup:has(.ditem.on) > .dgroup-btn i,
 a.dgroup-btn.on i { background: var(--orange); color: #1a1206; }
-.dgroup-list { display: none; flex-direction: column; gap: 1px; padding: 2px 0 8px 22px; margin-left: 13px; border-left: 1px solid var(--line); }
+.dgroup-list { display: none; flex-direction: column; gap: 1px; padding: 2px 0 8px 8px; margin-left: 13px; border-left: 1px solid var(--line); }
 .dgroup.open > .dgroup-list { display: flex; }
-.ditem { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.ditem { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 600; }
 .ditem b { flex: none; min-width: 26px; font-size: 10.5px; color: #6b7889; font-weight: 700; font-variant-numeric: tabular-nums; }
 .ditem:hover { background: #18202b; color: var(--ink); }
 .ditem.on { background: rgba(255, 154, 31, 0.14); color: var(--ink); }
 .ditem.on b { color: var(--orange); }
-.ditem.d1 { padding-left: 22px; }
-.ditem.d2 { padding-left: 34px; }
-.ditem.d1::before, .ditem.d2::before { content: "ㄴ"; margin-left: -14px; margin-right: -4px; font-size: 10px; color: #4a5566; }
-.dlabel { margin: 8px 0 2px; padding: 0 10px; font-size: 11px; font-weight: 800; color: #6b7889; letter-spacing: 0.04em; }
+.dlabel { margin: 8px 0 2px; padding: 0 10px 0 6px; font-size: 11px; font-weight: 800; color: #6b7889; letter-spacing: 0.04em; }
 .dlabel:first-child { margin-top: 2px; }
 .drawer-sep { display: flex; align-items: center; gap: 8px; margin: 12px 4px 6px; font-size: 11px; font-weight: 800; color: var(--orange); letter-spacing: 0.04em; }
 .drawer-sep::after { content: ""; flex: 1; height: 1px; background: rgba(255, 154, 31, 0.3); }
