@@ -63,9 +63,7 @@
         <div class="searchbar-row">
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="setup">보고서 설정 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <span class="grow"></span>
-          <span class="muted" title="인쇄 창이 열리면 대상(프린터)을 'PDF로 저장'으로 고르세요. 보고서 종이 부분만 A4 로 나옵니다.">내려받기</span>
-          <button class="btn" type="button" id="print">🖨 인쇄</button>
-          <button class="btn primary" type="button" id="pdf">⬇ PDF로 저장</button>
+          <button class="btn primary" type="button" id="print" title="보고서 종이 부분만 A4 로 나옵니다. PDF 로 받으려면 인쇄 창에서 대상(프린터)을 'PDF로 저장'으로 고르세요.">🖨 인쇄</button>
         </div>
         <form class="search-panel" id="setup" hidden>
           <div class="search-fields">
@@ -186,7 +184,6 @@
     ["f-from", "f-to"].forEach((id) => $(id).addEventListener("change", showKind));
     $("setup").addEventListener("change", (e) => { if (e.target.dataset.part) parts(); });
     $("setup").addEventListener("submit", (e) => { e.preventDefault(); build().catch((err) => toast(err.message)); });
-    $("pdf").addEventListener("click", () => { toast("인쇄 창에서 대상을 'PDF로 저장'으로 고르세요."); setTimeout(() => window.print(), 300); });
     $("print").addEventListener("click", () => window.print());
 
     // 통계 요약에서 [리포트 만들기]로 오면 그 기간으로 (?date_from=…&date_to=…)
