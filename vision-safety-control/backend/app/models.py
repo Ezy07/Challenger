@@ -104,8 +104,17 @@ class SpecialReason(StrEnum):
 
 
 class EduType(StrEnum):
-    GENERAL = "GENERAL"  # 건설업 기초안전보건교육
+    GENERAL = "GENERAL"  # 기초 이수 교육
     SPECIAL = "SPECIAL"  # 특별교육
+
+
+# 이 4개가 이수 기록에 모두 있어야 기초교육 이수. 하나라도 없으면 미이수.
+REQUIRED_GENERAL_EDU = (
+    "근로자 정기안전보건교육",
+    "건설업 기초안전보건교육",
+    "채용 시 교육",
+    "작업내용 변경 시 교육",
+)
 
 
 class WorkStatus(StrEnum):

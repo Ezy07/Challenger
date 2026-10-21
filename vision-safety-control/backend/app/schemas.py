@@ -423,7 +423,7 @@ class WorkerOut(BaseModel):
     special_memo: str | None
     special_since: date | None
     special_by_name: str | None
-    general_edu: bool                     # 기초안전보건교육 이수 여부
+    general_edu: bool                     # 기초 이수 교육 4종을 모두 받았는지
     educations: list[WorkerEducationOut]
     today_work: TodayWork | None          # 오늘 배정된 작업
 

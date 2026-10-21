@@ -138,7 +138,7 @@
 
       $("k-all").innerHTML = `${workers.length}<i>명</i>`;
       $("k-sp").innerHTML = `${workers.filter((w) => w.special_tags.length).length}<i>명</i>`;
-      const idle = workers.filter((w) => !w.today_work);
+      const idle = workers.filter((w) => w.general_edu && !w.today_work);
       $("idle").innerHTML = idle.length
         ? `<div class="check warn"><div><b>오늘 배정 없는 작업자 ${idle.length}명</b><small>${idle.slice(0, 4).map((w) => esc(w.name)).join(", ")}${idle.length > 4 ? " 외" : ""}</small></div><a class="btn sm" href="works.html" data-need="MANAGER">배정</a></div>`
         : '<div class="check"><div><b>모든 작업자 배정됨</b><small>오늘 배정 없는 작업자가 없습니다</small></div></div>';
@@ -165,7 +165,7 @@
       $("edu-list").innerHTML = w.educations.length ? w.educations.map((e) => `
         <div class="check${e.edu_type === "GENERAL" ? "" : " info"}"><div><b>${esc(e.name)}</b><small>${e.edu_type === "GENERAL" ? "기초안전보건교육" : "특별교육"} · ${fmtTime(e.completed_date + "T", { time: false })} 이수</small></div>
           <button class="btn sm" type="button" data-edu-del="${e.id}">삭제</button></div>`).join("")
-        : '<div class="hint">아직 이수한 교육이 없습니다. <b>기초안전보건교육</b>은 현장 투입 전에 꼭 받아야 합니다.</div>';
+        : '<div class="hint">아직 이수한 교육이 없습니다. 기초교육 <b>이수</b>는 근로자 정기안전보건교육, 건설업 기초안전보건교육, 채용 시 교육, 작업내용 변경 시 교육을 모두 등록했을 때만 됩니다.</div>';
     }
 
     $("form").addEventListener("submit", async (e) => {

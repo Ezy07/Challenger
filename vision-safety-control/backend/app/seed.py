@@ -36,6 +36,7 @@ from .models import (
     EventStatus,
     Organization,
     OrgType,
+    REQUIRED_GENERAL_EDU,
     ReleaseCheckItem,
     SpecialReason,
     Roi,
@@ -86,9 +87,9 @@ ZONES = [
     ("103동 외벽 인양구역", (0.06, 0.66, 0.28, 0.28)),
 ]
 
-# 안전교육 목록 (구분, 이름)
+# 안전교육 목록 (구분, 이름). 기초 4종은 모두 이수해야 화면에서 이수로 본다.
 EDUCATIONS = [
-    (EduType.GENERAL, "건설업 기초안전보건교육"),
+    *[(EduType.GENERAL, name) for name in REQUIRED_GENERAL_EDU],
     (EduType.SPECIAL, "밀폐공간 작업"),
     (EduType.SPECIAL, "비계 조립·해체 작업"),
     (EduType.SPECIAL, "거푸집 동바리 조립·해체 작업"),

@@ -70,20 +70,28 @@ def test_special_designate_and_clear(client, manager):
 
 
 def test_worker_education(client, manager):
+    from app.models import REQUIRED_GENERAL_EDU
+
     han = worker_by_name(client, manager, "한상우")
     edus = client.get("/api/educations", headers=manager).json()
-    general = next(e for e in edus if e["edu_type"] == "GENERAL")
-    res = client.post(f"/api/workers/{han['id']}/educations", json={"edu_id": general["id"], "completed_date": str(TODAY)},
+    generals = [e for e in edus if e["name"] in REQUIRED_GENERAL_EDU]
+    assert {e["name"] for e in generals} == set(REQUIRED_GENERAL_EDU)
+    res = client.post(f"/api/workers/{han['id']}/educations", json={"edu_id": generals[0]["id"], "completed_date": str(TODAY)},
                       headers=manager)
     assert res.status_code == 201
     han = res.json()
-    assert han["general_edu"] is True
+    assert han["general_edu"] is False  # 4개 중 하나만으로는 이수되지 않는다
     record = han["educations"][0]
-    future = {"edu_id": general["id"], "completed_date": str(TODAY + timedelta(days=1))}
+    future = {"edu_id": generals[0]["id"], "completed_date": str(TODAY + timedelta(days=1))}
     assert client.post(f"/api/workers/{han['id']}/educations", json=future, headers=manager).status_code == 422
 
+    for edu in generals[1:]:
+        han = client.post(f"/api/workers/{han['id']}/educations", json={"edu_id": edu["id"], "completed_date": str(TODAY)},
+                          headers=manager).json()
+    assert han["general_edu"] is True
+
     han = client.delete(f"/api/workers/{han['id']}/educations/{record['id']}", headers=manager).json()
-    assert han["general_edu"] is False and han["educations"] == []
+    assert han["general_edu"] is False
 
 
 def test_deleted_worker_leaves_open_work_and_equipment(client, manager):
