@@ -72,7 +72,7 @@
       align-items: center;
       gap: 8px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 17px;
       font-weight: 600;
     }
 
@@ -95,7 +95,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       text-align: center;
-      font-size: 26px;
+      font-size: 31px;
       font-weight: 750;
       letter-spacing: -0.04em;
     }
@@ -103,8 +103,8 @@
     .site-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .site-side { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
     .full-btn, .full-exit {
-      height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line);
-      background: #121820; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700;
+      height: 42px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line);
+      background: #121820; color: var(--ink); font: inherit; font-size: 17.5px; font-weight: 700;
       white-space: nowrap; cursor: pointer;
     }
     .full-btn:hover, .full-exit:hover { border-color: rgba(255, 154, 31, 0.7); }
@@ -116,15 +116,15 @@
     .full-exit { background: rgba(18, 24, 32, 0.88); }
 
     .pager {
-      width: 28px;
-      height: 28px;
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
       border: 1px solid var(--line);
       background: #121820;
       color: var(--muted);
       display: grid;
       place-items: center;
-      font-size: 13px;
+      font-size: 18px;
       font-weight: 700;
     }
 
@@ -137,7 +137,7 @@
     .hello {
       margin-left: 8px;
       text-align: right;
-      font-size: 12px;
+      font-size: 17px;
       color: var(--muted);
       line-height: 1.35;
     }
@@ -165,7 +165,7 @@
       position: absolute; z-index: 5; top: 50%; left: -17px; transform: translateY(-50%);
       width: 22px; height: 64px; padding: 0; border-radius: 10px 0 0 10px;
       border: 1px solid var(--line); border-right: 0; background: var(--panel-2); color: var(--muted);
-      font: inherit; font-size: 12px; cursor: pointer; box-shadow: -6px 0 16px rgba(0, 0, 0, 0.25);
+      font: inherit; font-size: 17px; cursor: pointer; box-shadow: -6px 0 16px rgba(0, 0, 0, 0.25);
     }
     .rail-toggle:hover { color: var(--ink); background: #243044; }
     .rail-toggle:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
@@ -185,11 +185,11 @@
     }
     .fold-btn:hover { color: var(--ink); }
     .fold-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 4px; }
-    .fold-btn .chev { font-style: normal; font-size: 11px; color: var(--muted); transition: transform .18s; }
+    .fold-btn .chev { font-style: normal; font-size: 16px; color: var(--muted); transition: transform .18s; }
     .folded .fold-btn .chev { transform: rotate(-90deg); }
     .zone, .alerts { overflow: auto; }
     .zone .pad, .alerts .pad { height: auto; min-height: 100%; }
-    .label a { color: var(--orange); font-size: 11.5px; font-weight: 700; }
+    .label a { color: var(--orange); font-size: 16.5px; font-weight: 700; }
     .alerts a.item:has(.status.ok),
     .zone button.tc-card:has([data-tc-status].ok) { cursor: default; }
     .alerts a.item { position: relative; overflow: hidden; }
@@ -213,12 +213,12 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 13px;
+      font-size: 18px;
       font-weight: 700;
       color: #c5d0dc;
     }
 
-    .label span { color: var(--muted); font-weight: 600; font-size: 11px; }
+    .label span { color: var(--muted); font-weight: 600; font-size: 16px; }
 
     .tc-card, .item, .person {
       background: var(--panel-2);
@@ -234,14 +234,14 @@
     .tc-card.active { border-left-color: var(--orange); }
 
     .tc-card .code {
-      font-size: 11px;
+      font-size: 16px;
       color: var(--orange);
       font-weight: 700;
       margin-bottom: 3px;
     }
 
-    .tc-card strong { display: block; font-size: 15px; letter-spacing: -0.03em; }
-    .tc-card p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+    .tc-card strong { display: block; font-size: 20px; letter-spacing: -0.03em; }
+    .tc-card p { margin-top: 4px; font-size: 17px; color: var(--muted); }
 
     .item, .person { padding: 9px 11px; }
 
@@ -253,10 +253,10 @@
       gap: 8px;
     }
 
-    .item b, .person b { font-size: 13px; font-weight: 700; }
-    .desc { font-size: 12px; color: var(--muted); }
+    .item b, .person b { font-size: 18px; font-weight: 700; }
+    .desc { font-size: 17px; color: var(--muted); }
     /* 섹터 감지경보 칸 아래: 지금 작업자 수 · 안전모 · 조끼 착용 (서버 탐지 · /api/stream/people) */
-    .crew { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 7px; font-size: 11.5px; color: var(--muted); }
+    .crew { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 7px; font-size: 16.5px; color: var(--muted); }
     .crew b { color: var(--ink); font-weight: 750; }
     .crew .miss b, .crew .miss { color: var(--red); }
 
@@ -264,7 +264,7 @@
       flex: none;
       border-radius: 999px;
       padding: 2px 8px;
-      font-size: 11px;
+      font-size: 16px;
       font-weight: 800;
     }
 
@@ -315,7 +315,7 @@
     .cam-lead {
       margin: 14px 0 12px;
       color: var(--ink);
-      font-size: 14px;
+      font-size: 19px;
       font-weight: 650;
       line-height: 1.5;
     }
@@ -332,7 +332,7 @@
       border-radius: 8px;
       padding: 8px 14px;
       font: inherit;
-      font-size: 13px;
+      font-size: 18px;
       font-weight: 700;
       cursor: pointer;
     }
@@ -412,7 +412,7 @@
       top: -18px;
       left: -2px;
       font-style: normal;
-      font-size: 11px;
+      font-size: 16px;
       font-weight: 700;
       padding: 1px 5px;
       color: #08140d;
@@ -426,7 +426,7 @@
     .cam-tag, .cam-time, .cam-zone {
       position: absolute;
       z-index: 3;
-      font-size: 12px;
+      font-size: 17px;
       font-weight: 700;
       background: rgba(8, 12, 18, 0.72);
       border: 1px solid rgba(255,255,255,0.08);
@@ -439,7 +439,7 @@
     .cam-zone { left: 10px; bottom: 10px; color: #d5deea; font-weight: 600; }
 
     .role {
-      font-size: 11px;
+      font-size: 16px;
       font-weight: 800;
       color: #1a1206;
       background: var(--orange);
@@ -447,7 +447,7 @@
       padding: 3px 8px;
     }
 
-    .person small { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
+    .person small { display: block; margin-top: 2px; color: var(--muted); font-size: 16px; }
 
     button.person {
       width: 100%;
@@ -478,7 +478,7 @@
     }
 
     .zone .tc-card { padding: 8px 10px; }
-    .zone .tc-card b { font-size: 13px; }
+    .zone .tc-card b { font-size: 18px; }
     .zone .pad { gap: 8px; }
 
     #tc-pop {
@@ -544,13 +544,13 @@
       text-align: left;
       cursor: pointer;
     }
-    .cmp b { font-size: 14px; }
-    .cmp .k { color: rgba(255, 255, 255, 0.62); font-size: 12px; font-weight: 700; }
+    .cmp b { font-size: 19px; }
+    .cmp .k { color: rgba(255, 255, 255, 0.62); font-size: 17px; font-weight: 700; }
     .cmp .status { justify-self: end; min-width: 64px; text-align: center; white-space: nowrap; }
     .cmp .v {
       width: 8.5em;
       color: #fff;
-      font-size: 14px;
+      font-size: 19px;
       font-weight: 750;
       font-variant-numeric: tabular-nums;
       text-align: right;
@@ -573,13 +573,13 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      height: 46px;
+      height: 56px;
       margin: 0;
       padding: 0 14px;
       border-radius: 12px;
       background: #2a1214;
       border: 1px solid #ff5d5d;
-      font-size: 16px;
+      font-size: 21px;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
@@ -595,7 +595,7 @@
       border-radius: 999px;
       background: #ff5d5d;
       padding: 3px 8px;
-      font-size: 12px;
+      font-size: 17px;
     }
     .hook-alert.soon { background: #2a2112; border-color: var(--amber); }
     .hook-alert.soon b { background: var(--amber); color: #1a1206; }
@@ -616,7 +616,7 @@
       border: 1px solid var(--line);
       border-left: 3px solid var(--green);
       color: #ffffff;
-      font-size: 15px;
+      font-size: 20px;
       font-weight: 650;
     }
     .tc-msg.warn { border-left-color: var(--amber); }
@@ -652,14 +652,14 @@
 
     .pop-head h2 {
       margin-top: 8px;
-      font-size: 22px;
+      font-size: 27px;
       letter-spacing: -0.04em;
     }
 
     .pop-head p {
       margin-top: 4px;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 18px;
     }
 
     .pop-x {
@@ -670,7 +670,7 @@
       border-radius: 8px;
       padding: 6px 10px;
       font: inherit;
-      font-size: 12px;
+      font-size: 17px;
       font-weight: 700;
       cursor: pointer;
     }
@@ -684,7 +684,7 @@
     .pop-score span {
       border-radius: 999px;
       padding: 4px 10px;
-      font-size: 12px;
+      font-size: 17px;
       font-weight: 800;
     }
 
@@ -707,21 +707,21 @@
     .check:last-child { margin-bottom: 0; }
     .check.warn { border-left-color: var(--amber); }
     .check.stop { border-left-color: var(--red); }
-    .check b { display: block; font-size: 14px; letter-spacing: -0.03em; }
-    .check small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .check b { display: block; font-size: 19px; letter-spacing: -0.03em; }
+    .check small { display: block; margin-top: 3px; color: var(--muted); font-size: 17px; }
 
     /* CCTV 1 · 2페이지 전환 (project/board.html 과 같은 방식) */
     .cam-pages { display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 10px; background: #121820; border: 1px solid var(--line); }
-    button.pager { padding: 0; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    button.pager { padding: 0; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
     button.pager:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
-    .cam-pages small { padding: 0 4px; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .cam-pages small { padding: 0 4px; font-size: 16px; font-weight: 700; color: var(--muted); white-space: nowrap; }
     .cam[hidden], .page-group[hidden] { display: none; }
     .cam[data-page="2"] .scene { background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 24%), linear-gradient(180deg, #1a2c40 0%, #14202e 42%, #101820 42%, #0c1218 100%); }
     .cam[data-page="2"] .mast, .cam[data-page="2"] .jib { background: #6cb6ff; }
     .cam[data-page="2"].cam-2 .mast, .cam[data-page="2"].cam-2 .jib { background: #ff9a1f; }
     .cam[data-page="2"].cam-3 .mast, .cam[data-page="2"].cam-3 .jib { background: #c084fc; }
     .cam[data-page="2"].cam-4 .mast, .cam[data-page="2"].cam-4 .jib { background: #ffb020; }
-    .cam-page-tag { position: absolute; z-index: 3; top: 10px; left: 50%; transform: translateX(-50%); font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: rgba(108, 182, 255, 0.2); color: #c5e4ff; border: 1px solid rgba(108, 182, 255, 0.4); white-space: nowrap; }
+    .cam-page-tag { position: absolute; z-index: 3; top: 10px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: rgba(108, 182, 255, 0.2); color: #c5e4ff; border: 1px solid rgba(108, 182, 255, 0.4); white-space: nowrap; }
     #cam-tc03.alarm-on { box-shadow: inset 0 0 0 1px rgba(255, 93, 93, 0.55), 0 10px 30px rgba(0, 0, 0, 0.22); cursor: pointer; }
     #cam-tc03.alarm-on:focus-visible { outline: 2px solid var(--red); outline-offset: -2px; }
     #cam-tc03 .cam-alarm { display: none; }
@@ -755,9 +755,9 @@
     .zone button.tc-card:has([data-tc-status].stop) > * { position: relative; z-index: 1; }
     .permit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--red); }
     .permit-row.ok { border-left-color: var(--green); color: inherit; background: var(--panel-2); }
-    .permit-row b { display: block; font-size: 14px; }
-    .permit-row small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
-    .permit-btn { flex: none; border: 1px solid rgba(61, 220, 132, 0.55); background: rgba(61, 220, 132, 0.14); color: #d9ffe8; border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .permit-row b { display: block; font-size: 19px; }
+    .permit-row small { display: block; margin-top: 3px; color: var(--muted); font-size: 17px; }
+    .permit-btn { flex: none; border: 1px solid rgba(61, 220, 132, 0.55); background: rgba(61, 220, 132, 0.14); color: #d9ffe8; border-radius: 8px; padding: 7px 10px; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
     .permit-btn:hover, .permit-btn:focus-visible { border-color: var(--green); outline: none; }
     .permit-btn.back { border-color: rgba(255, 93, 93, 0.7); background: rgba(255, 93, 93, 0.14); color: #ffd0d0; }
     .pop-act.go { background: var(--green); border-color: transparent; color: #07351c; }
@@ -783,8 +783,8 @@
     .ring {
       --p: 70;
       --c: var(--green);
-      width: 58px;
-      height: 58px;
+      width: 72px;
+      height: 72px;
       flex: none;
       border-radius: 50%;
       background: conic-gradient(var(--c) calc(var(--p) * 1%), #2a3340 0);
@@ -793,8 +793,8 @@
     }
 
     .ring span {
-      width: 44px;
-      height: 44px;
+      width: 54px;
+      height: 54px;
       border-radius: 50%;
       background: #121810;
       display: flex;
@@ -803,13 +803,13 @@
       gap: 1px;
       padding-top: 12px;
       font-weight: 800;
-      font-size: 16px;
+      font-size: 21px;
     }
 
-    .ring span i { font-style: normal; font-size: 10px; font-weight: 700; color: var(--muted); }
+    .ring span i { font-style: normal; font-size: 15px; font-weight: 700; color: var(--muted); }
 
-    .kpi .cap { font-size: 12px; font-weight: 700; line-height: 1.3; }
-    .kpi .cap em { display: block; font-style: normal; color: var(--muted); font-size: 10px; font-weight: 600; }
+    .kpi .cap { font-size: 17px; font-weight: 700; line-height: 1.3; }
+    .kpi .cap em { display: block; font-style: normal; color: var(--muted); font-size: 15px; font-weight: 600; }
 
     .safe .kpi:nth-child(2) .ring { --c: #7dcea0; }
     .safe .kpi:nth-child(3) .ring { --c: #ff9a1f; }
@@ -1429,7 +1429,7 @@
         ctx.stroke();
         const labelAt = geo.angle * Math.PI / 180;
         ctx.fillStyle = mapInk;
-        ctx.font = "700 " + Math.round(14 * dpr) + "px Malgun Gothic, sans-serif";
+        ctx.font = "700 " + Math.round(19 * dpr) + "px Malgun Gothic, sans-serif";
         ctx.fillText(spec.id + "  " + geo.angle.toFixed(1) + "°", mast[0] + Math.cos(labelAt) * (arcR + 8 * dpr), mast[1] - Math.sin(labelAt) * (arcR + 8 * dpr));
       });
       const ta = mapPoint(geos[worst.a].tip[0], geos[worst.a].tip[1], w, h);
@@ -1443,7 +1443,7 @@
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = mapInk;
-      ctx.font = "700 " + Math.round(15 * dpr) + "px Malgun Gothic, sans-serif";
+      ctx.font = "700 " + Math.round(20 * dpr) + "px Malgun Gothic, sans-serif";
       ctx.fillText(worst.d.toFixed(1) + " m", (ta[0] + tb[0]) / 2 + 8, (ta[1] + tb[1]) / 2);
 
       const rows = geos.map((geo, i) => {

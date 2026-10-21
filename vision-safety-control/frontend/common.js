@@ -25,14 +25,15 @@
 const MENU = [
   { icon: "▣", name: "관제화면", pages: [
     ["monitor.html", "관제화면", "CCTV 4분할 · TC/작업구역 · 섹터 감지경보 · 특별관리근로자", 0],
-    ["monitor-camera.html", "단일 카메라 확대", "카메라 한 대를 크게 보면서 ROI · 탐지 박스 · 최근 이벤트 확인", 1],
+    ["monitor-camera.html", "카메라 상세", "카메라 한 대를 크게 보면서 ROI · 탐지 박스 · 최근 이벤트 확인", 1],
   ] },
   { icon: "◫", name: "구역 및 작업", pages: [
     ["zones.html", "전체 구역 표시", "현장 배치도 위에 작업구역과 구역별 작업 · 인원 · 장비 · 경보를 표시", 0],
     ["zone-works.html", "구역별 작업 목록", "구역을 고르면 그 구역에서 오늘 진행하는 작업을 보여 줌", 1],
+    ["works.html", "작업 등록 및 배정", "작업을 만들고 구역 · 담당자 · 작업자를 배정", 0, { need: "MANAGER" }],
     ["work-workers.html", "작업별 장비 · 작업자 목록", "작업 하나에 배정된 작업자 · 특별관리 대상과 그 구역에 투입된 장비 · 운전원 · 상태", 2, { hide: true }],
   ] },
-  { icon: "≡", name: "이벤트 로그", pages: [
+  { icon: "≡", name: "이벤트", pages: [
     ["events.html", "이벤트 목록", "날짜 · 구역 · 종류 · 심각도로 지난 이벤트를 찾고 CSV로 내보내기", 0],
     ["event-detail.html", "이벤트 상세", "이벤트 하나의 스냅샷 · 탐지 정보 · 처리 상태", 1, { hide: true }],
     ["event-snapshot.html", "스냅샷 조회 및 저장", "탐지 순간 이미지를 크게 보고 내려받기", 2, { hide: true }],
@@ -42,21 +43,20 @@ const MENU = [
   { icon: "▤", name: "통계", pages: [
     ["stats.html", "요약", "기간별 건수 · 처리율 · 처리 시간과 종류 · 구역별 건수", 0],
     ["stats-trend.html", "추이 차트", "일별 · 시간대별로 이벤트가 늘거나 줄었는지 확인", 0],
-    ["stats-report.html", "리포트", "기간을 골라 요약 보고서를 만들고 PDF로 저장 · 인쇄", 0],
+    ["stats-report.html", "보고서", "기간을 골라 요약 보고서를 만들고 PDF로 저장 · 인쇄", 0],
+  ] },
+  { icon: "⚙", name: "장비", pages: [
+    ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
+    ["equipment-assign.html", "장비 등록 및 배정", "중장비를 등록하고 투입 구역 · 운전원을 지정", 0, { need: "MANAGER" }],
+    ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 구비 서류와 안전교육", 0, { hide: true }],
+  ] },
+  { icon: "✚", name: "작업자", pages: [
+    ["workers.html", "현장작업자 관리", "현장작업자 등록 · 수정 · 삭제", 0],
+    ["worker-special.html", "특별관리 지정", "고령 · 고혈압 · 신규 투입 등 특별관리 대상 지정과 해제", 0, { need: "MANAGER" }],
   ] },
   { icon: "⬠", name: "ROI", admin: true, need: "ADMIN", pages: [
     ["roi-draw.html", "ROI 그리기", "카메라 화면 위를 클릭해 감지 영역(ROI) 다각형 그리기", 0],
     ["roi-list.html", "ROI 목록", "만든 ROI 전체를 보고 켜고 끄기", 0],
-  ] },
-  { icon: "⚙", name: "장비 목록", link: "equipment.html", pages: [
-    ["equipment.html", "장비 목록", "현장 중장비와 현재 상태 (하루 한 번 수동 업데이트)", 0],
-    ["equipment-detail.html", "장비 상세", "장비 한 대의 일일 기록 · 투입 구역 · 구비 서류와 안전교육", 0, { hide: true }],
-  ] },
-  { icon: "✚", name: "안전관리 업무", pages: [
-    ["workers.html", "현장작업자 관리", "현장작업자 등록 · 수정 · 삭제", 0],
-    ["worker-special.html", "특별관리 지정", "고령 · 고혈압 · 신규 투입 등 특별관리 대상 지정과 해제", 0, { need: "MANAGER" }],
-    ["works.html", "작업 등록 및 배정", "작업을 만들고 구역 · 담당자 · 작업자를 배정", 0, { need: "MANAGER" }],
-    ["equipment-assign.html", "장비 등록 및 배정", "중장비를 등록하고 투입 구역 · 운전원을 지정", 0, { need: "MANAGER" }],
   ] },
   { icon: "◆", name: "관리자", admin: true, need: "ADMIN", pages: [
     ["", "회원 관리"],
@@ -411,7 +411,7 @@ function authToken() {
 }
 const escHtml = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-// YOLO 탐지 영상: 서버가 탐지 박스 · ROI 를 그려 넣은 MJPEG. 관제화면(1-1) · 단일 카메라 확대(1-2)만 쓰고,
+// YOLO 탐지 영상: 서버가 탐지 박스 · ROI 를 그려 넣은 MJPEG. 관제화면(1-1) · 카메라 상세(1-2)만 쓰고,
 // 나머지 화면은 원본 영상(/videos/...)을 튼다. 서버에 YOLO 가 없으면 enabled = false
 let detectStatusOnce = null;
 function detectStatus() {

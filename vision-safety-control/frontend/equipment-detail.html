@@ -13,26 +13,26 @@
   <style>
     .main { grid-template-rows: minmax(0, 1fr) auto; }
     #rail > .pad:first-child { flex: none; }
-    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 18px; }
     .info-row > span { color: var(--muted); font-weight: 700; }
     .run { position: relative; height: 34px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
     .run i { position: absolute; top: 6px; bottom: 6px; border-radius: 6px; background: var(--green); }
     .run i.stop { background: var(--red); }
     .run i.idle { background: #3a4554; }
-    .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 4px; }
+    .axis { display: flex; justify-content: space-between; font-size: 16px; color: var(--muted); font-weight: 700; margin-top: 4px; }
     #doc-count, #edu-count { color: var(--muted); font-weight: 700; }
     .doc-item { align-items: center; }
     .doc-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .doc-name label { cursor: pointer; }
-    .doc-more { border: 0; background: none; color: var(--blue); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; padding: 0; white-space: nowrap; }
+    .doc-more { border: 0; background: none; color: var(--blue); font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; padding: 0; white-space: nowrap; }
     .doc-more:hover { color: var(--ink); }
     #doc-detail, #edu-detail { z-index: 40; }
     #edu-detail .pop-card { width: min(560px, 100%); max-height: calc(100vh - 48px); display: flex; flex-direction: column; }
     #doc-detail-body, #edu-detail-body { display: grid; gap: 8px; margin: 0; }
     #edu-detail-body { overflow: auto; }
-    #doc-detail-body li, .detail-sec p, .detail-sec li { font-size: 14px; line-height: 1.5; }
+    #doc-detail-body li, .detail-sec p, .detail-sec li { font-size: 19px; line-height: 1.5; }
     .detail-sec { display: grid; gap: 4px; }
-    .detail-sec b { font-size: 13px; }
+    .detail-sec b { font-size: 18px; }
     .detail-sec p { margin: 0; }
     .detail-sec ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
   </style>
@@ -80,7 +80,7 @@
       </div>
       <div class="pad">
         <div class="label">장비 정보 <span id="e-reg"></span></div>
-        <div style="font-size:22px; font-weight:800" id="e-title">-</div>
+        <div style="font-size:27px; font-weight:800" id="e-title">-</div>
         <div id="e-info"></div>
         <div class="label" style="margin-top:6px">오늘 점검</div>
         <div id="e-check"></div>

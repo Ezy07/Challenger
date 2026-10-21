@@ -12,13 +12,13 @@
   background: #fff;
 }
 .mode-change button {
-  height: 36px;
+  height: 44px;
   border: 0;
   border-radius: 8px;
   background: transparent;
   color: #1a1206;
   font: inherit;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 800;
   cursor: pointer;
 }

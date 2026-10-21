@@ -22,10 +22,10 @@
     .plot svg #hit { cursor: pointer; outline: none; }
     /* 시간대 막대: 굵기 최대 24px, 위만 둥글게. 가장 많은 시간대만 주황 · 나머지는 회색 */
     .cols { flex: 1; min-height: 120px; display: grid; gap: 4px; align-items: end; }
-    .col { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; font-size: 10.5px; color: var(--muted); font-weight: 700; border-radius: 6px; outline: none; }
+    .col { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; font-size: 15.5px; color: var(--muted); font-weight: 700; border-radius: 6px; outline: none; }
     .col:hover, .col:focus-visible { background: rgba(255, 255, 255, 0.04); }
     .col i { width: 100%; max-width: 24px; border-radius: 4px 4px 0 0; background: #5f6f86; }
-    .col b { color: var(--ink); font-size: 12px; min-height: 15px; }
+    .col b { color: var(--ink); font-size: 17px; min-height: 15px; }
     .col.peak i { background: var(--orange); }
     .col { cursor: pointer; }
     /* 날짜 · 시간대를 누르면 뜨는 이벤트 목록 팝업 */
@@ -131,19 +131,19 @@
       let html = "";
       ys.forEach((v) => {
         html += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${GRID}" stroke-width="1" />`
-          + `<text x="${L - 8}" y="${y(v) + 4}" fill="${AXIS}" font-size="11" text-anchor="end">${v}</text>`;
+          + `<text x="${L - 8}" y="${y(v) + 4}" fill="${AXIS}" font-size="16" text-anchor="end">${v}</text>`;
       });
       const line = pts.map((d, i) => `${x(i)},${y(d.count)}`).join(" ");
       html += `<polygon points="${x(0)},${y(0)} ${line} ${x(n - 1)},${y(0)}" fill="${ACCENT}" fill-opacity="0.1" />`;
       html += `<polyline points="${line}" fill="none" stroke="${ACCENT}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />`;
       const every = n > 20 ? 5 : n > 10 ? 2 : 1;
       pts.forEach((d, i) => {
-        if ((n - 1 - i) % every === 0) html += `<text x="${x(i)}" y="${H - 8}" fill="${AXIS}" font-size="11" text-anchor="middle">${d.label}</text>`;
+        if ((n - 1 - i) % every === 0) html += `<text x="${x(i)}" y="${H - 8}" fill="${AXIS}" font-size="16" text-anchor="middle">${d.label}</text>`;
       });
       // 마지막 날(오늘)만 점과 숫자로 표시
       const last = pts[n - 1];
       html += `<circle cx="${x(n - 1)}" cy="${y(last.count)}" r="5" fill="${ACCENT}" stroke="${SURFACE}" stroke-width="2" />`
-        + `<text x="${x(n - 1) - 8}" y="${y(last.count) - 10}" fill="#eef3f8" font-size="12" font-weight="700" text-anchor="end">오늘 ${last.count}건</text>`;
+        + `<text x="${x(n - 1) - 8}" y="${y(last.count) - 10}" fill="#eef3f8" font-size="17" font-weight="700" text-anchor="end">오늘 ${last.count}건</text>`;
       // 십자선: 마우스 가까운 날짜로 맞춘다
       html += `<line id="cross" y1="${T}" y2="${H - B}" stroke="${AXIS}" stroke-width="1" visibility="hidden" />`
         + `<circle id="cross-dot" r="5" fill="${ACCENT}" stroke="${SURFACE}" stroke-width="2" visibility="hidden" />`

@@ -21,7 +21,7 @@
     .page.map-editing .map-cell { height: auto; overflow: visible; }
     .page.map-editing .plan-area { flex: none; height: calc(100vh - var(--gnb-h) - 230px); min-height: 340px; }
     .map-cell .pad { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
-    .edit-bar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(255, 154, 31, 0.6); background: rgba(255, 154, 31, 0.06); font-size: 13px; }
+    .edit-bar { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(255, 154, 31, 0.6); background: rgba(255, 154, 31, 0.06); font-size: 18px; }
     #edit-cam { width: min(420px, 100%); }
     .sliders { display: grid; gap: 4px; }
     .sliders label { display: grid; grid-template-columns: 30px 150px 60px; align-items: center; gap: 8px; }
@@ -35,8 +35,8 @@
     #marks .cam:hover circle, #marks .cam.on circle { stroke: #fff; stroke-width: 3; }
     .editing #marks { cursor: crosshair; }
     .editing #marks .cam { cursor: grab; }
-    .plan-empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); font-size: 14px; font-weight: 700; pointer-events: none; }
-    .plan-info { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+    .plan-empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); font-size: 19px; font-weight: 700; pointer-events: none; }
+    .plan-info { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 18px; }
     .plan-info span { color: var(--muted); font-weight: 700; }
   </style>
 </head>
@@ -148,7 +148,7 @@
         return `<g class="cam${picked === c.id ? " on" : ""}" data-id="${c.id}">
           ${c.plan_dir == null ? "" : `<path d="${cone(x, y, c.plan_dir, fovOf(c), rangeOf(c))}" fill="${col}" fill-opacity="${fovOf(c) >= 360 ? 0.22 : 0.42}" stroke="${col}" stroke-opacity="0.95" stroke-width="2.5" stroke-linejoin="round" />`}
           <circle cx="${x}" cy="${y}" r="10" fill="${col}" stroke="#0c1016" stroke-width="3" />
-          <text x="${x}" y="${ty}" fill="#fff" font-size="18" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#0c1016" stroke-width="4">${esc(label)}</text></g>`;
+          <text x="${x}" y="${ty}" fill="#fff" font-size="23" font-weight="800" text-anchor="middle" paint-order="stroke" stroke="#0c1016" stroke-width="4">${esc(label)}</text></g>`;
       }).join("");
     }
 

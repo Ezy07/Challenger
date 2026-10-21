@@ -19,8 +19,8 @@
     .roles label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: start; padding: 11px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); cursor: pointer; }
     .roles label:has(input:checked) { border-color: var(--orange); background: rgba(255, 154, 31, 0.08); }
     .roles input { grid-row: span 2; margin-top: 3px; }
-    .roles b { font-size: 14px; }
-    .roles small { color: var(--muted); font-size: 12px; }
+    .roles b { font-size: 19px; }
+    .roles small { color: var(--muted); font-size: 17px; }
     .perm th:not(:first-child), .perm td:not(:first-child) { text-align: center; }
     .perm td:first-child { color: #c5d0dc; font-weight: 600; }
     .perm .yes { color: var(--green); font-weight: 800; }
@@ -28,9 +28,9 @@
     .perm .part { color: var(--amber); font-weight: 800; }
     .perm col.on { background: rgba(255, 154, 31, 0.08); }
     .who { display: flex; align-items: center; gap: 12px; }
-    .who .av { width: 46px; height: 46px; border-radius: 50%; background: #243044; display: grid; place-items: center; font-weight: 800; font-size: 18px; }
-    .who b { font-size: 17px; }
-    .who small { display: block; color: var(--muted); font-size: 12px; }
+    .who .av { width: 46px; height: 46px; border-radius: 50%; background: #243044; display: grid; place-items: center; font-weight: 800; font-size: 23px; }
+    .who b { font-size: 22px; }
+    .who small { display: block; color: var(--muted); font-size: 17px; }
     @media (max-width: 1100px) { .roles { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -61,7 +61,7 @@
         <div class="label" style="margin-top:10px">역할 (권한) <span>role</span></div>
         <div class="roles" id="roles">
           <label><input type="radio" name="role" value="ADMIN" /><b>관리자 (ADMIN)</b><small>모든 화면 + 관리자 메뉴(회원 · 카메라 · 알림 규칙)</small></label>
-          <label><input type="radio" name="role" value="MANAGER" /><b>안전관리자 (MANAGER)</b><small>관제 · 이벤트 처리 · ROI · 안전관리 업무</small></label>
+          <label><input type="radio" name="role" value="MANAGER" /><b>안전관리자 (MANAGER)</b><small>관제 · 이벤트 처리 · ROI · 작업자</small></label>
           <label><input type="radio" name="role" value="VIEWER" /><b>조회 전용 (VIEWER)</b><small>화면 보기만, 저장 · 처리 불가</small></label>
         </div>
         <div class="label" style="margin-top:6px">역할별 메뉴 권한 <span>● 가능 · ◐ 보기만 · – 안 보임</span></div>
@@ -73,9 +73,9 @@
               <tr><td>관제화면 · 알림 확인</td><td class="yes">●</td><td class="yes">●</td><td class="part">◐</td></tr>
               <tr><td>구역 및 작업</td><td class="yes">●</td><td class="yes">●</td><td class="part">◐</td></tr>
               <tr><td>이벤트 처리 기록</td><td class="yes">●</td><td class="yes">●</td><td class="part">◐</td></tr>
-              <tr><td>통계 · 리포트</td><td class="yes">●</td><td class="yes">●</td><td class="part">◐</td></tr>
+              <tr><td>통계 · 보고서</td><td class="yes">●</td><td class="yes">●</td><td class="part">◐</td></tr>
               <tr><td>ROI 그리기 · 규칙</td><td class="yes">●</td><td class="yes">●</td><td class="no">–</td></tr>
-              <tr><td>안전관리 업무</td><td class="yes">●</td><td class="yes">●</td><td class="no">–</td></tr>
+              <tr><td>작업자</td><td class="yes">●</td><td class="yes">●</td><td class="no">–</td></tr>
               <tr><td>관리자 메뉴</td><td class="yes">●</td><td class="no">–</td><td class="no">–</td></tr>
             </tbody>
           </table>
@@ -94,7 +94,7 @@
         <div><span class="status ok">초기화 완료</span><h2 id="pw-title">임시 비밀번호</h2><p>이 창을 닫으면 다시 볼 수 없습니다. 본인에게 전달하고 로그인 후 바꾸도록 안내하세요. 잠긴 계정이었다면 잠금도 풀렸습니다.</p></div>
       </div>
       <div class="pop-body">
-        <div class="input" id="pw-value" style="font-family:Consolas,monospace; font-size:18px; user-select:all"></div>
+        <div class="input" id="pw-value" style="font-family:Consolas,monospace; font-size:23px; user-select:all"></div>
         <div class="row end"><button class="btn primary" data-close>확인</button></div>
       </div>
     </div>

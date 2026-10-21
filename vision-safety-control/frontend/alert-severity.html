@@ -14,16 +14,16 @@
     .main { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
     .lv { border-top: 5px solid var(--c); }
     .lv-head { display: flex; align-items: center; gap: 10px; }
-    .lv-head b { font-size: 22px; letter-spacing: -0.03em; }
-    .lv-head small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
-    .sub { font-size: 12px; font-weight: 800; color: var(--muted); margin-top: 4px; }
-    .cond { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+    .lv-head b { font-size: 27px; letter-spacing: -0.03em; }
+    .lv-head small { display: block; color: var(--muted); font-size: 17px; margin-top: 2px; }
+    .sub { font-size: 17px; font-weight: 800; color: var(--muted); margin-top: 4px; }
+    .cond { display: flex; align-items: center; gap: 8px; padding: 9px 11px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); font-size: 18px; font-weight: 600; }
     .cond .x { margin-left: auto; color: var(--muted); cursor: pointer; }
-    .act { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; padding: 6px 2px; }
+    .act { display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 700; padding: 6px 2px; }
     .conds { display: grid; gap: 8px; }
     .cond.off { opacity: 0.55; }
     .cond .moves { margin-left: auto; display: flex; gap: 4px; }
-    .mv { width: 26px; height: 24px; border-radius: 6px; border: 1px solid var(--line); background: #121820; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
+    .mv { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--line); background: #121820; color: var(--muted); font: inherit; font-size: 16px; cursor: pointer; }
     .mv:hover, .mv:focus-visible { color: var(--ink); border-color: rgba(255, 154, 31, 0.7); outline: none; }
   </style>
 </head>
@@ -33,21 +33,21 @@
 
     <main class="main">
       <section class="cell lv" style="--c:var(--red)"><div class="pad">
-        <div class="lv-head"><span class="status stop" style="font-size:13px; padding:4px 12px">높음</span><div><b>즉시 조치</b><small>사람이 다칠 수 있는 상황</small></div></div>
+        <div class="lv-head"><span class="status stop" style="font-size:18px; padding:4px 12px">높음</span><div><b>즉시 조치</b><small>사람이 다칠 수 있는 상황</small></div></div>
         <div class="sub">이 감지 유형은 기본으로 높음</div>
         <div class="conds" data-lv="HIGH"></div>
         <select class="input" data-need="ADMIN" data-add="HIGH" aria-label="높음으로 옮길 감지 유형"></select>
       </div></section>
 
       <section class="cell lv" style="--c:var(--amber)"><div class="pad">
-        <div class="lv-head"><span class="status warn" style="font-size:13px; padding:4px 12px">중간</span><div><b>현장 점검</b><small>위험해질 수 있는 상황</small></div></div>
+        <div class="lv-head"><span class="status warn" style="font-size:18px; padding:4px 12px">중간</span><div><b>현장 점검</b><small>위험해질 수 있는 상황</small></div></div>
         <div class="sub">이 감지 유형은 기본으로 중간</div>
         <div class="conds" data-lv="MEDIUM"></div>
         <select class="input" data-need="ADMIN" data-add="MEDIUM" aria-label="중간으로 옮길 감지 유형"></select>
       </div></section>
 
       <section class="cell lv" style="--c:var(--green)"><div class="pad">
-        <div class="lv-head"><span class="status ok" style="font-size:13px; padding:4px 12px">낮음</span><div><b>기록</b><small>지켜볼 상황</small></div></div>
+        <div class="lv-head"><span class="status ok" style="font-size:18px; padding:4px 12px">낮음</span><div><b>기록</b><small>지켜볼 상황</small></div></div>
         <div class="sub">이 감지 유형은 기본으로 낮음</div>
         <div class="conds" data-lv="LOW"></div>
         <select class="input" data-need="ADMIN" data-add="LOW" aria-label="낮음으로 옮길 감지 유형"></select>
@@ -67,7 +67,7 @@
         const mine = types.filter((t) => t.default_severity === lv);
         document.querySelector(`[data-lv="${lv}"]`).innerHTML = mine.length ? mine.map((t) => {
           const i = ORDER.indexOf(lv);
-          return `<div class="cond${t.is_active ? "" : " off"}" data-id="${t.id}">${esc(t.label)} <span class="muted" style="font-size:11px">${esc(t.code)}${t.is_active ? "" : " · 사용 안 함"}</span>
+          return `<div class="cond${t.is_active ? "" : " off"}" data-id="${t.id}">${esc(t.label)} <span class="muted" style="font-size:16px">${esc(t.code)}${t.is_active ? "" : " · 사용 안 함"}</span>
             <span class="moves" data-need="ADMIN">${i > 0 ? `<button class="mv" data-to="${ORDER[i - 1]}" title="${labelOf("severity", ORDER[i - 1])}으로 올리기">▲</button>` : ""}${i < 2 ? `<button class="mv" data-to="${ORDER[i + 1]}" title="${labelOf("severity", ORDER[i + 1])}으로 내리기">▼</button>` : ""}</span></div>`;
         }).join("") : '<div class="muted" style="padding:6px 2px">없음</div>';
         const others = types.filter((t) => t.default_severity !== lv);

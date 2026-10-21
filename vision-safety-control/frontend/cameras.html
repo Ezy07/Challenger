@@ -13,16 +13,18 @@
   <style>
     .main { grid-template-rows: auto auto; }
     .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 10px; align-content: start; }
-    .camcard { overflow: hidden; display: grid; grid-template-rows: 150px auto; }
+    .camcard { min-width: 0; overflow: hidden; display: grid; grid-template-rows: 150px auto; }
     .camcard:hover { border-color: rgba(255, 154, 31, 0.7); }
-    .camcard .cam { border-radius: 0; }
-    .camcard dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 12px 14px; font-size: 12.5px; }
-    .camcard dt { color: var(--muted); font-weight: 700; }
-    .camcard dd { text-align: right; font-weight: 700; }
-    .grid-sep { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin-top: 6px; font-size: 15px; font-weight: 800; }
-    .grid-sep span { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .camcard .cam { width: 100%; min-width: 0; border-radius: 0; }
+    .camcard .cam-tag { max-width: calc(100% - 96px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .camcard .cam-time { max-width: 46%; white-space: nowrap; }
+    .camcard dl { min-width: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; padding: 12px 14px; font-size: 17.5px; align-items: start; }
+    .camcard dt { color: var(--muted); font-weight: 700; white-space: nowrap; }
+    .camcard dd { min-width: 0; text-align: right; font-weight: 700; overflow-wrap: anywhere; }
+    .grid-sep { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin-top: 6px; font-size: 20px; font-weight: 800; }
+    .grid-sep span { font-size: 17px; font-weight: 600; color: var(--muted); }
     .camcard .cam-video { object-fit: cover; }
-    .camcard .src-tag { position: absolute; left: 10px; bottom: 9px; z-index: 3; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(8, 12, 18, 0.8); color: #c5d0dc; }
+    .camcard .src-tag { position: absolute; left: 10px; bottom: 9px; z-index: 3; font-size: 16px; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(8, 12, 18, 0.8); color: #c5d0dc; }
     .offline { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(8,12,18,0.82); font-weight: 800; color: var(--red); }
   </style>
 </head>

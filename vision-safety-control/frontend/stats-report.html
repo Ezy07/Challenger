@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>리포트 · 안전관제</title>
+  <title>보고서 · 안전관제</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script>
   try { if (localStorage.getItem("safety.mode") === "light") document.documentElement.dataset.mode = "light"; } catch (e) {}
@@ -15,24 +15,24 @@
     .opts { display: flex; flex-wrap: wrap; gap: 6px 14px; }
     .paper-wrap { width: min(720px, 100%); justify-self: center; padding: 0 0 18px; background: none; border: 0; box-shadow: none; }
     .paper { width: 100%; background: #f6f7f9; color: #1c2430; border-radius: 6px; padding: 34px 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.45); display: grid; gap: 18px; }
-    .paper h2 { font-size: 22px; letter-spacing: -0.03em; }
-    .paper .meta { color: #5d6b7c; font-size: 12px; margin-top: 4px; }
-    .paper h3 { font-size: 14px; border-left: 4px solid #ff9a1f; padding-left: 8px; }
-    .paper table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .paper h2 { font-size: 27px; letter-spacing: -0.03em; }
+    .paper .meta { color: #5d6b7c; font-size: 17px; margin-top: 4px; }
+    .paper h3 { font-size: 19px; border-left: 4px solid #ff9a1f; padding-left: 8px; }
+    .paper table { width: 100%; border-collapse: collapse; font-size: 17.5px; }
     .paper th, .paper td { padding: 7px 8px; border-bottom: 1px solid #dde2e8; text-align: left; }
     .paper th { background: #eceff3; }
     .paper .sum { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .paper .sum div { background: #fff; border: 1px solid #dde2e8; border-radius: 8px; padding: 10px; }
-    .paper .sum span { display: block; font-size: 11px; color: #5d6b7c; font-weight: 700; }
-    .paper .sum b { font-size: 22px; }
-    .paper p { font-size: 13px; line-height: 1.6; color: #3d4a5a; }
+    .paper .sum span { display: block; font-size: 16px; color: #5d6b7c; font-weight: 700; }
+    .paper .sum b { font-size: 27px; }
+    .paper p { font-size: 18px; line-height: 1.6; color: #3d4a5a; }
     .mini { display: grid; gap: 6px; }
-    .mini div { display: grid; grid-template-columns: 120px 1fr 34px; gap: 8px; align-items: center; font-size: 12px; }
+    .mini div { display: grid; grid-template-columns: 120px 1fr 34px; gap: 8px; align-items: center; font-size: 17px; }
     .mini i { height: 8px; border-radius: 0 4px 4px 0; background: #e8810a; min-width: 2px; }
     .mini span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .paper h3 span { font-weight: 600; color: #5d6b7c; }
-    .paper .cmp { margin-top: 8px; font-size: 12.5px; }
-    .paper .edit-hint { font-size: 11px; }
+    .paper .cmp { margin-top: 8px; font-size: 17.5px; }
+    .paper .edit-hint { font-size: 16px; }
     #p-note { padding: 8px 10px; border-radius: 6px; border: 1px dashed #c3cad3; outline: none; }
     #p-note:focus { border-color: #e8810a; background: #fff; }
     .paper [data-part] { display: grid; gap: 10px; }
@@ -71,7 +71,7 @@
           <div class="search-fields">
             <label class="field">시작일<input class="input" type="date" id="f-from" required /></label>
             <label class="field">끝일<input class="input" type="date" id="f-to" required /></label>
-            <div class="field">보고서 종류 <span class="muted" style="font-weight:600">(기간 길이로 정해짐)</span><b id="kind-out" style="font-size:14px; margin-top:6px">-</b></div>
+            <div class="field">보고서 종류 <span class="muted" style="font-weight:600">(기간 길이로 정해짐)</span><b id="kind-out" style="font-size:19px; margin-top:6px">-</b></div>
             <div class="field wide">넣을 내용
               <div class="opts">
                 <label class="opt"><input type="checkbox" data-part="sum" checked /> 요약 숫자</label>

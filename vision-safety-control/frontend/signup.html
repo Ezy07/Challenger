@@ -13,17 +13,17 @@
   <style>
     body { align-items: center; justify-content: center; padding: 16px; overflow: auto; }
     .signup { width: min(520px, 100%); display: grid; gap: 14px; padding: 28px; margin: auto; }
-    .signup .brand { justify-content: center; font-size: 22px; margin: 0; }
-    .signup .brand i { width: 30px; height: 30px; font-size: 16px; }
-    .signup .site { text-align: center; color: var(--muted); font-size: 13px; margin-top: -6px; }
+    .signup .brand { justify-content: center; font-size: 27px; margin: 0; }
+    .signup .brand i { width: 36px; height: 36px; font-size: 21px; }
+    .signup .site { text-align: center; color: var(--muted); font-size: 18px; margin-top: -6px; }
     .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .signup .input { padding: 10px 12px; font-size: 14px; }
-    .signup .btn.primary { padding: 12px; font-size: 15px; }
-    .err { font-size: 12px; color: #ff9b9b; font-weight: 700; min-height: 16px; }
+    .signup .input { padding: 10px 12px; font-size: 19px; }
+    .signup .btn.primary { padding: 12px; font-size: 20px; }
+    .err { font-size: 17px; color: #ff9b9b; font-weight: 700; min-height: 16px; }
     .done { text-align: center; display: grid; gap: 12px; }
-    .done .big { font-size: 40px; }
-    .done h2 { font-size: 22px; letter-spacing: -0.03em; }
-    .done p { color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+    .done .big { font-size: 45px; }
+    .done h2 { font-size: 27px; letter-spacing: -0.03em; }
+    .done p { color: var(--muted); font-size: 18.5px; line-height: 1.6; }
     @media (max-width: 520px) { .two { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -54,10 +54,10 @@
         <option value="VIEWER">조회 전용 · 화면 보기만</option>
       </select>
     </label>
-    <label class="row muted" style="gap:6px; font-size:12.5px"><input type="checkbox" id="su-agree" /> 개인정보 수집 · 이용에 동의합니다 (이름 · 연락처 · 소속)</label>
+    <label class="row muted" style="gap:6px; font-size:17.5px"><input type="checkbox" id="su-agree" /> 개인정보 수집 · 이용에 동의합니다 (이름 · 연락처 · 소속)</label>
     <div class="err" id="err" role="alert"></div>
     <button class="btn primary">가입 신청</button>
-    <div class="row between muted" style="font-size:12.5px"><span>이미 계정이 있나요?</span><a href="login.html" style="color:var(--orange); font-weight:700">로그인으로 →</a></div>
+    <div class="row between muted" style="font-size:17.5px"><span>이미 계정이 있나요?</span><a href="login.html" style="color:var(--orange); font-weight:700">로그인으로 →</a></div>
   </form>
 
   <section class="cell signup done" id="done" hidden>
@@ -65,7 +65,7 @@
     <h2>가입 신청을 보냈습니다</h2>
     <p><b id="done-name">홍길동</b>님의 신청이 관리자에게 전달됐습니다.<br>관리자가 <b>회원가입 승인</b> 화면에서 승인하면 로그인할 수 있습니다.</p>
     <a class="btn primary" href="login.html">로그인 화면으로</a>
-    <a class="muted" style="font-size:12.5px" href="user-approval.html">(시연용) 관리자 승인 화면 보기 →</a>
+    <a class="muted" style="font-size:17.5px" href="user-approval.html">(시연용) 관리자 승인 화면 보기 →</a>
   </section>
 
   <script src="api.js"></script>

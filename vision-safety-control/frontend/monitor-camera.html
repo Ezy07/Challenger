@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>단일 카메라 확대 · 안전관제</title>
+  <title>카메라 상세 · 안전관제</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script>
   try { if (localStorage.getItem("safety.mode") === "light") document.documentElement.dataset.mode = "light"; } catch (e) {}
@@ -17,13 +17,13 @@
     .stage { position: absolute; z-index: 1; }
     .stage video, .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; background: #000; }
     .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-    .no-video { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; text-align: center; padding: 20px; color: #c5d0dc; font-size: 14px; font-weight: 700; background: rgba(8, 12, 18, 0.55); }
-    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .no-video { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; text-align: center; padding: 20px; color: #c5d0dc; font-size: 19px; font-weight: 700; background: rgba(8, 12, 18, 0.55); }
+    .info-row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 18px; }
     .info-row > span { color: var(--muted); font-weight: 700; white-space: nowrap; }
     .info-row b { text-align: right; overflow-wrap: anywhere; }
     .full-btn, .full-exit {
-      height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line);
-      background: #121820; color: var(--ink); font: inherit; font-size: 12.5px; font-weight: 700;
+      height: 42px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line);
+      background: #121820; color: var(--ink); font: inherit; font-size: 17.5px; font-weight: 700;
       white-space: nowrap; cursor: pointer;
     }
     .full-btn:hover, .full-exit:hover { border-color: rgba(255, 154, 31, 0.7); }
@@ -34,11 +34,11 @@
     }
     .full-exit { background: rgba(18, 24, 32, 0.88); }
     .cam-pick {
-      height: 34px; min-width: 220px; max-width: min(420px, 70vw); padding: 0 10px; color-scheme: dark;
+      height: 42px; min-width: 240px; max-width: min(460px, 70vw); padding: 0 10px; color-scheme: dark;
       border-radius: 9px; border: 1px solid var(--line); background: #121820; color: var(--ink);
-      font: inherit; font-size: 13px; font-weight: 700;
+      font: inherit; font-size: 18px; font-weight: 700;
     }
-    .full-bar .cam-pick { height: 32px; min-width: 0; background: rgba(18, 24, 32, 0.88); font-size: 12.5px; }
+    .full-bar .cam-pick { height: 42px; min-width: 0; background: rgba(18, 24, 32, 0.88); font-size: 17.5px; }
     body.cam-full { overflow: hidden; }
     body.cam-full .gnb, body.cam-full .drawer, body.cam-full .scrim,
     body.cam-full .head, body.cam-full .pick-bar, body.cam-full .controls,
@@ -156,7 +156,7 @@
         const color = ROI_KINDS[r.kind].color, pts = key.pts.map((q) => q.join(",")).join(" ");
         const c = key.pts.reduce((a, q) => [a[0] + q[0] / key.pts.length, a[1] + q[1] / key.pts.length], [0, 0]);
         return `<polygon points="${pts}" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="3" stroke-dasharray="12 7" />
-          <text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="26" font-weight="800" stroke="#0c1016" stroke-width="5" paint-order="stroke">${r.no} ${escHtml(roiName(r))}</text>`;
+          <text x="${c[0]}" y="${c[1]}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="31" font-weight="800" stroke="#0c1016" stroke-width="5" paint-order="stroke">${r.no} ${escHtml(roiName(r))}</text>`;
       }).join("");
     }
     $("video").addEventListener("timeupdate", drawRois);
