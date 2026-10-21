@@ -34,7 +34,7 @@ PPE_PARTS = ("helmet", "vest")  # PPE 모델에서 쓰는 클래스 (사람은 �
 MASK_COLOR = (192, 132, 252)  # 세그 모델 윤곽 (굴삭기 등)
 TEXT_DARK = (12, 16, 22)
 NAMES_KO = {"person": "사람", "car": "차량", "truck": "트럭", "bus": "버스", "motorcycle": "오토바이", "bicycle": "자전거",
-            "excavator": "굴삭기", "helmet": "안전모", "vest": "조끼"}
+            "excavator": "굴삭기", "forklift": "지게차", "helmet": "안전모", "vest": "조끼"}
 FONTS = ("C:/Windows/Fonts/malgunbd.ttf", "C:/Windows/Fonts/malgun.ttf",
          "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf", "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
          "/System/Library/Fonts/AppleSDGothicNeo.ttc")
@@ -135,7 +135,8 @@ def _open_model(path: str):
 class Detector:
     """YOLO 모델 하나를 모든 카메라가 같이 쓴다 (탐지 스레드 하나에서만 부름).
     YOLO_SEG_MODEL 을 주면 세그 모델을 하나 더 돌려 윤곽(mask)까지 받는다 (시험용. 그만큼 느려짐).
-    YOLO_PPE_MODEL 을 주면 PPE 모델을 하나 더 돌려 안전모 · 조끼 박스를 더한다 (그만큼 느려짐)."""
+    YOLO_PPE_MODEL 을 주면 PPE 모델을 하나 더 돌려 안전모 · 조끼 박스를 더한다 (그만큼 느려짐).
+    기본 모델이 안전모 · 조끼까지 학습한 것이면(site6 등) PPE 모델 없이 그 모델 하나로 미착용 · 신호수까지 판정한다."""
 
     def __init__(self):
         self._model = None
@@ -177,11 +178,20 @@ class Detector:
     @property
     def ppe_ready(self) -> bool:
         """안전모 · 조끼를 잡을 수 있는지. 못 잡는데 판정하면 모든 작업자가 미착용이 되므로 이걸 꼭 확인한다"""
-        return self._ppe is not None
+        return self._ppe is not None or self.builtin_ppe
+
+    @property
+    def builtin_ppe(self) -> bool:
+        """기본 모델이 안전모 · 조끼까지 잡는지 (PPE 모델을 따로 돌리지 않음)"""
+        return all(self.knows(p) for p in PPE_PARTS)
 
     @property
     def ready(self) -> bool:
         return self._model is not None
+
+    def knows(self, name: str) -> bool:
+        """기본 · 세그 모델이 이 클래스를 잡는지 (PPE 모델은 안전모 · 조끼만 쓰므로 빼고 본다)"""
+        return any(name in getattr(m, "names", {}).values() for m in (self._model, self._seg) if m is not None)
 
     @staticmethod
     def _run(model, frame, conf: float) -> list[Box]:
@@ -200,14 +210,21 @@ class Detector:
         """floor 를 주면 그 confidence 까지 낮춰 받는다 (추적기가 낮은 박스로도 이어 붙이게)
         with_ppe=False 면 PPE 모델을 건너뛴다 (PPE_EVERY 번에 한 번만 돌리려고)"""
         conf = keep_conf() if floor is None else min(keep_conf(), floor)
-        boxes = self._run(self._model, frame, conf)
+        if self._ppe is None and self.builtin_ppe:
+            # 모델 하나: 안전모 · 조끼는 PPE_PART_CONF 까지 낮춰 받고 (놓치면 미착용 오탐), 나머지는 원래 기준
+            low = min(conf, settings.ppe_part_conf)
+            boxes = [b for b in self._run(self._model, frame, low) if b.conf >= conf or b.name in PPE_PARTS]
+        else:
+            boxes = self._run(self._model, frame, conf)
         if self._seg is not None:
             segs = self._run(self._seg, frame, settings.yolo_conf if floor is None else conf)
             # 기본 모델이 같은 물체를 트럭 등으로 또 잡은 박스는 뺀다 (많이 겹치면 같은 물체로 봄)
             boxes = [b for b in boxes if b.name == "person" or not any(_iou(b, s) > 0.5 for s in segs)] + segs
-        if self._ppe is not None and with_ppe:
-            low = min(conf, settings.ppe_part_conf)
-            boxes += [b for b in self._run(self._ppe, frame, low) if b.name in PPE_PARTS]
+        if self._ppe is not None:
+            boxes = [b for b in boxes if b.name not in PPE_PARTS]  # 둘 다 잡으면 겹치므로 PPE 모델 것만 쓴다
+            if with_ppe:
+                low = min(conf, settings.ppe_part_conf)
+                boxes += [b for b in self._run(self._ppe, frame, low) if b.name in PPE_PARTS]
         return boxes
 
 
@@ -382,8 +399,9 @@ class Feed:
             self.latest = Snapshot((prev.seq + 1) if prev else 0, frame, video_time, prev.boxes if prev else [])
 
     def ppe_turn(self) -> bool:
-        """이번 탐지에서 PPE 모델을 돌릴 차례인지 (PPE_EVERY 번에 한 번, 처음은 돌림). 부를 때마다 차례가 넘어간다"""
-        turn = self.detections % max(1, settings.ppe_every) == 0
+        """이번 탐지에서 PPE 모델을 돌릴 차례인지 (PPE_EVERY 번에 한 번, 처음은 돌림). 부를 때마다 차례가 넘어간다.
+        PPE 모델을 따로 쓰지 않으면(모델 하나가 안전모 · 조끼까지 잡음) 매번"""
+        turn = detector._ppe is None or self.detections % max(1, settings.ppe_every) == 0
         self.detections += 1
         return turn
 

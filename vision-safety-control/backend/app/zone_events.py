@@ -43,8 +43,9 @@ RULE_REFRESH_SEC = 5
 
 
 def live_codes() -> tuple[str, ...]:
-    """서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시). 미착용 · 신호수는 PPE 모델을 줬을 때만"""
-    worn = ppe.CODES + (signalman.NO_SIGNALMAN,) if settings.yolo_ppe_model else ()
+    """서버의 YOLO 판정이 실제로 만드는 감지 유형 (판정 기준 화면에 표시). 미착용 · 신호수는 PPE 모델을 줬거나
+    기본 모델이 안전모 · 조끼를 잡을 때만 (모델을 열기 전엔 설정으로만 앎)"""
+    worn = ppe.CODES + (signalman.NO_SIGNALMAN,) if settings.yolo_ppe_model or vision.detector.ppe_ready else ()
     return (INTRUSION, DWELL, proximity.PROXIMITY) + worn
 
 

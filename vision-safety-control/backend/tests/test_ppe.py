@@ -173,6 +173,7 @@ def test_ppe_model_every_other_detection(monkeypatch):
     assert [b.name for b in d.detect(None, with_ppe=False)] == ["person"] and calls == ["base"]
 
     monkeypatch.setattr(settings, "ppe_every", 2)
+    monkeypatch.setattr(vision, "detector", d)  # PPE 모델을 따로 쓸 때만 번갈아 돌린다
     feed = vision.Feed((7, "x"), "x", True, "CAM_7")
     turns = [feed.ppe_turn() for _ in range(5)]
     assert turns == [True, False, True, False, True]
@@ -199,3 +200,48 @@ def test_frames_without_ppe_model_are_not_judged(monkeypatch):
     assert ppe.judge.watches == {}
     zone_events.on_detect(feed, Snapshot(1, frame, 0.0, [person()], ppe=True))
     assert list(ppe.judge.watches) == [(7, 1)]
+
+
+def test_one_model_with_helmet_and_vest(monkeypatch):
+    """기본 모델이 안전모 · 조끼까지 학습한 것이면(site6) PPE 모델 없이 그 모델로 판정한다"""
+    from types import SimpleNamespace
+
+    from app import vision
+
+    seen = []
+
+    def fake_run(model, frame, conf):
+        seen.append(conf)
+        return [person(conf=0.9), Box(0, 0, 9, 9, "truck", 0.35), helmet(), vest()]  # 안전모 · 조끼 · 트럭 모두 0.35~0.4
+
+    d = vision.Detector()
+    d._model = SimpleNamespace(names={0: "person", 1: "helmet", 2: "vest", 3: "truck"})
+    monkeypatch.setattr(vision.Detector, "_run", staticmethod(fake_run))
+    monkeypatch.setattr(vision, "min_conf", None)
+    assert d.builtin_ppe and d.ppe_ready
+    # 안전모 · 조끼만 PPE_PART_CONF 까지 낮춰 받고, 트럭은 원래 기준(YOLO_CONF) 미달이라 뺀다
+    assert [b.name for b in d.detect(None)] == ["person", "helmet", "vest"]
+    assert seen == [settings.ppe_part_conf]
+
+    monkeypatch.setattr(vision, "detector", d)
+    monkeypatch.setattr(settings, "ppe_every", 2)
+    feed = vision.Feed((7, "x"), "x", True, "CAM_7")
+    assert all(feed.ppe_turn() for _ in range(4))     # 모델을 따로 안 돌리니 매번 판정
+
+    plain = vision.Detector()
+    plain._model = SimpleNamespace(names={0: "person", 1: "truck"})
+    assert not plain.ppe_ready                          # 안전모 · 조끼를 모르면 미착용 판정 안 함
+
+
+def test_ppe_model_wins_over_base_helmets(monkeypatch):
+    """PPE 모델도 주면 기본 모델의 안전모 · 조끼는 버린다 (같은 안전모가 두 번 잡히지 않게)"""
+    from app import vision
+
+    def fake_run(model, frame, conf):
+        return [person(conf=0.9), helmet()] if model == "base" else [helmet(x=201), vest()]
+
+    d = vision.Detector()
+    d._model, d._ppe = "base", "ppe"
+    monkeypatch.setattr(vision.Detector, "_run", staticmethod(fake_run))
+    boxes = d.detect(None)
+    assert [b.name for b in boxes] == ["person", "helmet", "vest"] and boxes[1].x1 == helmet(x=201).x1

@@ -37,7 +37,8 @@ class Settings(BaseSettings):
     # YOLO 탐지 영상 (관제화면 1-1 · 단일 카메라 확대 1-2). 패키지는 requirements-yolo.txt
     yolo_enabled: bool = True
     # OpenVINO 모델 (Intel 내장 그래픽에서 PyTorch CPU 보다 2~3배 빠름). 폴더가 없으면 처음 실행할 때 yolov8n.pt 를 내려받아 변환한다.
-    # PyTorch 그대로 쓰려면 "yolov8n.pt", 직접 학습한 모델은 파일 경로
+    # PyTorch 그대로 쓰려면 "yolov8n.pt", 직접 학습한 모델은 파일 경로.
+    # 사람 · 안전모 · 조끼 · 장비를 함께 학습한 모델(ppe_finetune.ipynb 의 site6c)이면 "site6c_openvino_model" 로 두고 YOLO_PPE_MODEL 은 비운다
     yolo_model: str = "yolov8n_openvino_model"
     yolo_seg_model: str = ""        # 시험용: 세그 모델을 하나 더 돌려 윤곽을 칠함 (예: excavator_seg_openvino_model). 비우면 안 씀
     yolo_conf: float = 0.50       # 이 confidence 미만인 탐지 박스는 그리지 않음
@@ -52,12 +53,12 @@ class Settings(BaseSettings):
     # botsort 는 카메라 흔들림 보정(GMC)이 있어 TC 카메라처럼 움직이는 화면에 낫지만 CPU 를 더 씀
     tracker: str = "bytetrack"
     # 장비 근접(EQUIPMENT_PROXIMITY): 작업자 발밑이 장비에서 proximity_m 미터 안에 proximity_hold_sec 초 넘게 있으면 경보
-    proximity_classes: str = "truck,excavator"  # 장비로 볼 YOLO 클래스 (쉼표로 구분)
+    proximity_classes: str = "truck,excavator,forklift"  # 장비로 볼 YOLO 클래스 (쉼표로 구분. 모델에 없는 이름은 그냥 안 잡힘)
     proximity_m: float = 3.0
     proximity_hold_sec: float = 1.0
 
     # 안전모 · 조끼 미착용(NO_HELMET · NO_VEST). tools/train/ppe_finetune.ipynb 로 학습한 모델(person · helmet · vest)을
-    # 하나 더 돌려 안전모 · 조끼 박스만 더한다. 비우면 미착용 판정을 안 함
+    # 하나 더 돌려 안전모 · 조끼 박스만 더한다. 비우면 미착용 판정을 안 함 (기본 모델이 안전모 · 조끼까지 잡으면 그 모델로 판정)
     yolo_ppe_model: str = ""        # 예: ppe_openvino_model
     ppe_part_conf: float = 0.30     # 안전모 · 조끼 박스는 이만큼만 넘어도 착용으로 본다 (놓치면 미착용 오탐이라 낮게)
     ppe_window_sec: float = 3.0     # 작업자마다 이만큼 지켜본 뒤 다수결로 판정
@@ -68,7 +69,7 @@ class Settings(BaseSettings):
 
     # 신호수 미배치(NO_SIGNALMAN): 빨간 계열 조끼 = 신호수, 노란 계열 = 일반 작업자 (PPE 모델의 조끼 박스 색으로 가림).
     # 카메라에 장비(signal_classes)가 있는데 신호수가 signal_hold_sec 초 넘게 안 보이면 경보. PPE 모델이 없으면 판정 안 함
-    signal_classes: str = "truck,excavator"  # 신호수가 있어야 하는 장비 YOLO 클래스 (쉼표로 구분)
+    signal_classes: str = "truck,excavator,forklift"  # 신호수가 있어야 하는 장비 YOLO 클래스 (쉼표로 구분)
     signal_hold_sec: float = 10.0
     signal_min_person_px: int = 60  # 조끼 색은 안전모보다 멀리서도 보여 미착용 판정보다 작게 잡는다
     # 빨강 쪽 · 노랑 쪽을 가르는 색상(OpenCV H 0~179). 주황도 이 경계로 판정한다. 15 = 30도:
