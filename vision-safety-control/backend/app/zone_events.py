@@ -229,7 +229,7 @@ def on_detect(feed: vision.Feed, snap: vision.Snapshot) -> None:
             _submit(partial(proximity.record, SessionLocal, proximity.Job(trig, feed.camera_name, snap, rois)),
                     f"{feed.camera_name} 장비 근접")
     worn = {code: r.min_conf for code in ppe.CODES if (r := rules.get(code)) and r.active}
-    if worn and vision.detector.ppe_ready:
+    if worn and vision.detector.ppe_ready and snap.ppe:  # PPE 모델을 건너뛴 프레임은 안전모 · 조끼가 없어 미착용으로 셈
         for trig in ppe.judge.observe(feed.camera_id, snap.boxes, worn, now):
             _submit(partial(ppe.record, SessionLocal, ppe.Job(trig, feed.camera_name, snap, rois)),
                     f"{feed.camera_name} {ppe.LABEL[trig.code]}")

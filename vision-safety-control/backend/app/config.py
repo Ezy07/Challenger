@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     yolo_ppe_model: str = ""        # 예: ppe_openvino_model
     ppe_part_conf: float = 0.30     # 안전모 · 조끼 박스는 이만큼만 넘어도 착용으로 본다 (놓치면 미착용 오탐이라 낮게)
     ppe_window_sec: float = 3.0     # 작업자마다 이만큼 지켜본 뒤 다수결로 판정
+    # PPE 모델은 탐지 이만큼에 한 번만 돌린다 (1 이면 매번). 판정이 3초 다수결이라 덜 봐도 결과는 거의 같고 탐지가 빨라짐.
+    # 크게 올리면 PPE_WINDOW_SEC 안 표본이 MIN_SAMPLES(3) 보다 적어져 판정이 늦어질 수 있음
+    ppe_every: int = 2
     ppe_min_person_px: int = 100    # 키가 이보다 작게 보이는 작업자는 판정하지 않음 (현장 영상에서 이보다 작으면 안전모를 거의 못 찾음)
 
     # 신호수 미배치(NO_SIGNALMAN): 빨간 계열 조끼 = 신호수, 노란 계열 = 일반 작업자 (PPE 모델의 조끼 박스 색으로 가림).

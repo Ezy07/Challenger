@@ -196,15 +196,16 @@ class Detector:
                 for (x1, y1, x2, y2), p, c, m in zip(result.boxes.xyxy.tolist(), result.boxes.conf.tolist(),
                                                       result.boxes.cls.tolist(), masks)]
 
-    def detect(self, frame, floor: float | None = None) -> list[Box]:
-        """floor 를 주면 그 confidence 까지 낮춰 받는다 (추적기가 낮은 박스로도 이어 붙이게)"""
+    def detect(self, frame, floor: float | None = None, with_ppe: bool = True) -> list[Box]:
+        """floor 를 주면 그 confidence 까지 낮춰 받는다 (추적기가 낮은 박스로도 이어 붙이게)
+        with_ppe=False 면 PPE 모델을 건너뛴다 (PPE_EVERY 번에 한 번만 돌리려고)"""
         conf = keep_conf() if floor is None else min(keep_conf(), floor)
         boxes = self._run(self._model, frame, conf)
         if self._seg is not None:
             segs = self._run(self._seg, frame, settings.yolo_conf if floor is None else conf)
             # 기본 모델이 같은 물체를 트럭 등으로 또 잡은 박스는 뺀다 (많이 겹치면 같은 물체로 봄)
             boxes = [b for b in boxes if b.name == "person" or not any(_iou(b, s) > 0.5 for s in segs)] + segs
-        if self._ppe is not None:
+        if self._ppe is not None and with_ppe:
             low = min(conf, settings.ppe_part_conf)
             boxes += [b for b in self._run(self._ppe, frame, low) if b.name in PPE_PARTS]
         return boxes
@@ -319,6 +320,7 @@ class Snapshot:
     frame: object       # numpy 배열 (BGR). 읽기 스레드는 새 배열로 바꿔 끼우기만 하므로 읽는 쪽은 복사해서 그린다
     video_time: float   # 영상 파일 안의 시각(초). ROI 모양을 고를 때 씀
     boxes: list[Box] = field(default_factory=list)
+    ppe: bool = True    # 이 프레임에서 PPE 모델을 돌렸는지. 건너뛴 프레임엔 안전모 · 조끼 박스가 없으니 미착용 판정에 쓰면 안 됨
 
 
 _feeds_lock = threading.Lock()
@@ -337,6 +339,8 @@ class Feed:
         self._lock = threading.Lock()
         self.latest: Snapshot | None = None
         self.detected_seq = -1  # 탐지 스레드가 마지막으로 본 프레임
+        self.detections = 0     # 탐지한 횟수 (PPE 모델은 PPE_EVERY 번에 한 번)
+        self.ppe_boxes: list[Box] = []  # 마지막으로 PPE 모델을 돌린 프레임의 안전모 · 조끼 박스
         self.tracker = make_tracker() if detector.ready else None
         self._people: dict[int, float] = {}  # 추적 번호 → 마지막으로 본 시각 (작업자 수를 프레임마다 흔들리지 않게)
         self.viewers = 0
@@ -376,6 +380,19 @@ class Feed:
         with self._lock:
             prev = self.latest
             self.latest = Snapshot((prev.seq + 1) if prev else 0, frame, video_time, prev.boxes if prev else [])
+
+    def ppe_turn(self) -> bool:
+        """이번 탐지에서 PPE 모델을 돌릴 차례인지 (PPE_EVERY 번에 한 번, 처음은 돌림). 부를 때마다 차례가 넘어간다"""
+        turn = self.detections % max(1, settings.ppe_every) == 0
+        self.detections += 1
+        return turn
+
+    def shown_boxes(self, boxes: list[Box], ran_ppe: bool) -> list[Box]:
+        """화면에 그릴 박스. PPE 모델을 건너뛴 프레임엔 직전 안전모 · 조끼 박스를 그대로 더한다 (깜빡이지 않게)"""
+        if ran_ppe:
+            self.ppe_boxes = [b for b in boxes if b.name in PPE_PARTS]
+            return boxes
+        return boxes + self.ppe_boxes
 
     def set_boxes(self, seq: int, boxes: list[Box]) -> None:
         now = time.monotonic()
@@ -473,9 +490,10 @@ def _detect_loop() -> None:
             snap = feed.latest
             if snap is None or snap.seq == feed.detected_seq:
                 continue
+            ran_ppe = feed.ppe_turn()
             try:
                 tracker = feed.tracker
-                boxes = detector.detect(snap.frame, tracker.low if tracker else None)
+                boxes = detector.detect(snap.frame, tracker.low if tracker else None, with_ppe=ran_ppe)
                 if tracker:
                     # 낮은 박스는 추적을 잇는 데만 쓰고, 화면 · 판정에는 예전처럼 기준 이상만 넘긴다
                     boxes = [b for b in tracker.update(boxes, snap.frame) if keep_box(b)]
@@ -485,8 +503,9 @@ def _detect_loop() -> None:
                     log.exception("YOLO 탐지에 실패했습니다")
                 failed = True
                 boxes = []
-            feed.set_boxes(snap.seq, boxes)
-            done = Snapshot(snap.seq, snap.frame, snap.video_time, boxes)
+            # 화면에는 직전 안전모 · 조끼 박스까지, 판정(listeners)에는 이 프레임에서 잡은 것만 넘긴다
+            feed.set_boxes(snap.seq, feed.shown_boxes(boxes, ran_ppe))
+            done = Snapshot(snap.seq, snap.frame, snap.video_time, boxes, ppe=ran_ppe)
             for fn in listeners:
                 try:
                     fn(feed, done)

@@ -1,3 +1,4 @@
+import numpy as np
 from sqlalchemy import select
 
 from app import ppe, zone_events
@@ -155,3 +156,46 @@ def test_feed_counts_recent_workers(monkeypatch):
     clock[0] = 103.5
     feed.set_boxes(2, [person(tid=1)])
     assert feed.workers() == 1  # 2번은 2초 넘게 안 보여 빠짐
+
+
+def test_ppe_model_every_other_detection(monkeypatch):
+    from app import vision
+
+    calls = []
+
+    def fake_run(model, frame, conf):
+        calls.append(model)
+        return [helmet(), vest()] if model == "ppe" else [person(conf=0.9)]
+
+    d = vision.Detector()
+    d._model, d._ppe = "base", "ppe"
+    monkeypatch.setattr(vision.Detector, "_run", staticmethod(fake_run))
+    assert [b.name for b in d.detect(None, with_ppe=False)] == ["person"] and calls == ["base"]
+
+    monkeypatch.setattr(settings, "ppe_every", 2)
+    feed = vision.Feed((7, "x"), "x", True, "CAM_7")
+    turns = [feed.ppe_turn() for _ in range(5)]
+    assert turns == [True, False, True, False, True]
+
+    # 건너뛴 프레임: 화면엔 직전 안전모 · 조끼를 그대로, 넘긴 박스 자체는 그대로
+    first = feed.shown_boxes([person(), helmet(), vest()], True)
+    assert [b.name for b in first] == ["person", "helmet", "vest"]
+    assert [b.name for b in feed.shown_boxes([person()], False)] == ["person", "helmet", "vest"]
+    assert [b.name for b in feed.shown_boxes([person()], True)] == ["person"]  # 새로 돌렸는데 없으면 지움
+
+    monkeypatch.setattr(settings, "ppe_every", 1)
+    assert all(feed.ppe_turn() for _ in range(3))
+
+
+def test_frames_without_ppe_model_are_not_judged(monkeypatch):
+    from app import vision
+
+    monkeypatch.setattr(vision.detector, "_ppe", "ppe")
+    monkeypatch.setattr(zone_events, "rules", {NO_HELMET: zone_events.Rule(True, 0.5, 0)})
+    monkeypatch.setattr(ppe, "judge", Judge())
+    feed = vision.Feed((7, "x"), "x", True, "CAM_7")
+    frame = np.zeros((600, 1000, 3), np.uint8)
+    zone_events.on_detect(feed, Snapshot(0, frame, 0.0, [person()], ppe=False))
+    assert ppe.judge.watches == {}
+    zone_events.on_detect(feed, Snapshot(1, frame, 0.0, [person()], ppe=True))
+    assert list(ppe.judge.watches) == [(7, 1)]
