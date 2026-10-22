@@ -14,11 +14,10 @@
 import logging
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime
 
-from . import proximity, vision
+from . import judging, proximity, vision
 from .config import settings
-from .schemas import EventIn
+from .judging import FORGET_SEC, Job
 
 log = logging.getLogger("uvicorn.error")
 
@@ -32,8 +31,6 @@ TORSO = (0.15, 0.75)
 SIDE = 0.15          # 좌우로 박스 너비의 이만큼까지는 그 작업자 것으로 본다
 MISSING_RATIO = 0.7  # 지켜본 동안 이 비율 넘게 없었으면 미착용
 MIN_SAMPLES = 3
-ONBOARD_INSIDE = 0.8
-FORGET_SEC = 60.0
 
 
 def part_on(person: vision.Box, parts: list[vision.Box], name: str) -> vision.Box | None:
@@ -89,7 +86,7 @@ class Judge:
         for p in boxes:
             if p.name != "person" or p.track_id is None or p.y2 - p.y1 < min_px:
                 continue
-            if any(proximity.inside_ratio(p, e) >= ONBOARD_INSIDE for e in equips):
+            if judging.onboard(p, equips):
                 continue  # 운전석 등 장비에 탄 사람
             key = (camera_id, p.track_id)
             watch = self.watches.get(key)
@@ -109,8 +106,7 @@ class Judge:
                 if missing > MISSING_RATIO:
                     watch.fired.add(code)
                     out.append(Trigger(camera_id, code, p, watch.best))
-        for key in [k for k, w in self.watches.items() if k[0] == camera_id and now - w.last_seen > FORGET_SEC]:
-            del self.watches[key]
+        judging.drop_stale(self.watches, camera_id, now, FORGET_SEC)
         return out
 
 
@@ -130,33 +126,11 @@ def summary(camera_id: int, now: float, fresh: float = vision.PEOPLE_FRESH_SEC) 
 
 
 # ---------------------------------------------------------------- 이벤트 · 스냅샷 기록
-@dataclass
-class Job:
-    trigger: Trigger
-    camera_name: str
-    snap: vision.Snapshot
-    rois: list
-    at: datetime = field(default_factory=datetime.now)
-
-
-def save_snapshot(job: Job) -> str | None:
-    """그 순간 화면에 미착용 작업자를 붉은 박스로 둘러 저장한다"""
-    from .zone_events import write_snapshot
-
-    t = job.trigger
-    jpeg = vision.render(job.snap, job.rois, True, marks=[(t.person, LABEL[t.code])])
-    return write_snapshot(jpeg, job.camera_name, t.code, job.at)
-
-
 def record(Session, job: Job):
-    """판정 기준 · 쿨다운을 적용해 이벤트를 만든다 (ROI 와 상관없이 카메라 단위). 결과는 EventIngestOut"""
-    from .routers.events import create_event
-
+    """판정 기준 · 쿨다운을 적용해 이벤트를 만든다 (ROI 와 상관없이 카메라 단위). 스냅샷에 미착용 작업자를 붉은 박스로 두른다"""
     t, p = job.trigger, job.trigger.person
-    with Session() as db:
-        body = EventIn(detection_type=t.code, camera_id=t.camera_id, confidence=round(t.conf, 3),
-                       bbox=[p.x1, p.y1, p.x2, p.y2], detected_at=job.at)
-        result = create_event(db, body, lambda: save_snapshot(job))
+    result = judging.create(Session, job, t.code, t.conf, judging.bbox(p),
+                            lambda: judging.snapshot(job, t.code, marks=[(p, LABEL[t.code])]))
     if result.created:
         log.info("이벤트 EV-%s: %s %s 사람#%s", result.event_id, job.camera_name, LABEL[t.code], p.track_id)
     return result

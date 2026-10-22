@@ -12,35 +12,24 @@
 """
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from math import hypot
 
-from . import vision
+from . import judging, vision
 from .config import settings
-from .schemas import EventIn
+from .judging import Job
 
 log = logging.getLogger("uvicorn.error")
 
 PROXIMITY = "EQUIPMENT_PROXIMITY"
 PERSON_HEIGHT_M = 1.7
 GROUND_BAND = 0.5   # 장비 박스 아래쪽 이만큼(높이 비율)을 땅에 닿는 부분으로 본다
-ONBOARD_INSIDE = 0.8  # 작업자 박스가 장비 박스 안에 이만큼 넘게 들어 있고
-ONBOARD_ABOVE = 0.2   # 발밑이 장비 아래 끝에서 장비 높이의 이만큼보다 위면 장비에 탄 사람
+ONBOARD_ABOVE = 0.2   # 작업자가 장비 박스 안에 거의 들어 있고 발밑이 장비 아래 끝에서 장비 높이의 이만큼보다 위면 장비에 탄 사람
 GAP_SEC = 2.0
-FORGET_SEC = 60.0   # 이만큼 안 보인 추적 번호는 잊는다
 
 
 def equipment_classes() -> set[str]:
-    return {c.strip() for c in settings.proximity_classes.split(",") if c.strip()}
-
-
-def inside_ratio(a: vision.Box, b: vision.Box) -> float:
-    """a 박스 넓이 중 b 박스 안에 든 비율"""
-    ix = max(0, min(a.x2, b.x2) - max(a.x1, b.x1))
-    iy = max(0, min(a.y2, b.y2) - max(a.y1, b.y1))
-    area = (a.x2 - a.x1) * (a.y2 - a.y1)
-    return ix * iy / area if area > 0 else 0.0
+    return judging.class_set(settings.proximity_classes)
 
 
 def distance_m(person: vision.Box, equip: vision.Box) -> float | None:
@@ -49,7 +38,7 @@ def distance_m(person: vision.Box, equip: vision.Box) -> float | None:
     if ph <= 0 or eh <= 0:
         return None
     fx, fy = (person.x1 + person.x2) / 2, person.y2
-    if inside_ratio(person, equip) >= ONBOARD_INSIDE and fy < equip.y2 - ONBOARD_ABOVE * eh:
+    if judging.onboard(person, [equip]) and fy < equip.y2 - ONBOARD_ABOVE * eh:
         return None
     dx = max(equip.x1 - fx, 0.0, fx - equip.x2)
     dy = max(equip.y2 - GROUND_BAND * eh - fy, 0.0, fy - equip.y2)
@@ -82,8 +71,7 @@ class Judge:
 
     def __init__(self):
         self.pairs: dict[tuple[int, int, int], Near] = {}  # (카메라, 작업자 번호, 장비 번호)
-        self.best: dict[tuple[int, int], float] = {}       # (카메라, 추적 번호) → 지금까지 가장 높은 confidence
-        self.seen: dict[tuple[int, int], float] = {}
+        self.conf = judging.BestConf()
 
     def observe(self, camera_id: int, boxes: list[vision.Box], min_conf: float, now: float, *,
                 classes: set[str] | None = None, limit_m: float | None = None,
@@ -92,12 +80,7 @@ class Judge:
         limit_m = settings.proximity_m if limit_m is None else limit_m
         hold_sec = settings.proximity_hold_sec if hold_sec is None else hold_sec
 
-        tracked = [b for b in boxes if b.track_id is not None]
-        for b in tracked:
-            key = (camera_id, b.track_id)
-            self.best[key] = max(self.best.get(key, 0.0), b.conf)
-            self.seen[key] = now
-        sure = [b for b in tracked if self.best[(camera_id, b.track_id)] >= min_conf]
+        sure = [b for b in boxes if b.track_id is not None and self.conf.see(camera_id, b, now) >= min_conf]
         people = [b for b in sure if b.name == "person"]
         equips = [b for b in sure if b.name in classes]
 
@@ -114,43 +97,19 @@ class Judge:
                 near.last_seen = now
                 if not near.fired and now - near.since >= hold_sec:
                     near.fired = True
-                    conf = min(self.best[(camera_id, p.track_id)], self.best[(camera_id, e.track_id)])
+                    conf = min(self.conf.of(camera_id, p), self.conf.of(camera_id, e))
                     out.append(Trigger(camera_id, p, e, meters, conf))
-        for key in [k for k, n in self.pairs.items() if k[0] == camera_id and now - n.last_seen > GAP_SEC]:
-            del self.pairs[key]
-        for key in [k for k, t in self.seen.items() if k[0] == camera_id and now - t > FORGET_SEC]:
-            del self.seen[key], self.best[key]
+        judging.drop_stale(self.pairs, camera_id, now, GAP_SEC)
+        self.conf.forget(camera_id, now)
         return out
 
 
 # ---------------------------------------------------------------- 이벤트 · 스냅샷 기록
-@dataclass
-class Job:
-    trigger: Trigger
-    camera_name: str
-    snap: vision.Snapshot
-    rois: list
-    at: datetime = field(default_factory=datetime.now)
-
-
-def save_snapshot(job: Job) -> str | None:
-    """그 순간 화면에 작업자 ↔ 장비 선을 더 그려 저장한다"""
-    from .zone_events import write_snapshot
-
-    t = job.trigger
-    jpeg = vision.render(job.snap, job.rois, True, links=[(t.person, t.equip, t.meters)])
-    return write_snapshot(jpeg, job.camera_name, PROXIMITY, job.at)
-
-
 def record(Session, job: Job):
-    """판정 기준 · 쿨다운을 적용해 이벤트를 만든다 (ROI 와 상관없이 카메라 단위). 결과는 EventIngestOut"""
-    from .routers.events import create_event
-
+    """판정 기준 · 쿨다운을 적용해 이벤트를 만든다 (ROI 와 상관없이 카메라 단위). 스냅샷에 작업자 ↔ 장비 선을 더 그린다"""
     t = job.trigger
-    with Session() as db:
-        body = EventIn(detection_type=PROXIMITY, camera_id=t.camera_id, confidence=round(t.conf, 3),
-                       bbox=t.bbox, detected_at=job.at)
-        result = create_event(db, body, lambda: save_snapshot(job))
+    result = judging.create(Session, job, PROXIMITY, t.conf, t.bbox,
+                            lambda: judging.snapshot(job, PROXIMITY, links=[(t.person, t.equip, t.meters)]))
     if result.created:
         log.info("이벤트 EV-%s: %s 장비 근접 %s#%s ↔ 사람#%s %.1fm", result.event_id, job.camera_name,
                  vision.NAMES_KO.get(t.equip.name, t.equip.name), t.equip.track_id, t.person.track_id, t.meters)

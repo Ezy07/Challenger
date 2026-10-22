@@ -1,7 +1,7 @@
 import numpy as np
 from sqlalchemy import select
 
-from app import ppe, zone_events
+from app import judging, ppe, zone_events
 from app.config import settings
 from app.models import Camera, Event
 from app.ppe import NO_HELMET, NO_VEST, Job, Judge, Trigger, wearing
@@ -72,7 +72,7 @@ def test_each_code_separately():
 
 def test_record_creates_event(db_session, monkeypatch):
     saved = []
-    monkeypatch.setattr(zone_events, "write_snapshot", lambda jpeg, *a: saved.append(a) or "snapshots/x/h.jpg")
+    monkeypatch.setattr(judging, "write_snapshot", lambda jpeg, *a: saved.append(a) or "snapshots/x/h.jpg")
     monkeypatch.setattr(ppe.vision, "render", lambda *a, **kw: b"jpeg")
     with db_session() as db:
         cam = db.scalars(select(Camera).order_by(Camera.id)).first()

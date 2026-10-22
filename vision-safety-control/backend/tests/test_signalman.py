@@ -1,7 +1,7 @@
 import numpy as np
 from sqlalchemy import select
 
-from app import signalman, zone_events
+from app import judging, signalman
 from app.config import settings
 from app.models import Camera, Event
 from app.signalman import NO_SIGNALMAN, RED, YELLOW, Job, Judge, Trigger, vest_color
@@ -105,7 +105,7 @@ def test_driver_in_red_is_not_signalman():
 
 def test_record_creates_event_and_holds(db_session, monkeypatch):
     saved = []
-    monkeypatch.setattr(zone_events, "write_snapshot", lambda jpeg, *a: saved.append(a) or "snapshots/x/s.jpg")
+    monkeypatch.setattr(judging, "write_snapshot", lambda jpeg, *a: saved.append(a) or "snapshots/x/s.jpg")
     monkeypatch.setattr(signalman.vision, "render", lambda *a, **kw: b"jpeg")
     with db_session() as db:
         cam = db.scalars(select(Camera).order_by(Camera.id)).first()

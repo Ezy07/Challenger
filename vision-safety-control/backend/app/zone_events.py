@@ -17,23 +17,21 @@
 
 import logging
 import queue
-import re
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from functools import partial
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from . import ppe, proximity, signalman, vision
+from . import judging, ppe, proximity, signalman, vision
 from .config import settings
 from .database import SessionLocal
+from .judging import Job
 from .models import Camera, DetectionType, Roi
-from .schemas import EventIn
 
 log = logging.getLogger("uvicorn.error")
 
@@ -166,40 +164,16 @@ def roi_id_for(db, camera_id: int, zone: dict) -> int:
     return roi.id
 
 
-def save_snapshot(snap: vision.Snapshot, rois: list, camera_name: str, code: str, at: datetime) -> str | None:
+def save_snapshot(job: Job) -> str | None:
     """그 순간 화면(ROI · 탐지 박스)을 JPEG 로 저장하고 "snapshots/..." 경로를 돌려준다."""
-    return write_snapshot(vision.render(snap, rois, True), camera_name, code, at)
-
-
-def write_snapshot(jpeg: bytes, camera_name: str, code: str, at: datetime) -> str | None:
-    if not jpeg:
-        return None
-    safe = re.sub(r"[^\w.-]", "_", camera_name)
-    rel = f"{at:%Y%m%d}/{code.lower()}_{safe}_{at:%H%M%S}_{at.microsecond // 1000:03d}.jpg"
-    path = settings.snapshot_dir / rel
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(jpeg)
-    return "snapshots/" + rel
-
-
-@dataclass
-class Job:
-    trigger: Trigger
-    camera_name: str
-    snap: vision.Snapshot
-    rois: list
-    at: datetime = field(default_factory=datetime.now)
+    return judging.snapshot(job, job.trigger.code)
 
 
 def record(Session, job: Job):
     """규칙(판정 기준 · 쿨다운 · ROI별 규칙)을 적용해 이벤트를 만든다. 결과는 EventIngestOut"""
-    from .routers.events import create_event
-
     t, box = job.trigger, job.trigger.box
-    with Session() as db:
-        body = EventIn(detection_type=t.code, camera_id=t.camera_id, roi_id=roi_id_for(db, t.camera_id, t.zone),
-                       confidence=round(box.conf, 3), bbox=[box.x1, box.y1, box.x2, box.y2], detected_at=job.at)
-        result = create_event(db, body, lambda: save_snapshot(job.snap, job.rois, job.camera_name, t.code, job.at))
+    result = judging.create(Session, job, t.code, box.conf, judging.bbox(box), lambda: save_snapshot(job),
+                            roi_id=lambda db: roi_id_for(db, t.camera_id, t.zone))
     if result.created:
         log.info("이벤트 EV-%s: %s %s번 %s (%s %.0f%%)", result.event_id, job.camera_name, t.zone["no"],
                  vision.zone_title(t.zone), t.code, box.conf * 100)
@@ -221,31 +195,27 @@ def on_detect(feed: vision.Feed, snap: vision.Snapshot) -> None:
     rois = [(z["no"], z["kind"], z["points"], vision.zone_title(z)) for z in zones]
     height, width = snap.frame.shape[:2]
     now = time.monotonic()
+
+    def submit(record_fn: Callable, trig, what: str) -> None:
+        try:
+            _jobs.put_nowait(partial(record_fn, SessionLocal, Job(trig, feed.camera_name, snap, rois)))
+        except queue.Full:
+            log.warning("이벤트 기록이 밀려 %s %s 이벤트를 버렸습니다", feed.camera_name, what)
+
     for trig in judge.observe(feed.camera_id, zones, snap.boxes, width, height, rules, now):
-        _submit(partial(record, SessionLocal, Job(trig, feed.camera_name, snap, rois)),
-                f"{feed.camera_name} {trig.zone['no']}번 구역")
+        submit(record, trig, f"{trig.zone['no']}번 구역")
     near = rules.get(proximity.PROXIMITY)
     if near and near.active:
         for trig in proximity.judge.observe(feed.camera_id, snap.boxes, near.min_conf, now):
-            _submit(partial(proximity.record, SessionLocal, proximity.Job(trig, feed.camera_name, snap, rois)),
-                    f"{feed.camera_name} 장비 근접")
+            submit(proximity.record, trig, "장비 근접")
     worn = {code: r.min_conf for code in ppe.CODES if (r := rules.get(code)) and r.active}
     if worn and vision.detector.ppe_ready and snap.ppe:  # PPE 모델을 건너뛴 프레임은 안전모 · 조끼가 없어 미착용으로 셈
         for trig in ppe.judge.observe(feed.camera_id, snap.boxes, worn, now):
-            _submit(partial(ppe.record, SessionLocal, ppe.Job(trig, feed.camera_name, snap, rois)),
-                    f"{feed.camera_name} {ppe.LABEL[trig.code]}")
+            submit(ppe.record, trig, ppe.LABEL[trig.code])
     signal = rules.get(signalman.NO_SIGNALMAN)
     if signal and signal.active and vision.detector.ppe_ready:
         for trig in signalman.judge.observe(feed.camera_id, snap.frame, snap.boxes, signal.min_conf, now):
-            _submit(partial(signalman.record, SessionLocal, signalman.Job(trig, feed.camera_name, snap, rois)),
-                    f"{feed.camera_name} {signalman.LABEL}")
-
-
-def _submit(task: Callable[[], object], what: str) -> None:
-    try:
-        _jobs.put_nowait(task)
-    except queue.Full:
-        log.warning("이벤트 기록이 밀려 %s 이벤트를 버렸습니다", what)
+            submit(signalman.record, trig, signalman.LABEL)
 
 
 def _record_loop() -> None:

@@ -19,14 +19,12 @@
 import logging
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime
 
 import cv2
-import numpy as np
 
-from . import ppe, proximity, vision
+from . import judging, ppe, proximity, vision
 from .config import settings
-from .schemas import EventIn
+from .judging import FORGET_SEC, Job
 
 log = logging.getLogger("uvicorn.error")
 
@@ -43,11 +41,10 @@ COLOR_MIN = 0.20               # 본 영역에서 그 색 픽셀이 이 비율 �
 MIN_SAMPLES = 3
 GAP_SEC = 2.0
 REPEAT_SEC = 60.0
-FORGET_SEC = 60.0
 
 
 def signal_classes() -> set[str]:
-    return {c.strip() for c in settings.signal_classes.split(",") if c.strip()}
+    return judging.class_set(settings.signal_classes)
 
 
 def vest_color(frame, vest: vision.Box) -> str | None:
@@ -97,8 +94,7 @@ class Judge:
     def __init__(self):
         self.watches: dict[tuple[int, int], Watch] = {}  # (카메라, 작업자 번호)
         self.sites: dict[int, Site] = {}
-        self.best: dict[tuple[int, int], float] = {}     # (카메라, 장비 번호) → 지금까지 가장 높은 confidence
-        self.seen: dict[tuple[int, int], float] = {}
+        self.conf = judging.BestConf()                     # 장비 추적 번호마다 가장 높은 confidence
 
     def observe(self, camera_id: int, frame, boxes: list[vision.Box], min_conf: float, now: float, *,
                 classes: set[str] | None = None, hold_sec: float | None = None, window: float | None = None,
@@ -108,14 +104,8 @@ class Judge:
         window = settings.ppe_window_sec if window is None else window
         min_px = settings.signal_min_person_px if min_px is None else min_px
 
-        equips = []
-        for b in boxes:
-            if b.name in classes and b.track_id is not None:
-                key = (camera_id, b.track_id)
-                self.best[key] = max(self.best.get(key, 0.0), b.conf)
-                self.seen[key] = now
-                if self.best[key] >= min_conf:
-                    equips.append(b)
+        equips = [b for b in boxes if b.name in classes and b.track_id is not None
+                  and self.conf.see(camera_id, b, now) >= min_conf]
         onboard = [b for b in boxes if b.name in proximity.equipment_classes() | classes]
         parts = [b for b in boxes if b.name == "vest"]
 
@@ -123,7 +113,7 @@ class Judge:
         for p in boxes:
             if p.name != "person" or p.track_id is None or p.y2 - p.y1 < min_px:
                 continue
-            if any(proximity.inside_ratio(p, e) >= ppe.ONBOARD_INSIDE for e in onboard):
+            if judging.onboard(p, onboard):
                 continue
             key = (camera_id, p.track_id)
             watch = self.watches.setdefault(key, Watch(last_seen=now))
@@ -155,13 +145,11 @@ class Judge:
                 if due and (site.fired_at is None or now - site.fired_at >= REPEAT_SEC
                             or (site.signal_seen or 0) > site.fired_at):
                     site.fired_at = now
-                    e = max(equips, key=lambda b: self.best[(camera_id, b.track_id)])
-                    out.append(Trigger(camera_id, e, self.best[(camera_id, e.track_id)]))
+                    e = max(equips, key=lambda b: self.conf.of(camera_id, b))
+                    out.append(Trigger(camera_id, e, self.conf.of(camera_id, e)))
 
-        for key in [k for k, w in self.watches.items() if k[0] == camera_id and now - w.last_seen > FORGET_SEC]:
-            del self.watches[key]
-        for key in [k for k, t in self.seen.items() if k[0] == camera_id and now - t > FORGET_SEC]:
-            del self.seen[key], self.best[key]
+        judging.drop_stale(self.watches, camera_id, now, FORGET_SEC)
+        self.conf.forget(camera_id, now)
         return out
 
 
@@ -172,32 +160,12 @@ def count(camera_id: int, now: float, fresh: float = vision.PEOPLE_FRESH_SEC) ->
 
 
 # ---------------------------------------------------------------- 이벤트 · 스냅샷 기록
-@dataclass
-class Job:
-    trigger: Trigger
-    camera_name: str
-    snap: vision.Snapshot
-    rois: list
-    at: datetime = field(default_factory=datetime.now)
-
-
-def save_snapshot(job: Job) -> str | None:
-    """그 순간 화면에 신호수가 있어야 할 장비를 붉은 박스로 둘러 저장한다"""
-    from .zone_events import write_snapshot
-
-    jpeg = vision.render(job.snap, job.rois, True, marks=[(job.trigger.equip, "신호수 없음")])
-    return write_snapshot(jpeg, job.camera_name, NO_SIGNALMAN, job.at)
-
-
 def record(Session, job: Job):
-    """판정 기준 · 쿨다운 · 작업 허가 전 경보 유지를 적용해 이벤트를 만든다 (카메라 단위). 결과는 EventIngestOut"""
-    from .routers.events import create_event
-
-    t, e = job.trigger, job.trigger.equip
-    with Session() as db:
-        body = EventIn(detection_type=NO_SIGNALMAN, camera_id=t.camera_id, confidence=round(t.conf, 3),
-                       bbox=[e.x1, e.y1, e.x2, e.y2], detected_at=job.at)
-        result = create_event(db, body, lambda: save_snapshot(job))
+    """판정 기준 · 쿨다운 · 작업 허가 전 경보 유지를 적용해 이벤트를 만든다 (카메라 단위).
+    스냅샷에 신호수가 있어야 할 장비를 붉은 박스로 두른다"""
+    e = job.trigger.equip
+    result = judging.create(Session, job, NO_SIGNALMAN, job.trigger.conf, judging.bbox(e),
+                            lambda: judging.snapshot(job, NO_SIGNALMAN, marks=[(e, "신호수 없음")]))
     if result.created:
         log.info("이벤트 EV-%s: %s 신호수 미배치 (%s#%s)", result.event_id, job.camera_name,
                  vision.NAMES_KO.get(e.name, e.name), e.track_id)

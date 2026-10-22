@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy import select
 
-from app import proximity, zone_events
+from app import judging, proximity
 from app.models import Camera, Event
 from app.proximity import GAP_SEC, PROXIMITY, Judge, Job, Trigger, distance_m
 from app.vision import Box, Snapshot
@@ -71,7 +71,7 @@ def test_needs_tracked_confident_equipment():
 
 def test_record_creates_camera_event(db_session, monkeypatch):
     saved = []
-    monkeypatch.setattr(zone_events, "write_snapshot", lambda jpeg, *a: saved.append(a) or "snapshots/x/p.jpg")
+    monkeypatch.setattr(judging, "write_snapshot", lambda jpeg, *a: saved.append(a) or "snapshots/x/p.jpg")
     monkeypatch.setattr(proximity.vision, "render", lambda *a, **kw: b"jpeg")
     with db_session() as db:
         cam = db.scalars(select(Camera).order_by(Camera.id)).first()
