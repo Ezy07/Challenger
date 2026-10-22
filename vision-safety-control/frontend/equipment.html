@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script>
   try { if (localStorage.getItem("safety.mode") === "light") document.documentElement.dataset.mode = "light"; } catch (e) {}
+  try { const z = Number(localStorage.getItem("safety.text-zoom")); if (z) document.documentElement.style.setProperty("--text-zoom", z); } catch (e) {}
   </script>
   <link rel="stylesheet" href="common.css" />
   <link rel="stylesheet" href="mode_change.css" />

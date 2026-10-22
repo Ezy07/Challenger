@@ -219,9 +219,11 @@ function drawerHtml(file, found) {
           <button type="button" data-mode-set="light" aria-pressed="false">☀ 라이트</button>
           <button type="button" data-mode-set="dark" aria-pressed="true">☾ 다크</button>
         </div>
-        <div class="drawer-foot-links">
-          <a href="index.html">🗺 페이지 지도</a>
-          <a href="login.html" data-logout>로그아웃</a>
+        <div class="text-size" role="group" aria-label="글자 크기">
+          <span>글자 크기</span>
+          <button type="button" data-text-step="-1" title="글자 작게" aria-label="글자 작게">－</button>
+          <b id="text-size-now">100%</b>
+          <button type="button" data-text-step="1" title="글자 크게" aria-label="글자 크게">＋</button>
         </div>
       </div>
     </aside>
@@ -250,9 +252,15 @@ function renderShell(file, found) {
           <span class="wx-chip">풍속 <b id="wx-wind">--</b></span>
         </div>
         <button type="button" class="gnb-btn" id="gnb-alert" title="실시간 알림" aria-haspopup="dialog" aria-controls="alert-pop">🔔<span class="gnb-label">알림</span> <span class="badge zero" id="alert-badge" hidden>0</span></button>
-        <span class="gnb-user"><b>${USER.name}</b><br>${USER.role}</span>
-        <button type="button" class="gnb-btn" id="me-edit" title="회원정보 수정" aria-label="회원정보 수정"><span class="gnb-ico" aria-hidden="true">👤</span><span class="gnb-label">회원정보 수정</span></button>
-        <a class="gnb-btn gnb-logout" href="login.html" data-logout>로그아웃</a>
+        <div class="gnb-me">
+          <button type="button" class="gnb-btn gnb-me-btn" id="me-btn" title="내 계정" aria-haspopup="menu" aria-expanded="false" aria-controls="me-menu">
+            <span class="gnb-ico" aria-hidden="true">👤</span><span class="gnb-user"><b>${USER.name}</b><small>${USER.role}</small></span><i class="chev" aria-hidden="true">▾</i>
+          </button>
+          <div class="me-menu" id="me-menu" role="menu" hidden>
+            <button type="button" role="menuitem" id="me-edit">👤 회원정보 수정</button>
+            <a role="menuitem" href="login.html" data-logout>↪ 로그아웃</a>
+          </div>
+        </div>
       </div>
     </nav>
     <div class="pop" id="me-pop" hidden>
@@ -313,11 +321,56 @@ function renderShell(file, found) {
   document.querySelectorAll("[data-logout]").forEach((a) => a.addEventListener("click", () => {
     try { localStorage.removeItem("safety.auth"); } catch (e) { /* 무시 */ }
   }));
+  wireMeMenu();
   wireMeEdit();
+  wireTextSize();
   document.getElementById("gnb-alert").addEventListener("click", () => {
     if (document.getElementById("alert-pop").hidden) openAlerts(); else closeAlerts();
   });
   if (typeof mountModeChange === "function") mountModeChange();
+}
+
+// 헤더 로그인 사용자를 누르면 아래로 펼치는 메뉴 (회원정보 수정 · 로그아웃). 바깥을 누르거나 Esc 면 닫힌다
+function wireMeMenu() {
+  const btn = document.getElementById("me-btn");
+  const menu = document.getElementById("me-menu");
+  const setOpen = (open) => {
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  btn.addEventListener("click", () => setOpen(menu.hidden));
+  menu.addEventListener("click", (e) => { if (e.target.closest("[role=menuitem]")) setOpen(false); });
+  document.addEventListener("click", (e) => { if (!menu.hidden && !e.target.closest(".gnb-me")) setOpen(false); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !menu.hidden) { setOpen(false); btn.focus(); }
+  });
+}
+
+// 글자 크기: 본문(.page · 관제화면 .board) · 팝업을 zoom 으로 키우고 줄인다. 이 브라우저에 기억하고,
+// 화면을 열 때 깜빡이지 않게 각 화면 <head> 의 첫 스크립트도 같은 값을 먼저 넣는다
+const TEXT_ZOOM_KEY = "safety.text-zoom";
+const TEXT_ZOOMS = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
+function textZoom() {
+  try { const z = Number(localStorage.getItem(TEXT_ZOOM_KEY)); return TEXT_ZOOMS.includes(z) ? z : 1; } catch (e) { return 1; }
+}
+function applyTextZoom(z) {
+  document.documentElement.style.setProperty("--text-zoom", z);
+  const now = document.getElementById("text-size-now");
+  if (now) now.textContent = Math.round(z * 100) + "%";
+  document.querySelectorAll("[data-text-step]").forEach((b) => {
+    const i = TEXT_ZOOMS.indexOf(z) + Number(b.dataset.textStep);
+    b.disabled = i < 0 || i >= TEXT_ZOOMS.length;
+  });
+  window.dispatchEvent(new Event("resize")); // 캔버스 · 배치도처럼 크기를 재는 요소가 다시 잡게
+}
+function wireTextSize() {
+  applyTextZoom(textZoom());
+  document.querySelectorAll("[data-text-step]").forEach((b) => b.addEventListener("click", () => {
+    const z = TEXT_ZOOMS[TEXT_ZOOMS.indexOf(textZoom()) + Number(b.dataset.textStep)];
+    if (z === undefined) return;
+    try { localStorage.setItem(TEXT_ZOOM_KEY, String(z)); } catch (e) { /* 기억 못 해도 이번 화면은 바뀜 */ }
+    applyTextZoom(z);
+  }));
 }
 
 // 회원 목록의 최동현 과장(이름 최동현, 직급 과장)을 로그인 전 초기값으로 쓴다.

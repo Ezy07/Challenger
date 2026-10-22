@@ -1,7 +1,5 @@
 /* 화면 모드 버튼. 흰 배경 · 어두운 배경 모두에서 구분되게 주황 테두리와 채워진 선택을 쓴다. */
 .drawer-foot { flex-direction: column; align-items: stretch; }
-.drawer-foot-links { display: flex; gap: 6px; }
-.drawer-foot-links a { flex: 1; }
 .mode-change {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -57,6 +55,7 @@ html[data-mode="light"] .x-btn,
 html[data-mode="light"] .icon-btn,
 html[data-mode="light"] .head-back,
 html[data-mode="light"] .drawer-foot a,
+html[data-mode="light"] .text-size button,
 html[data-mode="light"] .btn,
 html[data-mode="light"] .input,
 html[data-mode="light"] select.input,

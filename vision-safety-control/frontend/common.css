@@ -138,7 +138,7 @@ body.nav-open #wx-sky { display: none; }
 
 /* 실시간 알림 팝업 (헤더 🔔 · common.js 의 wireAlerts): 헤더 바로 아래 오른쪽에 뜬다 */
 #alert-pop { place-items: start end; padding: 64px 18px 18px; }
-#alert-pop .pop-card { width: min(480px, 100%); max-height: calc(100vh - 84px); display: flex; flex-direction: column; }
+#alert-pop .pop-card { width: min(480px, 100%); max-height: calc((100vh - 84px) / var(--text-zoom, 1)); display: flex; flex-direction: column; }
 .feed { display: grid; gap: 8px; margin-top: 14px; overflow-y: auto; min-height: 0; align-content: start; }
 .alert {
   display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px 10px; align-items: start;
@@ -185,8 +185,35 @@ body.nav-open #wx-sky { display: none; }
 #wind-warn h2 { margin-top: 8px; }
 #wind-warn p { margin-top: 8px; color: var(--muted); font-size: 19px; font-weight: 650; line-height: 1.45; }
 
-.gnb-user { text-align: right; font-size: 17px; color: var(--muted); line-height: 1.3; }
-.gnb-user b { color: var(--ink); }
+/* 헤더 로그인 사용자: 누르면 아래로 회원정보 수정 · 로그아웃 */
+.gnb-me { position: relative; }
+.gnb-me-btn { height: auto; min-height: 42px; padding: 4px 10px 4px 12px; gap: 8px; }
+.gnb-user { display: grid; text-align: right; font-size: 15px; font-weight: 600; color: var(--muted); line-height: 1.25; }
+.gnb-user b { color: var(--ink); font-size: 17px; }
+.gnb-me-btn .chev { font-style: normal; font-size: 14px; color: var(--muted); transition: transform .18s; }
+.gnb-me-btn[aria-expanded="true"] { border-color: var(--orange); }
+.gnb-me-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.me-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 45; min-width: 210px;
+  display: grid; gap: 2px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+.me-menu[hidden] { display: none; }
+.me-menu > button, .me-menu > a {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--ink); font: inherit; font-size: 17.5px; font-weight: 700; text-align: left; white-space: nowrap; cursor: pointer;
+}
+.me-menu > button:hover, .me-menu > a:hover, .me-menu > :focus-visible { background: var(--panel-2); }
+.me-menu > [data-logout] { color: var(--red); border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; }
+
+/* 글자 크기 (메뉴 아래 ＋ －): 본문 · 팝업을 함께 키운다. 팝업 높이는 키운 만큼 나눠 화면 안에 둔다 */
+.page, .board, .pop-card { zoom: var(--text-zoom, 1); }
+.text-size { display: grid; grid-template-columns: 1fr 44px 64px 44px; align-items: center; gap: 4px; padding: 4px 4px 4px 10px; border: 1px solid var(--line); border-radius: 12px; }
+.text-size span { font-size: 17px; font-weight: 700; color: var(--muted); }
+.text-size b { text-align: center; font-size: 17.5px; font-variant-numeric: tabular-nums; }
+.text-size button { height: 40px; border: 1px solid var(--line); border-radius: 8px; background: #121820; color: var(--ink); font: inherit; font-size: 22px; font-weight: 800; cursor: pointer; }
+.text-size button:hover:not(:disabled) { border-color: rgba(255, 154, 31, 0.7); }
+.text-size button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .drawer {
   position: fixed; top: 0; bottom: 0; left: 0; z-index: 40;
@@ -568,7 +595,7 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
 #me-pop { z-index: 47; }
 .pop[hidden] { display: none; }
 .pop-card {
-  width: min(480px, 100%); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); overflow: auto; overscroll-behavior: contain;
+  width: min(480px, 100%); max-height: calc((100vh - 48px) / var(--text-zoom, 1)); max-height: calc((100dvh - 48px) / var(--text-zoom, 1)); overflow: auto; overscroll-behavior: contain;
   --pop-pad: 18px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); padding: var(--pop-pad);
 }
@@ -606,7 +633,7 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
   .gnb::before { position: absolute; top: -24px; right: -24px; bottom: 0; left: -24px; height: auto; }
   body:not([data-no-gnb]) { padding-top: 0; }
   body.nav-open .gnb { left: auto; }
-  .gnb-where, .gnb-user { display: none; }
+  .gnb-where { display: none; }
   /* 좁은 화면에서는 본문을 밀지 않고 메뉴가 위에 덮인다 */
   body.nav-open { padding-left: 0; overflow: hidden; }
   body.nav-open .gnb > .brand { display: flex; }
@@ -627,7 +654,7 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
   html, body { overflow-x: clip; }
   .tbl { display: block; max-width: 100%; overflow-x: auto; }
   .pop { padding: 12px; }
-  .pop-card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
+  .pop-card { max-height: calc((100vh - 24px) / var(--text-zoom, 1)); max-height: calc((100dvh - 24px) / var(--text-zoom, 1)); }
   /* 화면 맨 위 제목 칸: 휴대폰에선 제목만 작게 (설명은 한 줄로 줄임) */
   /* 주요 행동 버튼은 제목 아래 한 줄로 */
   .head { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
@@ -643,7 +670,7 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
   .brand { gap: 7px; font-size: 18px; }
   .brand i { width: 24px; height: 24px; border-radius: 6px; font-size: 15px; }
   .gnb-side { gap: 6px; }
-  .gnb-side .gnb-clock, .gnb-side .gnb-wx, .gnb-logout, .gnb-label { display: none; }
+  .gnb-side .gnb-clock, .gnb-side .gnb-wx, .gnb-label, .gnb-user, .gnb-me-btn .chev { display: none; }
   .gnb-ico { display: inline; }
   .gnb-btn { height: 40px; padding: 0 10px; gap: 4px; font-size: 17px; }
   .gnb-btn .badge { min-width: 22px; height: 22px; font-size: 14px; }
