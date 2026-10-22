@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="mode_change.css" />
   <style>
     .main { grid-template-rows: minmax(0, 1fr); }
+    .main > .cell { min-height: 0; overflow: auto; } /* 폼이 길면 칸 안에서 스크롤 (아래 [취소] [저장] 이 칸 밖으로 넘치지 않게) */
     .form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form .wide { grid-column: 1 / -1; }
     .loc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
@@ -25,7 +26,7 @@
 <body>
   <div class="page no-left rail-hidden rail-over">
 
-    <header class="cell head"></header>
+    <header class="cell head" data-back="cameras.html"></header>
 
     <main class="main">
       <section class="cell">
@@ -63,11 +64,11 @@
               <span class="help" id="slot-help">같은 페이지의 같은 칸에는 카메라 1대만 둘 수 있습니다.</span>
             </label>
           </div>
-          <div class="row between" data-lacks="ADMIN"><span class="hint">카메라 등록 · 수정은 관리자만 할 수 있습니다. 여기서는 설정을 보기만 합니다.</span><a class="btn" href="cameras.html">← 카메라 목록</a></div>
+          <div class="row between" data-lacks="ADMIN"><span class="hint">카메라 등록 · 수정은 관리자만 할 수 있습니다. 여기서는 설정을 보기만 합니다.</span></div>
           <div class="row between" data-need="ADMIN">
-            <button class="btn" type="button" id="del" style="color:var(--red)">카메라 삭제</button>
+            <button class="btn del-text" type="button" id="del">카메라 삭제</button>
             <div class="row">
-              <a class="btn" href="cameras.html">← 카메라 목록</a>
+              <a class="btn" href="cameras.html">취소</a>
               <button class="btn primary">저장</button>
             </div>
           </div>
@@ -85,6 +86,8 @@
           <div class="cam-tag" id="pv-name">새 카메라</div><div class="cam-time js-cam-time"></div>
         </div>
         <div class="check" data-lock="ADMIN"><div><b>사용</b><small>끄면 탐지를 멈춤 (관제화면에서도 빠짐)</small></div><span class="switch on" id="ce-active"></span></div>
+      </div>
+      <div class="pad pad-foot" data-need="ADMIN">
         <a class="btn block" id="roi-link" href="roi-draw.html" data-need="ADMIN">이 카메라에 ROI 그리기</a>
         <a class="btn block" href="camera-map.html" data-need="ADMIN">배치도에서 위치 정하기</a>
       </div>

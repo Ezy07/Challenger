@@ -22,7 +22,6 @@
     .info-grid { flex: 1; display: flex; flex-wrap: wrap; gap: 8px 22px; min-width: 0; }
     .info-item > span { display: block; font-size: 16px; color: var(--muted); font-weight: 700; }
     .info-item > b { font-size: 19px; white-space: nowrap; }
-    .info-acts { display: flex; gap: 8px; flex-wrap: wrap; }
     /* 좁은 화면: 스냅샷을 화면 폭 그대로(16:9) 위에, 탐지 결과를 그 아래에 */
     @media (max-width: 1100px) {
       .main { grid-template-rows: auto auto; }
@@ -33,24 +32,18 @@
       .info-bar { padding: 12px; }
       .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
       .info-item > b { white-space: normal; overflow-wrap: anywhere; font-size: 18px; }
-      .info-acts { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
-      .info-acts .btn { justify-content: center; text-align: center; }
-      .info-acts .btn.primary { grid-column: 1 / -1; }
     }
   </style>
 </head>
 <body>
   <div class="page full">
-    <header class="cell head"></header>
+    <header class="cell head" data-back="events.html">
+      <div class="head-acts"><a class="btn" id="snap-link" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a><a class="btn primary" id="handle-link" href="event-handle.html" data-need="MANAGER">처리 기록 쓰기</a></div>
+    </header>
 
     <main class="main">
       <section class="cell info-bar">
         <div class="info-grid" id="info"></div>
-        <div class="info-acts">
-          <a class="btn" href="events.html">← 이벤트 목록</a>
-          <a class="btn" id="snap-link" href="event-snapshot.html">스냅샷 크게 보기 · 저장</a>
-          <a class="btn primary" id="handle-link" href="event-handle.html" data-need="MANAGER">처리 기록 쓰기</a>
-        </div>
       </section>
       <div class="cam-row">
         <section class="cell cam">

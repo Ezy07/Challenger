@@ -39,7 +39,9 @@
   <div class="page no-left rail-hidden rail-over">
     <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
 
-    <header class="cell head"></header>
+    <header class="cell head" data-back="zone-works.html">
+      <div class="head-acts"><a class="btn" href="equipment-assign.html" data-need="MANAGER">장비 투입 구역 바꾸기</a><a class="btn primary" id="to-assign" href="works.html" data-need="MANAGER">작업자 배정 바꾸기</a></div>
+    </header>
 
     <main class="main scroll">
       <section class="cell work-sum">
@@ -69,13 +71,10 @@
         <div id="checks"></div>
         <div class="label" style="margin-top:6px">작업 내용 · 주의사항</div>
         <div class="hint" id="w-desc">-</div>
-        <a class="btn primary block" id="to-assign" href="works.html" data-need="MANAGER">작업자 배정 바꾸기 →</a>
-        <a class="btn block" href="equipment-assign.html" data-need="MANAGER">장비 투입 구역 바꾸기 →</a>
       </div>
       <div class="pad" id="side">
         <div class="label" id="same-label">같은 구역 작업</div>
         <div id="same" style="display:grid; gap:8px"></div>
-        <a class="btn block" id="back" href="zone-works.html">← 목록</a>
       </div>
     </aside>
   </div>
@@ -129,7 +128,7 @@
       history.replaceState(null, "", "?id=" + w.id);
       $("same-label").textContent = `${w.work_zone_name} 작업`;
       $("same").innerHTML = works.filter((x) => x.work_zone_id === w.work_zone_id).map((x) => card(x, w.id)).join("");
-      $("back").href = "zone-works.html?zone=" + w.work_zone_id;
+      setBack("zone-works.html?zone=" + w.work_zone_id);
       $("to-assign").href = "works.html?id=" + w.id;
 
       const noEdu = w.workers.filter((p) => !p.general_edu);
@@ -174,7 +173,7 @@
       history.replaceState(null, "", "?zone=" + zoneId);
       $("same-label").textContent = z ? `${z.name} 작업` : "같은 구역 작업";
       $("same").innerHTML = '<p class="muted">이 구역에 진행 · 예정 작업이 없습니다</p>';
-      $("back").href = "zone-works.html?zone=" + zoneId;
+      setBack("zone-works.html?zone=" + zoneId);
       $("w-title").textContent = z ? z.name : "구역";
       $("w-status").innerHTML = "";
       $("w-sub").textContent = "진행 · 예정 작업이 없습니다";

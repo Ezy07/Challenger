@@ -44,7 +44,7 @@
   <div class="page no-left rail-hidden rail-over">
     <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
 
-    <header class="cell head"></header>
+    <header class="cell head" data-back="equipment.html"></header>
 
     <main class="main">
       <a class="cell cam" id="cam-link" href="monitor.html">
@@ -87,11 +87,12 @@
         <div id="e-info"></div>
         <div class="label" style="margin-top:6px">오늘 점검</div>
         <div id="e-check"></div>
-        <div class="row" data-need="MANAGER">
-          <button class="btn grow" id="edit">정보 수정</button>
-          <button class="btn" id="del" style="color:var(--red)">삭제</button>
+      </div>
+      <div class="pad pad-foot" data-need="MANAGER">
+        <div class="row between">
+          <button class="btn del-text" id="del">삭제</button>
+          <button class="btn primary" id="edit">정보 수정</button>
         </div>
-        <a class="btn block" href="equipment.html">← 장비 목록</a>
       </div>
     </aside>
   </div>
@@ -100,7 +101,7 @@
     <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="doc-title">
       <div class="pop-head">
         <div><span class="role">구비 서류</span><h2 id="doc-title">체크리스트</h2><p>갖춘 서류를 체크한 뒤 저장합니다</p></div>
-        <button type="button" class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form class="pop-body" id="doc-form" data-lock="MANAGER">
         <div class="check doc-item">
@@ -129,7 +130,7 @@
     <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="doc-detail-title">
       <div class="pop-head">
         <div><span class="role">구비 서류</span><h2 id="doc-detail-title">상세</h2></div>
-        <button type="button" class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <ul class="pop-body" id="doc-detail-body"></ul>
     </div>
@@ -139,7 +140,7 @@
     <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="edu-title">
       <div class="pop-head">
         <div><span class="role">안전교육</span><h2 id="edu-title">안전교육</h2><p>이수한 교육을 체크한 뒤 저장합니다</p></div>
-        <button type="button" class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form class="pop-body" id="edu-form" data-lock="MANAGER">
         <div class="check doc-item">
@@ -159,7 +160,7 @@
     <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="edu-detail-title">
       <div class="pop-head">
         <div><span class="role">안전교육</span><h2 id="edu-detail-title">상세</h2></div>
-        <button type="button" class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <div class="pop-body" id="edu-detail-body"></div>
     </div>
@@ -169,7 +170,7 @@
     <div class="pop-card">
       <div class="pop-head">
         <div><span class="role">장비</span><h2>장비 정보 수정</h2><p>투입 구역 · 운전원 · 상태는 장비 등록 및 배정 화면에서 바꿉니다</p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form class="pop-body" id="form">
         <label class="field">장비 이름<input class="input" id="f-name" required maxlength="100" /></label>

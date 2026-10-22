@@ -25,7 +25,7 @@
     .log time { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
     .log i { width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; background: var(--blue); }
     .log small { display: block; color: var(--muted); margin-top: 2px; }
-    .sum-bar { display: grid; grid-template-columns: 220px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; }
+    .sum-bar { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 14px; align-items: center; padding: 12px 14px; }
     .sum-bar .cam { height: 124px; display: block; }
     #summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .sum-acts { display: grid; gap: 8px; }
@@ -35,7 +35,7 @@
 </head>
 <body>
   <div class="page full">
-    <header class="cell head"></header>
+    <header class="cell head" data-back="events.html"></header>
 
     <main class="main scroll">
       <section class="cell sum-bar">
@@ -45,10 +45,6 @@
           <div class="cam-tag" id="summary-tag"></div>
         </a>
         <div id="summary"></div>
-        <div class="sum-acts">
-          <a class="btn" href="events.html">← 목록</a>
-          <a class="btn" id="detail-link" href="event-detail.html">상세 화면 다시 보기</a>
-        </div>
       </section>
       <section class="cell">
         <div class="pad" id="work">
@@ -73,7 +69,7 @@
           <div class="hint" data-lacks="MANAGER">조회 전용 계정은 이벤트를 처리할 수 없습니다. 처리 이력만 볼 수 있습니다.</div>
           <label class="field" data-need="MANAGER">조치 내용 · 메모<textarea class="input" id="memo" placeholder="예: 인양 중지 후 신호수 1명 배치, 14:40 인양 재개"></textarea></label>
           <div class="row end">
-            <a class="btn" id="back" href="event-detail.html">상세 화면</a>
+            <a class="btn" id="back" href="event-detail.html">취소</a>
             <button class="btn primary" id="save" data-need="MANAGER">저장</button>
           </div>
         </div>
@@ -145,7 +141,8 @@
       $("memo").disabled = !canHandle;
       $("save").disabled = !canHandle;
       $("save").textContent = closed ? "메모 남기기" : "저장";
-      ["back", "detail-link", "summary-cam"].forEach((k) => { $(k).href = "event-detail.html?id=" + ev.id; });
+      ["back", "summary-cam"].forEach((k) => { $(k).href = "event-detail.html?id=" + ev.id; });
+      setBack("event-detail.html?id=" + ev.id);
 
       // 처리 이력: 발생 → 처리 기록 시간순
       const items = Object.fromEntries(ev.check_items.map((c) => [c.id, c.title]));

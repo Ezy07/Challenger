@@ -26,7 +26,9 @@
 </head>
 <body>
   <div class="page full">
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><a class="btn primary" href="equipment-assign.html" data-need="MANAGER">＋ 장비 등록 · 배정</a></div>
+    </header>
 
     <main class="main scroll" id="main">
       <section class="cell searchbar">
@@ -37,7 +39,6 @@
           <span class="muted">줄을 누르면 장비 상세로 이동</span>
           <span class="grow"></span>
           <select class="input" id="sort" style="width:150px" aria-label="정렬"><option value="status">상태 (고장 · 점검 먼저)</option><option value="name">이름순</option><option value="type">종류순</option><option value="zone">구역순</option></select>
-          <a class="btn" href="equipment-assign.html" data-need="MANAGER">장비 등록 및 배정 →</a>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">

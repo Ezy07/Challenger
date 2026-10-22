@@ -40,7 +40,9 @@
 <body>
   <div class="page full">
 
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><a class="btn primary" href="roi-draw.html" data-need="MANAGER">＋ 새 구역 그리기</a></div>
+    </header>
 
     <main class="main">
       <section class="cell searchbar">
@@ -48,8 +50,6 @@
           <input class="input" id="q" style="width:240px" placeholder="구역 이름으로 찾기" />
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <span class="muted">스위치로 켜고 끄기</span>
-          <span class="grow"></span>
-          <a class="btn primary" href="roi-draw.html" data-need="MANAGER">＋ 새 구역 그리기</a>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -68,7 +68,7 @@
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl" data-lock="MANAGER">
-          <thead><tr><th>미리보기</th><th>구역 이름</th><th>카메라</th><th>등급</th><th>규칙</th><th>이번 주 이벤트</th><th>사용</th><th data-need="MANAGER"></th></tr></thead>
+          <thead><tr><th>미리보기</th><th>구역 이름</th><th>카메라</th><th>등급</th><th>규칙</th><th>이번 주 이벤트</th><th>사용</th><th class="acts" data-need="MANAGER"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
@@ -83,7 +83,7 @@
           <p id="del-sub">예를 누르면 이 구역이 지워지고 되돌릴 수 없습니다.</p>
         </div>
       </div>
-      <div class="row end" style="margin-top:16px">
+      <div class="row end">
         <button class="btn" type="button" data-close>아니오</button>
         <button class="btn danger" type="button" id="del-yes">예</button>
       </div>
@@ -97,6 +97,7 @@
           <h2 id="sched-title">구역</h2>
           <p>활성화 시간, 체류 시간, 침입 탐지 대상을 각각 저장합니다. 셋을 모두 저장해야 붉은 점이 사라집니다.</p>
         </div>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <div class="pop-body">
         <section class="set-block">
@@ -127,7 +128,6 @@
           </div>
           <div class="row end"><button class="btn primary" type="button" id="targets-save">탐지 대상 저장</button></div>
         </section>
-        <div class="row end" style="margin-top:16px"><button class="btn" type="button" data-close>닫기</button></div>
       </div>
     </div>
   </div>
@@ -294,7 +294,7 @@
           <td class="rule-cell">${ruleHtml(roi, key)}</td>
           <td>-</td>
           <td><span class="switch${on ? " on" : ""}" title="${auto ? "적용 시간에 따라 자동으로 바뀝니다" : "사용"}"></span></td>
-          <td data-need="MANAGER"><button type="button" class="btn sm" data-set style="margin-right:10px">설정${dot}</button><a class="btn sm" href="roi-draw.html?cam=${encodeURIComponent(cam.code)}&uid=${roi.uid}">수정</a> <button type="button" class="mini-btn" data-del="${roi.uid}">삭제</button></td>
+          <td class="acts" data-need="MANAGER"><div class="row-acts"><button type="button" class="icon-btn" data-set title="설정 (활성화 시간 · 체류 시간 · 탐지 대상)" aria-label="설정">⚙️${dot}</button><a class="icon-btn" href="roi-draw.html?cam=${encodeURIComponent(cam.code)}&uid=${roi.uid}" title="구역 다시 그리기" aria-label="수정">✏️</a><button type="button" class="icon-btn del" data-del="${roi.uid}" title="삭제" aria-label="삭제">🗑️</button></div></td>
         </tr>`;
       }).join("") + `<tr id="roi-empty" hidden><td colspan="8">조건에 맞는 구역이 없습니다</td></tr>`;
       body.querySelectorAll("video[data-file]").forEach(showClip);

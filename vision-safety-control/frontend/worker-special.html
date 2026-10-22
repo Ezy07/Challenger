@@ -37,15 +37,15 @@
 <body>
   <div class="page full">
 
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><button class="btn primary" type="button" id="open-add" data-need="MANAGER">＋ 특별관리 지정</button></div>
+    </header>
 
     <main class="main">
       <section class="cell searchbar">
         <div class="searchbar-row">
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <b id="n-shown"></b>
-          <span class="grow"></span>
-          <button class="btn primary sm" type="button" id="open-add" data-need="MANAGER">특별관리 지정</button>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -70,7 +70,7 @@
       </div>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
-          <thead><tr><th>이름</th><th>협력사 · 직종</th><th>사유</th><th>메모</th><th>지정일</th><th>지정한 사람</th><th>오늘 위치</th><th data-need="MANAGER"></th></tr></thead>
+          <thead><tr><th>이름</th><th>협력사 · 직종</th><th>사유</th><th>메모</th><th>지정일</th><th>지정한 사람</th><th>오늘 위치</th><th class="acts" data-need="MANAGER"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
@@ -85,7 +85,7 @@
           <div class="label">특별관리</div>
           <h2 id="add-title">특별관리 지정하기</h2>
         </div>
-        <button class="btn sm" type="button" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form id="form" data-need="MANAGER" style="display:grid; gap:10px; margin-top:14px">
         <div class="field"><label for="sp-q">작업자</label>
@@ -117,7 +117,7 @@
           <div class="label">특별관리 수정</div>
           <h2 id="edit-title">사유 바꾸기</h2>
         </div>
-        <button class="btn sm" type="button" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form id="edit-form" style="display:grid; gap:10px; margin-top:14px">
         <label class="field">작업자<input class="input" id="ed-q" readonly /></label>
@@ -146,7 +146,7 @@
           <p id="off-sub"></p>
         </div>
       </div>
-      <div class="row end" style="margin-top:16px">
+      <div class="row end">
         <button class="btn" type="button" data-close>아니오</button>
         <button class="btn danger" type="button" id="off-yes">예</button>
       </div>
@@ -197,7 +197,7 @@
           <td class="muted" style="max-width:220px">${esc(w.special_memo || "-")}</td>
           <td class="num">${w.special_since ? w.special_since.replaceAll("-", ".") : "-"}</td><td>${esc(w.special_by_name || "-")}</td>
           <td>${w.today_work ? esc(w.today_work.work_zone_name) : '<span class="muted">배정 없음</span>'}</td>
-          <td data-need="MANAGER"><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-off>해제</button></div></td></tr>`).join("")
+          <td class="acts" data-need="MANAGER"><div class="row-acts"><button class="icon-btn" data-edit title="수정" aria-label="수정">✏️</button><button class="icon-btn del" data-off title="특별관리 해제" aria-label="특별관리 해제">🗑️</button></div></td></tr>`).join("")
         : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 작업자가 없습니다</td></tr>';
     }
 

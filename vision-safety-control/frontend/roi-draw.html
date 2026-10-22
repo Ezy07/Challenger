@@ -73,14 +73,16 @@
         </div>
         <div class="roi-list" id="roi-list"></div>
         <div class="hint" data-lacks="MANAGER">조회 전용 계정은 구역을 그리거나 바꿀 수 없습니다. 카메라를 골라 그려진 구역만 볼 수 있습니다.</div>
-        <button class="btn block" id="roi-new" type="button" data-need="MANAGER">새 구역</button>
-        <button class="btn primary block" id="roi-save" type="button" data-need="MANAGER">이 프레임부터 저장</button>
-        <button class="btn block" id="roi-rules" type="button" data-need="MANAGER">저장하고 규칙 정하기 →</button>
-        <a class="btn block" href="roi-list.html">구역 목록</a>
+      </div>
+      <div class="pad pad-foot" data-need="MANAGER">
+        <button class="btn block" id="roi-rules" type="button">저장하고 규칙 정하기 →</button>
+        <button class="btn primary block" id="roi-save" type="button">이 프레임부터 저장</button>
       </div>
     </aside>
 
-    <header class="cell head"></header>
+    <header class="cell head" data-back="roi-list.html">
+      <div class="head-acts"><button class="btn primary" id="roi-new" type="button" data-need="MANAGER">＋ 새 구역</button></div>
+    </header>
 
     <main class="main">
       <section class="cell cam">

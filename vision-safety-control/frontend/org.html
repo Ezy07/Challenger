@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="mode_change.css" />
   <style>
     .main { grid-template-rows: auto minmax(0, 1fr); }
+    .main > .cell { min-height: 0; overflow: auto; } /* 폼이 길면 칸 안에서 스크롤 (아래 [취소] [저장] 이 칸 밖으로 넘치지 않게) */
     .tree { display: grid; gap: 2px; }
     .node { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #c5d0dc; font: inherit; font-size: 18px; font-weight: 600; text-align: left; cursor: pointer; }
     .node:hover { background: var(--panel-2); }
@@ -47,7 +48,9 @@
 </head>
 <body>
   <div class="page no-left rail-hidden rail-over">
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><button class="btn" type="button" id="add-dept" data-need="ADMIN">＋ 하위 부서</button><button class="btn primary" type="button" id="add-co" data-need="ADMIN">＋ 협력사</button></div>
+    </header>
 
     <main class="main">
       <section class="cell">
@@ -60,13 +63,16 @@
         </div>
       </section>
       <section class="cell"><form class="pad" id="form" data-lock="ADMIN">
-        <div class="row between">
-          <div class="label">이 조직 정보 바꾸기</div>
-          <div class="row" data-need="ADMIN"><button class="btn sm" type="button" id="del">삭제</button><button class="btn sm primary">저장</button></div>
-        </div>
+        <div class="label">이 조직 정보 바꾸기</div>
         <div class="two">
           <label class="field">이름<input class="input" id="f-name" required maxlength="100" /></label>
           <label class="field">상위 조직<select class="input" id="f-parent"></select></label>
+        </div>
+        <div class="row" data-need="ADMIN">
+          <button class="btn del-text" type="button" id="del">삭제</button>
+          <span class="grow"></span>
+          <button class="btn" type="button" id="cancel">취소</button>
+          <button class="btn primary">저장</button>
         </div>
         <div class="label" style="margin-top:6px">소속 회원 <span>회원정보 수정에서 소속을 바꿀 수 있습니다</span></div>
         <table class="tbl">
@@ -81,10 +87,6 @@
       <div class="pad">
         <div class="label">조직도 <span>organization</span></div>
         <div class="tree" id="tree"></div>
-        <div class="row" data-need="ADMIN">
-          <button class="btn sm" id="add-dept">＋ 하위 부서</button>
-          <button class="btn sm" id="add-co">＋ 협력사</button>
-        </div>
       </div>
     </aside>
   </div>
@@ -93,7 +95,7 @@
     <div class="pop-card">
       <div class="pop-head">
         <div><span class="role">조직 · 부서</span><h2>구조 규칙</h2></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <div class="pop-body">
         <div class="check info"><div><b>원청 · 협력사</b><small>회사 단위 (type = COMPANY)</small></div><span class="status info">최상위</span></div>
@@ -108,7 +110,7 @@
     <div class="pop-card">
       <div class="pop-head">
         <div><span class="role" id="a-tag">새 조직</span><h2 id="a-title">조직 · 부서 추가</h2><p id="a-help"></p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form class="pop-body" id="add-form">
         <label class="field">이름<input class="input" id="a-name" required maxlength="100" placeholder="예: 품질팀" /></label>
@@ -218,6 +220,7 @@
       if (n) show(Number(n.dataset.id));
     });
     $("add-dept").addEventListener("click", () => openAdd("DEPT"));
+    $("cancel").addEventListener("click", () => show(sel && sel.id)); // 고친 내용 버리고 다시 채우기
     $("add-co").addEventListener("click", () => openAdd("COMPANY"));
     $("add-form").addEventListener("submit", async (e) => {
       e.preventDefault();

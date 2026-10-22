@@ -67,7 +67,9 @@
 </head>
 <body>
   <div class="page no-left rail-hidden rail-over">
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><button class="btn primary" type="button" id="new" data-need="MANAGER">＋ 새 구역</button></div>
+    </header>
 
     <main class="main">
       <section class="cell plan-wrap" id="plan-wrap">
@@ -92,10 +94,7 @@
     <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
     <aside class="cell right" id="rail">
       <div class="pad">
-        <div class="row" style="flex-wrap:nowrap">
-          <select class="input grow" id="z-pick" aria-label="구역 고르기"></select>
-          <button class="btn sm" type="button" id="new" data-need="MANAGER">＋ 새 구역</button>
-        </div>
+        <select class="input" id="z-pick" aria-label="구역 고르기"></select>
 
         <div id="view-box" style="display:grid; gap:inherit">
           <div class="label" id="z-code">-</div>
@@ -114,8 +113,8 @@
 
         <form id="form" hidden style="display:grid; gap:8px">
           <div class="row between">
-            <button class="btn sm" type="button" id="back">← 뒤로</button>
             <span class="label" id="form-title">구역 수정</span>
+            <button type="button" class="x-btn" id="back" title="닫기" aria-label="닫기">✕</button>
           </div>
           <label class="field">구역 이름<input class="input" id="e-name" required maxlength="100" /></label>
           <div class="field">배치도 영역 <span class="muted" style="font-weight:600">(왼쪽 도면에서 그리기)</span>
@@ -128,7 +127,7 @@
             <small class="muted">점이 없으면 배치도에 표시하지 않습니다. 점 3개 이상이면 다각형이 됩니다.</small>
           </div>
           <div class="row between">
-            <button class="btn sm" type="button" id="del" style="color:var(--red)" disabled title="오늘 작업이 없고 작업 · 인원 · 장비 · 카메라가 0일 때만 삭제할 수 있습니다">구역 삭제</button>
+            <button class="btn sm del-text" type="button" id="del" disabled title="오늘 작업이 없고 작업 · 인원 · 장비 · 카메라가 0일 때만 삭제할 수 있습니다">구역 삭제</button>
             <div class="row">
               <button class="btn sm" type="button" id="cancel">취소</button>
               <button class="btn sm primary">저장</button>
@@ -143,9 +142,9 @@
     <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="del-title">
       <div class="pop-head">
         <div><span class="status stop">삭제</span><h2 id="del-title">구역 삭제</h2><p id="del-ask">정말로 삭제하시겠습니까?</p></div>
-        <button class="btn sm" type="button" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
-      <div class="row end" style="margin-top:14px">
+      <div class="row end">
         <button class="btn" type="button" data-close>아니오</button>
         <button class="btn danger" type="button" id="del-yes">예</button>
       </div>

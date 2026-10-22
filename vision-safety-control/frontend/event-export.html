@@ -28,22 +28,21 @@
       .formats .tc-card p { margin: 0; font-size: 15.5px; }
       .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .main > .cell:last-child .row.between { flex-wrap: wrap; gap: 8px; }
-      #download { width: 100%; justify-content: center; }
       .searchbar-row #count-hint { flex-basis: 100%; order: 3; }
     }
   </style>
 </head>
 <body>
   <div class="page full">
-    <header class="cell head"></header>
+    <header class="cell head" data-back="events.html">
+      <div class="head-acts"><button class="btn primary" id="download">⬇ 파일 내려받기</button></div>
+    </header>
 
     <main class="main">
       <section class="cell searchbar">
         <div class="searchbar-row">
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="range">내보낼 범위 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <span class="muted" id="count-hint">조건에 맞는 이벤트를 세는 중…</span>
-          <span class="grow"></span>
-          <a class="btn" href="events.html">← 이벤트 목록</a>
         </div>
         <div class="search-panel" id="range" hidden>
           <div class="search-fields">
@@ -87,10 +86,7 @@
       </section>
       <section class="cell" style="overflow:auto">
         <div class="pad">
-          <div class="row between">
-            <div class="label">미리보기 <span>앞 5줄</span></div>
-            <button class="btn primary" id="download">⬇ 파일 내려받기</button>
-          </div>
+          <div class="label">미리보기 <span>앞 5줄</span></div>
           <table class="tbl">
             <thead id="p-head"></thead>
             <tbody id="p-body"></tbody>

@@ -28,7 +28,7 @@
 </head>
 <body>
   <div class="page no-left rail-hidden rail-over">
-    <header class="cell head"></header>
+    <header class="cell head" data-back="users.html"></header>
 
     <main class="main">
       <section class="cell searchbar">
@@ -63,7 +63,6 @@
         <div class="check info"><div><b>소속 확인</b><small>협력사 신청자는 해당 회사 담당자에게 확인</small></div><span class="status info">1</span></div>
         <div class="check info"><div><b>역할 낮춰서 부여</b><small>요청 역할보다 낮게 승인할 수 있음</small></div><span class="status info">2</span></div>
         <div class="check warn"><div><b>관리자 역할은 승인으로 못 줌</b><small>필요하면 회원정보 수정에서 따로 지정</small></div><span class="status warn">!</span></div>
-        <a class="btn block" href="users.html">← 회원 목록</a>
       </div>
     </aside>
   </div>
@@ -72,7 +71,7 @@
     <div class="pop-card">
       <div class="pop-head">
         <div><span class="status stop">반려</span><h2 id="reject-title">가입 반려</h2><p>반려하면 이 아이디로 로그인할 수 없습니다 (신청자에게 따로 알려 주세요)</p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <div class="pop-body">
         <div class="row end"><button class="btn" data-close>취소</button><button class="btn danger" id="reject-ok">반려</button></div>

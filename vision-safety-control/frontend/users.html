@@ -23,7 +23,9 @@
 </head>
 <body>
   <div class="page no-left rail-hidden rail-over">
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><button class="btn primary" data-open="pop">＋ 회원 등록</button></div>
+    </header>
 
     <main class="main">
       <section class="cell searchbar">
@@ -33,7 +35,6 @@
           <b id="n-shown"></b>
           <span class="grow"></span>
           <a class="btn" href="user-approval.html">가입 승인 대기 <span class="status warn" id="n-pending">0명</span></a>
-          <button class="btn primary" data-open="pop">＋ 회원 등록</button>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -54,7 +55,7 @@
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
-          <thead><tr><th>이름</th><th>아이디</th><th>휴대폰</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th></th></tr></thead>
+          <thead><tr><th>이름</th><th>아이디</th><th>휴대폰</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th class="acts"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
@@ -76,7 +77,7 @@
     <div class="pop-card">
       <div class="pop-head">
         <div><span class="role">관리자가 직접 등록</span><h2>회원 등록</h2><p>등록하면 승인 없이 바로 활성 상태가 되고, 첫 비밀번호가 한 번만 표시됩니다</p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form class="pop-body" id="new-form">
         <label class="field">이름<input class="input" id="n-name" placeholder="예: 홍길동" required /></label>
@@ -106,9 +107,9 @@
     <div class="pop-card">
       <div class="pop-head">
         <div><span class="status stop">삭제</span><h2 id="del-title">회원 삭제</h2><p>삭제한 회원은 로그인할 수 없고, 처리 기록에는 이름만 남습니다</p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
-      <div class="row end" style="margin-top:14px"><button class="btn" data-close>취소</button><button class="btn danger" id="del-ok">삭제</button></div>
+      <div class="row end"><button class="btn" data-close>취소</button><button class="btn danger" id="del-ok">삭제</button></div>
     </div>
   </div>
 
@@ -144,13 +145,13 @@
       $("rows").innerHTML = rows.length ? rows.map((u) => {
         const self = me && me.id === u.id;
         const lastLogin = self ? "지금 접속 중" : u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "접속 기록 없음";
-        const del = self ? '<button class="btn sm" disabled title="본인 계정은 삭제할 수 없습니다">삭제</button>' : '<button class="btn sm" data-del>삭제</button>';
+        const del = self ? '<button class="icon-btn del" disabled title="본인 계정은 삭제할 수 없습니다" aria-label="삭제">🗑️</button>' : '<button class="icon-btn del" data-del title="삭제" aria-label="삭제">🗑️</button>';
         return `<tr data-id="${u.id}">
           <td><span class="av">${esc(u.name[0])}</span><b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
           <td class="num">${esc(u.phone || "-")}</td>
           <td>${badge("role", u.role)}</td><td>${esc(orgs[u.org_id] || "-")}</td><td>${lastLogin}</td>
           <td>${badge("userStatus", u.status)}</td>
-          <td><div class="row" style="flex-wrap:nowrap"><a class="btn sm" href="user-edit.html?id=${u.id}">수정</a>${del}</div></td></tr>`;
+          <td class="acts"><div class="row-acts"><a class="icon-btn" href="user-edit.html?id=${u.id}" title="수정" aria-label="수정">✏️</a>${del}</div></td></tr>`;
       }).join("") : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 회원이 없습니다</td></tr>';
     }
 

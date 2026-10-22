@@ -45,13 +45,14 @@
 </head>
 <body>
   <div class="page full">
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><a class="btn primary" href="camera-edit.html" data-need="ADMIN">＋ 카메라 추가</a></div>
+    </header>
 
     <main class="main">
       <section class="cell cam-list">
         <div class="row between"><div class="label">카메라 위치 <span id="n-cams">0대</span></div>
-          <div class="row"><span class="muted"><b style="color:var(--ink)">부채꼴</b>은 카메라의 시야, <b style="color:var(--ink)">원</b>은 돌면서 전체를 보는 카메라입니다. 도면에서 비어 있는 곳은 카메라를 더 달아야 할 곳입니다.</span>
-          <a class="btn sm primary" href="camera-edit.html" data-need="ADMIN">＋ 카메라 추가</a></div></div>
+          <div class="row"><span class="muted"><b style="color:var(--ink)">부채꼴</b>은 카메라의 시야, <b style="color:var(--ink)">원</b>은 돌면서 전체를 보는 카메라입니다. 도면에서 비어 있는 곳은 카메라를 더 달아야 할 곳입니다.</span></div></div>
         <select class="input cam-pick" id="cam-pick" aria-label="카메라"></select>
       </section>
 
@@ -101,7 +102,7 @@
     <div class="pop-card" style="width:min(540px, 100%)">
       <div class="pop-head">
         <div><span class="role">전체 구역 표시와 함께 씀</span><h2>도면 관리</h2><p>PNG · JPG · WebP, 15MB 까지. PDF · CAD 도면은 그림으로 저장해서 올려 주세요.</p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <div class="pop-body">
         <div class="plan-info" id="plan-info"></div>

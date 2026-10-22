@@ -263,7 +263,7 @@ function renderShell(file, found) {
             <h2 id="me-title">회원정보 수정</h2>
             <p>이름 · 전화번호 · 비밀번호만 바꿀 수 있습니다.</p>
           </div>
-          <button type="button" class="btn sm" data-close>닫기</button>
+          <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
         </div>
         <form class="pop-body" id="me-form">
           <label class="field">이름<input class="input" id="me-name" maxlength="50" required /></label>
@@ -382,7 +382,7 @@ function renderHead(file, found) {
   // 브라우저 탭 제목도 메뉴 번호와 맞춘다
   if (found) document.title = `${pageNo(found.group, found.page)} ${found.page[1]} · 안전관제`;
   const head = document.querySelector("header.head");
-  if (head && !head.children.length) {
+  if (head && !head.querySelector(".title")) {
     let title, text;
     if (found) {
       [, title, text] = found.page;
@@ -390,11 +390,21 @@ function renderHead(file, found) {
       const extra = EXTRA[file] || ["", document.title, "", ""];
       [, title, text] = extra;
     }
+    // 버튼 자리 통일: 왼쪽 = 뒤로(←, <header data-back="목록.html">) · 제목, 오른쪽 = 화면의 주요 행동(<header> 안 .head-acts)
+    const acts = head.querySelector(".head-acts");
+    const back = head.dataset.back;
     head.innerHTML = `
-      <div></div>
-      <div class="title"><h1>${title}</h1><p>${text}</p></div>
-      <div></div>`;
+      <div class="head-l">
+        ${back ? `<a class="head-back" id="head-back" href="${back}" title="뒤로" aria-label="뒤로">←</a>` : ""}
+        <div class="title"><h1>${title}</h1><p>${text}</p></div>
+      </div>`;
+    if (acts) head.append(acts);
   }
+}
+// 뒤로(←) 가 갈 곳이 불러온 데이터에 따라 바뀌는 화면 (예: 처리 기록 → 그 이벤트의 상세)
+function setBack(href) {
+  const a = document.getElementById("head-back");
+  if (a) a.href = href;
 }
 
 /* ---------------------------------------------------------------- 실시간 알림 (헤더 🔔)
@@ -473,7 +483,7 @@ function alertPopHtml() {
             <h2 id="alert-title">실시간 알림</h2>
             <p>처리가 끝나지 않은 이벤트 · 30초마다 새로 고침</p>
           </div>
-          <button type="button" class="btn sm" id="alert-close">닫기</button>
+          <button type="button" class="x-btn" id="alert-close" title="닫기" aria-label="닫기">✕</button>
         </div>
         <div class="push-box" id="push-box">
           <b>📱 이 기기로 알림 받기</b>

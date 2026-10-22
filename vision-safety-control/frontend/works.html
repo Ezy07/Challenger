@@ -34,7 +34,9 @@
   <div class="page no-left rail-hidden rail-over">
     <button type="button" class="rail-toggle rail-right" data-rail="right" aria-controls="rail" aria-expanded="false" title="오른쪽 패널 열기">◁</button>
 
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><button class="btn primary" type="button" id="new" data-need="MANAGER">＋ 새 작업</button></div>
+    </header>
 
     <main class="main scroll">
       <section class="cell"><form class="pad" id="form" data-lock="MANAGER">
@@ -50,8 +52,10 @@
         </div>
         <label class="field">상태<select class="input" id="f-status"><option value="PLANNED">예정</option><option value="IN_PROGRESS">진행중</option><option value="STOPPED">작업중지</option><option value="DONE">완료</option></select></label>
         <label class="field">작업 내용 · 주의사항<textarea class="input" id="f-desc" maxlength="1000"></textarea></label>
-        <div class="row end" data-need="MANAGER">
-          <button class="btn" type="button" id="del">삭제</button>
+        <div class="row between" data-need="MANAGER">
+          <button class="btn del-text" type="button" id="del">삭제</button>
+          <span class="grow"></span>
+          <button class="btn" type="button" id="cancel">취소</button>
           <button class="btn primary">저장</button>
         </div>
       </form></section>
@@ -73,7 +77,7 @@
 
     <aside class="cell right" id="rail">
       <div class="pad">
-        <div class="row between"><div class="label">작업 <span id="n-works">0건</span></div><button class="btn sm primary" id="new" data-need="MANAGER">＋ 새 작업</button></div>
+        <div class="label">작업 <span id="n-works">0건</span></div>
         <div class="chips" id="scope" data-single><span class="chip on" data-v="today">오늘</span><span class="chip" data-v="upcoming">진행 · 예정 전체</span></div>
         <div id="list" style="display:grid; gap:8px"></div>
       </div>
@@ -187,6 +191,7 @@
     });
     $("scope").addEventListener("click", (e) => { if (e.target.closest(".chip")) loadList().catch((err) => toast(err.message)); });
     $("new").addEventListener("click", () => openWork(null));
+    $("cancel").addEventListener("click", () => openWork(work ? work.id : null).catch((err) => toast(err.message))); // 고친 내용 버리고 다시 불러오기
     $("find").addEventListener("input", renderAssign);
     $("show-busy").addEventListener("change", renderAssign);
 

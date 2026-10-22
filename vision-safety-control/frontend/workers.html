@@ -23,7 +23,9 @@
 <body>
   <div class="page full">
 
-    <header class="cell head"></header>
+    <header class="cell head">
+      <div class="head-acts"><button class="btn primary" id="add" data-need="MANAGER">＋ 작업자 등록</button></div>
+    </header>
 
     <main class="main">
       <section class="cell sum-strip" aria-label="오늘 현황">
@@ -36,8 +38,6 @@
           <input class="input" id="q" style="width:220px" placeholder="이름 · 직종으로 찾기" />
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="filter">검색 조건 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
           <b id="n-shown"></b>
-          <span class="grow"></span>
-          <button class="btn primary" id="add" data-need="MANAGER">＋ 작업자 등록</button>
         </div>
         <div class="search-panel" id="filter" hidden>
           <div class="search-fields">
@@ -53,7 +53,7 @@
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
-          <thead><tr><th>이름</th><th>협력사</th><th>직종</th><th>연락처</th><th>특별관리</th><th>기초교육</th><th>오늘 배정 작업</th><th data-need="MANAGER"></th></tr></thead>
+          <thead><tr><th>이름</th><th>협력사</th><th>직종</th><th>연락처</th><th>특별관리</th><th>기초교육</th><th>오늘 배정 작업</th><th class="acts" data-need="MANAGER"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
@@ -64,7 +64,7 @@
     <div class="pop-card" style="width:min(560px, 100%)">
       <div class="pop-head">
         <div><span class="role" id="pop-tag">새 작업자</span><h2 id="pop-title">작업자 등록</h2><p>특별관리 지정은 특별관리 지정 화면에서 합니다</p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form class="pop-body" id="form">
         <div class="two">
@@ -98,9 +98,9 @@
     <div class="pop-card">
       <div class="pop-head">
         <div><span class="status stop">삭제</span><h2 id="del-title">작업자 삭제</h2><p>끝나지 않은 작업 배정과 장비 운전원에서도 함께 빠집니다</p></div>
-        <button class="btn sm" data-close>닫기</button>
+        <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
-      <div class="row end" style="margin-top:14px"><button class="btn" data-close>취소</button><button class="btn danger" id="del-ok">삭제</button></div>
+      <div class="row end"><button class="btn" data-close>취소</button><button class="btn danger" id="del-ok">삭제</button></div>
     </div>
   </div>
 
@@ -136,7 +136,7 @@
           <td class="num">${esc(w.phone || "-")}</td><td>${spTags(w)}</td>
           <td>${w.general_edu ? '<span class="status ok">이수</span>' : '<span class="status stop">미이수</span>'}</td>
           <td>${w.today_work ? esc(w.today_work.name) : '<span class="muted">배정 없음</span>'}</td>
-          <td data-need="MANAGER"><div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-edit>수정</button><button class="btn sm" data-del>삭제</button></div></td></tr>`).join("")
+          <td class="acts" data-need="MANAGER"><div class="row-acts"><button class="icon-btn" data-edit title="수정" aria-label="수정">✏️</button><button class="icon-btn del" data-del title="삭제" aria-label="삭제">🗑️</button></div></td></tr>`).join("")
         : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 작업자가 없습니다</td></tr>';
 
       $("k-all").innerHTML = `${workers.length}<i>명</i>`;
@@ -167,7 +167,7 @@
     function renderEdu(w) {
       $("edu-list").innerHTML = w.educations.length ? w.educations.map((e) => `
         <div class="check${e.edu_type === "GENERAL" ? "" : " info"}"><div><b>${esc(e.name)}</b><small>${e.edu_type === "GENERAL" ? "기초안전보건교육" : "특별교육"} · ${fmtTime(e.completed_date + "T", { time: false })} 이수</small></div>
-          <button class="btn sm" type="button" data-edu-del="${e.id}">삭제</button></div>`).join("")
+          <button class="icon-btn del" type="button" data-edu-del="${e.id}" title="이수 기록 삭제" aria-label="이수 기록 삭제">🗑️</button></div>`).join("")
         : '<div class="hint">아직 이수한 교육이 없습니다. 기초교육 <b>이수</b>는 근로자 정기안전보건교육, 건설업 기초안전보건교육, 채용 시 교육, 작업내용 변경 시 교육을 모두 등록했을 때만 됩니다.</div>';
     }
 

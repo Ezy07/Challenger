@@ -59,14 +59,14 @@
 </head>
 <body>
   <div class="page full">
-    <header class="cell head"></header>
+    <header class="cell head" data-back="stats.html">
+      <div class="head-acts"><button class="btn primary" type="button" id="print" title="보고서 종이 부분만 A4 로 나옵니다. PDF 로 받으려면 인쇄 창에서 대상(프린터)을 'PDF로 저장'으로 고르세요.">🖨 인쇄</button></div>
+    </header>
 
     <main class="main scroll">
       <section class="cell searchbar">
         <div class="searchbar-row">
           <button type="button" class="btn search-toggle" data-search-toggle aria-expanded="false" aria-controls="setup">보고서 설정 <em class="search-sum" hidden></em><i class="chev">▾</i></button>
-          <span class="grow"></span>
-          <button class="btn primary" type="button" id="print" title="보고서 종이 부분만 A4 로 나옵니다. PDF 로 받으려면 인쇄 창에서 대상(프린터)을 'PDF로 저장'으로 고르세요.">🖨 인쇄</button>
         </div>
         <form class="search-panel" id="setup" hidden>
           <div class="search-fields">

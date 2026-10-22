@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="mode_change.css" />
   <style>
     .main { grid-template-rows: minmax(0, 1fr); }
+    .main > .cell { min-height: 0; overflow: auto; } /* 폼이 길면 칸 안에서 스크롤 (아래 [취소] [저장] 이 칸 밖으로 넘치지 않게) */
     .page.rail-over > .right > .pad:first-child { flex: none; }
     .tbl td, .tbl th { text-align: center; vertical-align: middle; }
     .tbl td:first-child, .tbl th:first-child { text-align: left; }
@@ -34,10 +35,7 @@
         <div class="pad">
           <div class="row between">
             <div class="label">누가 · 어떤 심각도를 · 어디로 받을지</div>
-            <div class="row">
-              <a class="btn" href="users.html" data-need="ADMIN">회원 등록은 회원 목록에서</a>
-              <button class="btn primary" data-need="ADMIN" data-toast="알림 대상을 저장했습니다. (예시)">저장</button>
-            </div>
+            <a class="btn" href="users.html" data-need="ADMIN">회원 등록은 회원 목록에서</a>
           </div>
           <table class="tbl">
             <thead>
@@ -53,6 +51,10 @@
               <tr><td class="who"><b>김철수 과장</b><small>타설 담당</small></td><td><span class="status stop">높음</span></td><td><span class="switch"></span></td><td><span class="switch on"></span></td><td><span class="switch"></span></td><td>101동</td></tr>
             </tbody>
           </table>
+          <div class="row end" data-need="ADMIN">
+            <button class="btn" data-toast="바꾼 내용을 되돌렸습니다. (예시)">취소</button>
+            <button class="btn primary" data-toast="알림 대상을 저장했습니다. (예시)">저장</button>
+          </div>
         </div>
       </section>
     </main>
