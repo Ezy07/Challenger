@@ -143,13 +143,14 @@
 
     // ---------------- 영상 + ROI
     function fitStage() {
-      const box = $("cam-box").getBoundingClientRect();
+      const box = layoutSize($("cam-box"));
       const [vw, vh] = live ? [$("live").naturalWidth, $("live").naturalHeight] : [$("video").videoWidth, $("video").videoHeight];
       if (!vw || !box.width) return;
       const s = Math.min(box.width / vw, box.height / vh), w = vw * s, h = vh * s;
       Object.assign($("stage").style, { width: w + "px", height: h + "px", left: (box.width - w) / 2 + "px", top: (box.height - h) / 2 + "px" });
     }
     new ResizeObserver(fitStage).observe($("cam-box"));
+    window.addEventListener("resize", fitStage); // 글자 크기를 바꿀 때도 다시 맞춤
 
     // 지금 영상 시각에 맞는 모양 (ROI 그리기에서 프레임마다 바꿔 둔 경우). 탐지 영상은 서버가 ROI 를 그려서 보낸다
     function drawRois() {

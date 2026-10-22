@@ -335,7 +335,7 @@
     const video = document.getElementById("frame-video");
     const stage = document.getElementById("cam-stage");
     function fitStage() {
-      const rect = stage.parentElement.getBoundingClientRect();
+      const rect = layoutSize(stage.parentElement);
       const vw = video.videoWidth || 16;
       const vh = video.videoHeight || 9;
       if (!rect.width || !rect.height) return;
@@ -348,6 +348,7 @@
       stage.style.top = ((rect.height - h) / 2) + "px";
     }
     new ResizeObserver(() => fitStage()).observe(stage.parentElement);
+    window.addEventListener("resize", () => fitStage()); // 글자 크기를 바꿀 때도 다시 맞춤
     fitStage();
     const camTag = document.querySelector(".cam-tag");
     const range = document.getElementById("frame-range");

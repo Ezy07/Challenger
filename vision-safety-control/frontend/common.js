@@ -363,6 +363,13 @@ function applyTextZoom(z) {
   });
   window.dispatchEvent(new Event("resize")); // 캔버스 · 배치도처럼 크기를 재는 요소가 다시 잡게
 }
+// 글자 크기(zoom) 안 요소의 크기. getBoundingClientRect 는 화면에 보이는(키운) 크기라,
+// 그 값으로 style 에 px 를 넣으면 한 번 더 키워진다 → zoom 으로 나눈 크기를 쓴다
+function layoutSize(el) {
+  const r = el.getBoundingClientRect();
+  const z = el.currentCSSZoom || Number(getComputedStyle(document.documentElement).getPropertyValue("--text-zoom")) || 1;
+  return { width: r.width / z, height: r.height / z };
+}
 function wireTextSize() {
   applyTextZoom(textZoom());
   document.querySelectorAll("[data-text-step]").forEach((b) => b.addEventListener("click", () => {
