@@ -133,6 +133,38 @@ class UserUpdate(BaseModel):
     status: Literal[UserStatus.ACTIVE, UserStatus.LOCKED] | None = None  # 삭제는 DELETE 로
 
 
+# ---------------------------------------------------------------- 웹 푸시
+class PushKeyOut(BaseModel):
+    enabled: bool
+    public_key: str | None = None  # 브라우저 구독용 공개키 (applicationServerKey)
+    reason: str | None = None      # 못 쓰는 이유
+
+
+class PushKeys(BaseModel):
+    p256dh: str = Field(min_length=1, max_length=120)
+    auth: str = Field(min_length=1, max_length=60)
+
+
+class PushSubIn(BaseModel):
+    """브라우저 PushSubscription.toJSON() 그대로 + 받을 심각도"""
+    endpoint: str = Field(pattern=r"^https://", max_length=700)
+    keys: PushKeys
+    min_severity: Severity = Severity.MEDIUM
+
+
+class PushSubOut(Out):
+    id: int
+    endpoint: str
+    min_severity: Severity
+    device: str | None
+    created_at: datetime
+    last_sent_at: datetime | None
+
+
+class PushTestOut(BaseModel):
+    devices: int
+
+
 # ---------------------------------------------------------------- 구역 · 카메라
 class WorkZoneOut(Out):
     id: int

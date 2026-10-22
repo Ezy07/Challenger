@@ -105,6 +105,7 @@ body.nav-open .gnb > .brand { display: none; }
   font-family: inherit; font-size: 17.5px; font-weight: 700; color: var(--ink); white-space: nowrap; cursor: pointer;
 }
 .gnb-btn:hover { border-color: rgba(255, 154, 31, 0.7); }
+.gnb-ico { display: none; } /* 휴대폰에서 글자 대신 쓰는 아이콘 */
 .gnb-btn .badge { min-width: 26px; height: 26px; padding: 0 6px; border-radius: 999px; background: var(--red); color: #fff; font-size: 16px; display: grid; place-items: center; animation: pulse 1.6s infinite; }
 /* 헤더 오른쪽의 작은 날씨 (common.js 의 loadWeather) */
 .gnb-wx { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -162,6 +163,15 @@ body.nav-open #wx-sky { display: none; }
 .feed-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
 .feed-foot a { font-size: 17.5px; font-weight: 700; color: var(--muted); }
 .feed-foot a:hover { color: var(--ink); }
+/* 실시간 알림 팝업: 이 기기 웹 푸시 켜기 */
+.push-box {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 154, 31, 0.06);
+}
+.push-box > b { font-size: 17.5px; margin-right: auto; }
+.push-box select.input { width: auto; height: 34px; padding: 0 8px; font-size: 17px; }
+.push-box small { flex-basis: 100%; font-size: 16px; }
+.push-box small:empty { display: none; }
 @media (max-width: 1100px) { #alert-pop { place-items: center; padding: 16px; } }
 
 /* 1호기 · 3호기 후크가 겹친 순간 (어느 화면에서든) */
@@ -556,6 +566,18 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
     border-color: var(--line); background: var(--panel); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22); overflow: auto;
   }
   .page.rail-hidden > .right > .pad, .page.left-hidden > .left > .pad { display: flex; }
+}
+/* 휴대폰: 헤더를 한 줄로 (메뉴 · 로고 · 🔔 · 👤). 시계 · 날씨는 숨기고, 로그아웃은 전체 메뉴 아래에 있다 */
+@media (max-width: 700px) {
+  .gnb { flex-wrap: nowrap; gap: 6px; top: 8px; margin: 8px 8px 0; padding: 6px 8px 6px 6px; border-radius: 12px; }
+  .menu-btn { width: 40px; height: 40px; border-radius: 9px; }
+  .brand { gap: 7px; font-size: 18px; }
+  .brand i { width: 24px; height: 24px; border-radius: 6px; font-size: 15px; }
+  .gnb-side { gap: 6px; }
+  .gnb-side .gnb-clock, .gnb-side .gnb-wx, .gnb-logout, .gnb-label { display: none; }
+  .gnb-ico { display: inline; }
+  .gnb-btn { height: 40px; padding: 0 10px; gap: 4px; font-size: 17px; }
+  .gnb-btn .badge { min-width: 22px; height: 22px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   body, .drawer, .menu-btn span, .scrim, .page, .page > .rail-toggle { transition: none !important; }

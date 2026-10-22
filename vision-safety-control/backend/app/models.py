@@ -162,6 +162,24 @@ class User(Base):
     org: Mapped[Organization | None] = relationship()
 
 
+class PushSubscription(Base):
+    """웹 푸시를 켠 기기 (브라우저마다 한 줄). 이벤트가 생기면 min_severity 이상만 보낸다 (push.py)"""
+
+    __tablename__ = "push_subscription"
+
+    id: Mapped[int] = mapped_column(Id, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Id, ForeignKey("users.id", ondelete="CASCADE"))
+    endpoint: Mapped[str] = mapped_column(String(700), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(120))
+    auth: Mapped[str] = mapped_column(String(60))
+    min_severity: Mapped[Severity] = mapped_column(enum_col(Severity), default=Severity.MEDIUM)
+    device: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
+    last_sent_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    user: Mapped[User] = relationship()
+
+
 # ---------------------------------------------------------------- 구역 · 카메라 · ROI
 class WorkZone(Base):
     __tablename__ = "work_zone"

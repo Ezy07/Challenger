@@ -249,10 +249,10 @@ function renderShell(file, found) {
           <span class="wx-chip">체감 <b id="wx-feel">--°</b></span>
           <span class="wx-chip">풍속 <b id="wx-wind">--</b></span>
         </div>
-        <button type="button" class="gnb-btn" id="gnb-alert" title="실시간 알림" aria-haspopup="dialog" aria-controls="alert-pop">🔔 알림 <span class="badge zero" id="alert-badge" hidden>0</span></button>
+        <button type="button" class="gnb-btn" id="gnb-alert" title="실시간 알림" aria-haspopup="dialog" aria-controls="alert-pop">🔔<span class="gnb-label">알림</span> <span class="badge zero" id="alert-badge" hidden>0</span></button>
         <span class="gnb-user"><b>${USER.name}</b><br>${USER.role}</span>
-        <button type="button" class="gnb-btn" id="me-edit">회원정보 수정</button>
-        <a class="gnb-btn" href="login.html" data-logout>로그아웃</a>
+        <button type="button" class="gnb-btn" id="me-edit" title="회원정보 수정" aria-label="회원정보 수정"><span class="gnb-ico" aria-hidden="true">👤</span><span class="gnb-label">회원정보 수정</span></button>
+        <a class="gnb-btn gnb-logout" href="login.html" data-logout>로그아웃</a>
       </div>
     </nav>
     <div class="pop" id="me-pop" hidden>
@@ -452,7 +452,7 @@ async function alertFetch(path, options = {}) {
     err.status = res.status;
     throw err;
   }
-  return res.json();
+  return res.status === 204 ? null : res.json();
 }
 
 // 이벤트를 지우면 알림 · 관제화면 목록을 30초 기다리지 않고 바로 고친다.
@@ -474,6 +474,17 @@ function alertPopHtml() {
             <p>처리가 끝나지 않은 이벤트 · 30초마다 새로 고침</p>
           </div>
           <button type="button" class="btn sm" id="alert-close">닫기</button>
+        </div>
+        <div class="push-box" id="push-box">
+          <b>📱 이 기기로 알림 받기</b>
+          <select class="input" id="push-sev" aria-label="받을 심각도">
+            <option value="HIGH">높음만</option>
+            <option value="MEDIUM" selected>중간 이상</option>
+            <option value="LOW">전체</option>
+          </select>
+          <button type="button" class="mini-btn primary" id="push-toggle" disabled>켜기</button>
+          <button type="button" class="mini-btn" id="push-test" hidden>테스트</button>
+          <small class="muted" id="push-note"></small>
         </div>
         <div class="feed" id="feed"></div>
         <div class="feed-foot">
@@ -547,6 +558,7 @@ function openAlerts() {
   document.getElementById("gnb-alert").setAttribute("aria-expanded", "true");
   document.getElementById("alert-close").focus();
   loadAlerts();
+  loadPush();
 }
 
 function closeAlerts() {
@@ -554,6 +566,136 @@ function closeAlerts() {
   if (!pop) return;
   pop.hidden = true;
   document.getElementById("gnb-alert").setAttribute("aria-expanded", "false");
+}
+
+/* ---------------------------------------------------------------- 웹 푸시 (휴대폰 · PC 알림)
+   실시간 알림 팝업 위쪽에서 이 기기 알림을 켜고 끈다. 켜면 서비스 워커(sw.js)가 브라우저 푸시 서비스에 구독하고,
+   그 주소를 서버에 저장한다 → 이벤트가 생기면 서버가 보낸다 (backend/app/push.py). 화면을 닫아 둬도 온다.
+   - HTTPS 주소(또는 이 PC 의 localhost)에서만 된다. 휴대폰은 서버를 HTTPS 로 열어야 한다 (README 「웹 푸시」)
+   - 아이폰은 Safari 공유 → 「홈 화면에 추가」 한 앱에서만 된다 (iOS 16.4 이상) */
+const pushSupported = () => window.isSecureContext && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const isIos = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+let pushSub = null; // 이 기기의 구독 (켜져 있을 때)
+
+function registerServiceWorker() {
+  if (!window.isSecureContext || !("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("/sw.js").catch(() => { /* 알림만 못 씀 */ });
+}
+
+function base64UrlBytes(text) {
+  const raw = atob((text + "=".repeat((4 - (text.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+function showPush(on, note) {
+  const toggle = document.getElementById("push-toggle");
+  toggle.disabled = false;
+  toggle.textContent = on ? "끄기" : "켜기";
+  toggle.classList.toggle("primary", !on);
+  document.getElementById("push-test").hidden = !on;
+  document.getElementById("push-note").textContent = note || (on ? "이 기기로 알림이 옵니다." : "");
+}
+
+// 팝업을 열 때마다 이 기기가 켜져 있는지 다시 본다 (다른 계정으로 켰거나 브라우저에서 끈 경우)
+async function loadPush() {
+  const toggle = document.getElementById("push-toggle");
+  if (!pushSupported()) {
+    toggle.disabled = true;
+    document.getElementById("push-note").textContent = !window.isSecureContext
+      ? "HTTPS 주소에서만 켤 수 있습니다."
+      : isIos() ? "아이폰은 공유 → 「홈 화면에 추가」 한 앱에서 켤 수 있습니다." : "이 브라우저는 알림을 지원하지 않습니다.";
+    return;
+  }
+  if (Notification.permission === "denied") {
+    toggle.disabled = true;
+    document.getElementById("push-note").textContent = "브라우저에서 이 사이트 알림을 차단했습니다. 사이트 설정에서 허용으로 바꾸세요.";
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    const mine = sub ? await alertFetch("/api/push/subscriptions") : [];
+    const saved = sub && mine.find((d) => d.endpoint === sub.endpoint);
+    pushSub = saved ? sub : null;
+    if (saved) document.getElementById("push-sev").value = saved.min_severity;
+    showPush(Boolean(saved));
+  } catch (err) {
+    showPush(false, err.message === "login" ? "로그인하면 켤 수 있습니다." : err.message);
+  }
+}
+
+async function savePush(sub) {
+  const body = { ...sub.toJSON(), min_severity: document.getElementById("push-sev").value };
+  await alertFetch("/api/push/subscriptions", { method: "PUT", body: JSON.stringify(body) });
+}
+
+async function turnPushOn() {
+  // 알림 허용 창은 누른 직후에 띄워야 해서 다른 일보다 먼저 묻는다
+  if (await Notification.requestPermission() !== "granted") throw new Error("브라우저에서 알림을 허용해야 받을 수 있습니다.");
+  const key = await alertFetch("/api/push/key");
+  if (!key.enabled) throw new Error(key.reason);
+  const reg = await navigator.serviceWorker.ready;
+  const options = { userVisibleOnly: true, applicationServerKey: base64UrlBytes(key.public_key) };
+  let sub;
+  try {
+    sub = await reg.pushManager.subscribe(options);
+  } catch (err) {
+    // 서버 서명 키가 바뀌었으면 예전 구독을 지우고 다시 구독한다
+    const old = await reg.pushManager.getSubscription();
+    if (!old) throw err;
+    await old.unsubscribe();
+    sub = await reg.pushManager.subscribe(options);
+  }
+  await savePush(sub);
+  pushSub = sub;
+}
+
+async function turnPushOff() {
+  const sub = pushSub;
+  pushSub = null;
+  if (!sub) return;
+  await alertFetch("/api/push/subscriptions?endpoint=" + encodeURIComponent(sub.endpoint), { method: "DELETE" });
+  await sub.unsubscribe().catch(() => {});
+}
+
+function wirePush() {
+  registerServiceWorker();
+  const toggle = document.getElementById("push-toggle");
+  toggle.addEventListener("click", async () => {
+    toggle.disabled = true;
+    try {
+      if (pushSub) {
+        await turnPushOff();
+        showPush(false, "이 기기 알림을 껐습니다.");
+      } else {
+        await turnPushOn();
+        showPush(true);
+        toast("📱 이 기기로 알림을 받습니다. 테스트를 눌러 확인해 보세요.");
+      }
+    } catch (err) {
+      showPush(Boolean(pushSub), err.message === "login" ? "로그인이 필요합니다." : err.message);
+    }
+  });
+  document.getElementById("push-sev").addEventListener("change", async () => {
+    if (!pushSub) return;
+    try {
+      await savePush(pushSub);
+      toast("받을 심각도를 바꿨습니다.");
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+  document.getElementById("push-test").addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    try {
+      const res = await alertFetch("/api/push/test", { method: "POST" });
+      toast(`테스트 알림을 보냈습니다 (기기 ${res.devices}대). 몇 초 안에 와야 합니다.`);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      e.target.disabled = false;
+    }
+  });
 }
 
 // 관제 화면 TC / 작업구역 패널을 누르면 1~4호기 후크가 움직이기 시작한다.
@@ -1204,6 +1346,7 @@ function wireAlerts() {
   document.getElementById("wind-warn").addEventListener("click", (e) => {
     if (e.target.id === "wind-warn" || e.target.closest("#wind-warn-close")) document.getElementById("wind-warn").hidden = true;
   });
+  wirePush();
   syncTcServerBoot();
   setInterval(() => { stepTcHooks(); stepWindGust(); }, 200);
   setInterval(() => { refreshHookHolds(); }, 3000);

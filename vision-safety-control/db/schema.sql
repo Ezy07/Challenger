@@ -47,6 +47,22 @@ CREATE TABLE users (
   CONSTRAINT fk_users_approved_by FOREIGN KEY (approved_by) REFERENCES users (id)
 ) ENGINE=InnoDB;
 
+-- 웹 푸시를 켠 기기 (휴대폰 · PC 브라우저마다 한 줄). 이벤트가 생기면 min_severity 이상만 보낸다
+CREATE TABLE push_subscription (
+  id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id        BIGINT UNSIGNED NOT NULL,
+  endpoint       VARCHAR(700) NOT NULL,                       -- 브라우저가 준 푸시 서비스 주소 (기기마다 다름)
+  p256dh         VARCHAR(120) NOT NULL,                       -- 내용 암호화용 공개키 (브라우저가 줌)
+  auth           VARCHAR(60)  NOT NULL,
+  min_severity   ENUM('HIGH', 'MEDIUM', 'LOW') NOT NULL DEFAULT 'MEDIUM',  -- 이 심각도 이상만 받음
+  device         VARCHAR(255) NULL,                           -- 어떤 기기인지 (브라우저 User-Agent)
+  created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_sent_at   DATETIME     NULL,                           -- 마지막으로 보낸 시각
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_push_endpoint (endpoint),
+  CONSTRAINT fk_push_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- -------------------------------------------------------------
 -- 2. 구역 · 카메라 · ROI
 -- -------------------------------------------------------------

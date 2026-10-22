@@ -152,6 +152,20 @@ YOLO 를 쓸 수 있으면 서버가 켜질 때부터 ROI 를 판정해 이벤�
 - 항목을 모두 허가하거나(처리완료 전이라도) 처리완료 · 오탐으로 닫으면 경보가 멈추고, 다음 탐지부터는 다시 새 이벤트입니다.
 - 카메라가 없는 경보(관제화면의 TC 후크 겹침 시뮬레이션)는 같은 자리인지 알 수 없어 예전처럼 따로 만듭니다.
 
+### 웹 푸시 알림 (휴대폰 · PC)
+
+이벤트가 새로 생기면 **알림을 켠 기기**(휴대폰 · PC 브라우저)로 바로 알림을 보냅니다. 화면을 닫아 두거나 휴대폰이 잠겨 있어도 옵니다 (`backend/app/push.py` · `frontend/sw.js`). 별도 앱이나 서버 없이 지금 서버가 보냅니다.
+
+- **켜는 법**: 헤더 🔔 알림 → 팝업 위 `📱 이 기기로 알림 받기` 에서 받을 심각도(높음만 · 중간 이상 · 전체)를 고르고 `켜기` → 브라우저 알림 허용 → `테스트` 로 확인합니다. 기기마다 따로 켜고, 로그인한 계정의 기기로 저장됩니다 (`push_subscription`).
+- 알림을 누르면 **그 카메라의 카메라 상세(1-2, 지금 영상)** 가 열려 현장을 바로 봅니다. 카메라가 없는 경보(TC 후크 겹침 · 기상)는 이벤트 처리 화면(관리자 · 안전관리자) 또는 상세 화면(조회 전용)이 열립니다. 안드로이드는 스냅샷 사진도 크게 보이고, 심각도 높음은 PC 에서 닫을 때까지 남습니다.
+- 쿨다운 · 「작업 허가 대기」로 이벤트를 새로 만들지 않은 경우는 알림도 보내지 않아, 같은 경보가 계속 쌓이지 않습니다.
+- 서버는 구글 · 애플 · 모질라 푸시 서비스로 **나가는 요청만** 하므로 서버가 바깥에서 접속될 필요는 없습니다. 다만 **기기가 알림을 켤 때와 알림을 눌러 화면을 열 때는 우리 서버에 HTTPS 로 접속**돼야 합니다 (브라우저가 HTTPS · `localhost` 에서만 알림을 허용).
+  - PC: `http://localhost:8000` 그대로 됩니다.
+  - 휴대폰 (시연): 서버 PC 에서 `cloudflared tunnel --url http://localhost:8000` (또는 `ngrok http 8000`) 을 켜고 나온 `https://….trycloudflare.com` 주소로 접속합니다. 주소가 바뀌면 다른 사이트로 보므로 알림을 다시 켜야 합니다.
+  - **아이폰**: iOS 16.4 이상에서 Safari 공유 → **「홈 화면에 추가」** 한 앱으로 열어야 알림을 켤 수 있습니다 (그냥 Safari 탭에서는 안 됨). 안드로이드 크롬은 탭에서 바로 됩니다.
+- 서명 키(VAPID)는 처음 쓸 때 `storage/vapid_private.pem` 에 만들어집니다 (git 에 안 올라감). 지우거나 다른 PC 로 서버를 옮기면 모든 기기가 알림을 다시 켜야 합니다. `.env` 의 `PUSH_SUBJECT` 는 실제 연락처(mailto:)로 바꿉니다.
+- 기기에서 알림을 끄거나 앱을 지우면 푸시 서비스가 410 을 주고, 서버가 그 기기를 지웁니다.
+
 ### 3. 테스트
 
 코드가 제대로 동작하는지 자동으로 확인합니다. MySQL · `.env` 없이 임시 SQLite DB 로 돌아갑니다.
@@ -161,7 +175,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `135 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `139 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -177,6 +191,25 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 2026-10-06 | 현장 도면(`site_plan` 새 테이블) · 카메라 배치도 위치(`camera.plan_x` · `plan_y` · `plan_dir`) | 아래 SQL |
 | 2026-10-07 | 카메라 배치도 화각 색 (`camera.plan_color`) | `ALTER TABLE camera ADD COLUMN plan_color CHAR(7) NULL AFTER plan_dir;` |
 | 2026-10-13 | 카메라 배치도 화각 폭 · 길이 (`camera.plan_fov` · `plan_range`, 360° 회전 카메라는 원으로) | `ALTER TABLE camera ADD COLUMN plan_fov SMALLINT UNSIGNED NULL AFTER plan_color, ADD COLUMN plan_range SMALLINT UNSIGNED NULL AFTER plan_fov;` |
+| 2026-10-22 | 웹 푸시 알림 받을 기기 (`push_subscription` 새 테이블) | 아래 SQL |
+
+```sql
+-- 2026-10-22 웹 푸시 알림 받을 기기
+CREATE TABLE push_subscription (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  endpoint VARCHAR(700) NOT NULL,
+  p256dh VARCHAR(120) NOT NULL,
+  auth VARCHAR(60) NOT NULL,
+  min_severity ENUM('HIGH', 'MEDIUM', 'LOW') NOT NULL DEFAULT 'MEDIUM',
+  device VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_sent_at DATETIME NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_push_endpoint (endpoint),
+  CONSTRAINT fk_push_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+```
 
 ```sql
 -- 2026-10-06 현장 도면 · 카메라 배치도 위치
@@ -225,6 +258,7 @@ ALTER TABLE camera
 | 이벤트 내보내기 | `GET /api/events/export?format=csv\|xlsx\|zip&columns=…` (목록과 같은 조건) · `GET /api/events/export/preview` | `event-export.html` |
 | 통계 | `GET /api/stats/summary` (기간 · 앞 기간 비교) · `GET /api/stats/trend?date_from=&date_to=` (없으면 `days=14`) · `GET /api/stats/report` | `stats.html` · `stats-trend.html` · `stats-report.html` (PDF 는 브라우저 인쇄 → PDF로 저장) |
 | 이벤트 처리 | `POST /api/events/{id}/actions` | `event-handle.html` |
+| 웹 푸시 알림 | `GET /api/push/key` · `GET/PUT/DELETE /api/push/subscriptions` (이 기기 켜기 · 받을 심각도 · 끄기) · `POST /api/push/test` | 모든 화면 헤더 🔔 알림 팝업 · `sw.js` |
 
 나머지 화면은 아직 예시 데이터로 보입니다. 화면에 API 를 붙일 때는 `api.js` 를 `common.js` 앞에 넣고 `api("/api/...")` 로 부르면 됩니다.
 
@@ -247,6 +281,8 @@ ALTER TABLE camera
 - [ ] 관제화면 패널(TC/작업구역 · 섹터 감지경보 · 특별관리근로자)을 실제 데이터로 (알림 팝업은 30초 조회로 연결됨)
 - [x] 이벤트 내보내기(CSV · 엑셀 · 스냅샷 묶음) · 스냅샷 조회 · 통계(요약 · 추이 · 리포트 PDF) 화면 연결
 - [ ] 카메라 배치도 · 단일 카메라 확대 화면 연결
+- [x] 웹 푸시 알림: 이벤트 → 알림을 켠 휴대폰 · PC (`push.py` · `sw.js`)
+- [ ] 알림 대상 화면(`alert-targets.html`)을 실제 데이터로 (누가 어떤 기기로 받는지 · 관리자가 보기)
 - [x] YOLO 탐지 영상 (관제화면 · 단일 카메라 확대에 탐지 박스 · ROI 표시)
 - [x] YOLO 탐지 결과 → ROI 침범 · 체류 이벤트 · 스냅샷 (`zone_events.py`)
 - [x] 객체 추적(ByteTrack · BoT-SORT) → 장비 근접 이벤트 · 스냅샷 (`proximity.py`)

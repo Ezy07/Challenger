@@ -1,0 +1,16 @@
+{
+  "name": "비전AI 안전관제",
+  "short_name": "안전관제",
+  "description": "건설현장 CCTV · TC 카메라 AI 위험 감지 관제",
+  "lang": "ko",
+  "start_url": "/monitor.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0c1016",
+  "theme_color": "#0c1016",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

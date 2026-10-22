@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     roi_zones_file: Path = ROOT_DIR / "storage" / "roi-zones.json"  # ROI 그리기 화면이 그린 구역 (AI 탐지 프로그램이 읽음)
     video_dir: Path = ROOT_DIR / "storage" / "videos"  # 시연 · 개발용 영상 (카메라 대신)  # event_snapshot.image_path 는 이 폴더 기준 "snapshots/..." 경로
 
+    # 휴대폰 · PC 브라우저 웹 푸시 (Web Push). 이벤트가 새로 생기면 알림을 켠 기기로 보낸다 (backend/app/push.py).
+    # 서명 키(VAPID)는 처음 쓸 때 push_key_file 에 만든다. 지우거나 바꾸면 모든 기기가 알림을 다시 켜야 한다
+    push_enabled: bool = True
+    push_key_file: Path = ROOT_DIR / "storage" / "vapid_private.pem"
+    push_subject: str = "mailto:admin@example.com"  # 푸시 서비스(구글 · 애플)가 문제 있을 때 연락할 곳 (mailto: 또는 https://)
+
     # YOLO 탐지 영상 (관제화면 1-1 · 단일 카메라 확대 1-2). 패키지는 requirements-yolo.txt
     yolo_enabled: bool = True
     # OpenVINO 모델 (Intel 내장 그래픽에서 PyTorch CPU 보다 2~3배 빠름). 폴더가 없으면 처음 실행할 때 yolov8n.pt 를 내려받아 변환한다.

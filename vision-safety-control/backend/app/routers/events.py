@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -8,6 +9,7 @@ from fastapi.responses import Response
 from sqlalchemy import Select, case, extract, func, select
 from sqlalchemy.orm import selectinload
 
+from .. import push
 from ..config import settings
 from ..deps import DB, Admin, CurrentUser, Manager, ingest_key
 from ..event_query import ZONE_ID, day_range, to_row
@@ -119,6 +121,10 @@ def create_event(db: DB, body: EventIn, snapshot: Callable[[], str | None] | Non
         event.snapshots.append(EventSnapshot(image_path=image_path))
     db.add(event)
     db.commit()
+    try:
+        push.notify_event(db, event.id)  # 알림을 켠 기기로 웹 푸시 (보내기는 다른 스레드)
+    except Exception:
+        logging.getLogger("uvicorn.error").exception("EV-%s 웹 푸시를 보내지 못했습니다", event.id)
     return EventIngestOut(created=True, event_id=event.id)
 
 

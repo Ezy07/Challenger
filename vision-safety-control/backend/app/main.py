@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import mimetypes
 import time
 from contextlib import asynccontextmanager
 
@@ -11,7 +12,7 @@ from .clock import now_kst
 from .config import DEV_JWT_SECRET, settings
 from .deps import CurrentUser
 from . import vision, zone_events
-from .routers import auth, cameras, equipment, events, meta, roi_zones, site_plan, stats, stream, users, videos, workers, works, zones
+from .routers import auth, cameras, equipment, events, meta, push, roi_zones, site_plan, stats, stream, users, videos, workers, works, zones
 from .routers.roi_zones import sync_stored_zones
 
 
@@ -44,7 +45,7 @@ STARTED_AT = int(time.time() * 1000)
 if settings.jwt_secret == DEV_JWT_SECRET:
     logging.getLogger("uvicorn.error").warning("JWT_SECRET 이 개발용 기본값입니다. 운영 전에 .env 에서 꼭 바꾸세요.")
 
-for r in (auth, users, meta, zones, site_plan, cameras, roi_zones, videos, stream, workers, works, equipment, events, stats):
+for r in (auth, users, meta, zones, site_plan, cameras, roi_zones, videos, stream, workers, works, equipment, events, stats, push):
     app.include_router(r.router)
 
 
@@ -82,6 +83,7 @@ def favicon():
 
 # 화면(frontend/) · 날씨 데이터(tools/weather/) · 스냅샷 이미지 · 현장 도면 · 영상(storage/)은 같은 서버에서 그대로 내려준다.
 # monitor.html 은 ../weather/weather.json 을 읽으므로 /weather 경로에 붙인다.
+mimetypes.add_type("application/manifest+json", ".webmanifest")  # 홈 화면에 추가(PWA) 정보. 윈도우에는 이 형식이 없다
 settings.snapshot_dir.mkdir(parents=True, exist_ok=True)
 settings.video_dir.mkdir(parents=True, exist_ok=True)
 settings.plan_dir.mkdir(parents=True, exist_ok=True)
