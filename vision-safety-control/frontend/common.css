@@ -29,6 +29,7 @@ html[data-role="MANAGER"] [data-lacks="MANAGER"] { display: none !important; }  
 * { box-sizing: border-box; margin: 0; padding: 0; scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; } /* 휠 · 트랙패드 스크롤은 유지하고 막대만 숨긴다 */
 
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* 휴대폰 브라우저가 글자를 제멋대로 키우지 않게 */
 html, body {
   height: 100%;
   color: var(--ink);
@@ -334,7 +335,12 @@ a.dgroup-btn.on i { background: var(--orange); color: #1a1206; }
 .sum-strip .kpi-box strong { font-size: 29px; }
 .sum-strip .sum-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; min-width: 0; }
 .sum-strip .sum-acts { display: grid; gap: 8px; }
-@media (max-width: 1100px) { .sum-strip { grid-template-columns: 1fr 1fr; } }
+/* 좁은 화면: 숫자 상자 둘을 한 줄에, 목록(오늘 배정 없는 작업자 등) · 버튼은 그 아래 폭 가득 (화면마다 칸 폭을 정해 둬도 이걸 따른다) */
+@media (max-width: 1100px) {
+  .cell.sum-strip { grid-template-columns: 1fr 1fr; }
+  .cell.sum-strip > .sum-list, .cell.sum-strip > .sum-acts { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) { .cell.sum-strip > .sum-list { grid-template-columns: minmax(0, 1fr); } }
 /* 현장 도면 칸 (전체 구역 표시 · 카메라 배치도). 바깥 칸 안에서 도면 비율(--ratio)을 지키며 가장 크게.
    구역 · 카메라는 도면 기준 % 위치라 비율이 같아야 제자리에 놓인다 (api.js 의 paintPlan) */
 .plan-area { flex: 1; min-height: 340px; container-type: size; display: grid; place-items: center; }
@@ -349,6 +355,11 @@ a.dgroup-btn.on i { background: var(--orange); color: #1a1206; }
 }
 .plan.has-image { background-size: 100% 100%; background-repeat: no-repeat; }
 .plan.has-image .road { display: none; }
+/* 휴대폰: 높이를 정해 두고 맞추면 위아래가 비므로, 화면 폭을 다 쓰고 높이는 도면 비율로 */
+@media (max-width: 700px) {
+  .plan-area { flex: none; min-height: 0; container-type: inline-size; }
+  .plan { width: 100%; }
+}
 /* 왼쪽 목록(카메라 · 구역 · 이벤트 고르기)을 위로 옮긴 것: 카드를 바둑판으로 */
 .search-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; max-height: 46vh; overflow: auto; }
 .search-cards > .label { grid-column: 1 / -1; margin-top: 4px; }
@@ -524,10 +535,15 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
 .thumb span { position: absolute; z-index: 3; left: 6px; bottom: 6px; font-size: 16px; font-weight: 800; background: rgba(8,12,18,0.75); border-radius: 6px; padding: 2px 6px; }
 
 /* ------------------------------------------------ 팝업 · 알림 띠 */
-.pop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px; background: rgba(6, 8, 12, 0.72); }
+/* 칸 폭을 화면에 묶어(minmax(0, 1fr)) 넓은 표가 팝업을 화면 밖으로 밀지 않게 하고, 높이도 화면 안으로 묶어
+   내용이 길면 팝업 안에서 스크롤한다 (휴대폰에서 아래 닫기 · 저장 버튼이 잘리지 않게. dvh = 주소창을 뺀 실제 높이) */
+.pop { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 24px; background: rgba(6, 8, 12, 0.72); }
 #me-pop { z-index: 47; }
 .pop[hidden] { display: none; }
-.pop-card { width: min(480px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); padding: 18px; }
+.pop-card {
+  width: min(480px, 100%); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); overflow: auto; overscroll-behavior: contain;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); padding: 18px;
+}
 .pop-body { display: grid; gap: 10px; margin-top: 14px; }
 .pop-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .pop-head h2 { margin-top: 8px; font-size: 27px; letter-spacing: -0.04em; }
@@ -569,6 +585,16 @@ a.cam:hover { border-color: rgba(255, 154, 31, 0.7); }
 }
 /* 휴대폰: 헤더를 한 줄로 (메뉴 · 로고 · 🔔 · 👤). 시계 · 날씨는 숨기고, 로그아웃은 전체 메뉴 아래에 있다 */
 @media (max-width: 700px) {
+  /* 화면보다 넓은 요소가 있으면 브라우저가 페이지 전체를 넓혀 화면을 열 때마다 확대된 듯 보인다 → 가로로는 화면 폭에서 자른다.
+     표는 잘리는 대신 표 안에서 옆으로 밀어 본다 */
+  html, body { overflow-x: clip; }
+  .tbl { display: block; max-width: 100%; overflow-x: auto; }
+  .pop { padding: 12px; }
+  .pop-card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 14px; }
+  /* 화면 맨 위 제목 칸: 휴대폰에선 제목만 작게 (설명은 한 줄로 줄임) */
+  .head { gap: 4px; padding: 8px 12px; }
+  .head h1 { font-size: 22px; }
+  .head .title p { font-size: 15px; }
   .gnb { flex-wrap: nowrap; gap: 6px; top: 8px; margin: 8px 8px 0; padding: 6px 8px 6px 6px; border-radius: 12px; }
   .menu-btn { width: 40px; height: 40px; border-radius: 9px; }
   .brand { gap: 7px; font-size: 18px; }

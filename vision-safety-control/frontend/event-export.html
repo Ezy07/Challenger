@@ -19,6 +19,18 @@
     .formats .tc-card { padding: 14px; }
     .formats .tc-card strong { font-size: 22px; }
     .cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    /* 휴대폰: 형식 카드는 세로로 한 줄씩 짧게, 항목은 두 줄로, 내려받기 버튼은 폭 가득 */
+    @media (max-width: 700px) {
+      .formats { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+      .formats .tc-card { padding: 10px 12px; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; text-align: left; }
+      .formats .tc-card .code { grid-row: span 2; }
+      .formats .tc-card strong { font-size: 19px; }
+      .formats .tc-card p { margin: 0; font-size: 15.5px; }
+      .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .main > .cell:last-child .row.between { flex-wrap: wrap; gap: 8px; }
+      #download { width: 100%; justify-content: center; }
+      .searchbar-row #count-hint { flex-basis: 100%; order: 3; }
+    }
   </style>
 </head>
 <body>

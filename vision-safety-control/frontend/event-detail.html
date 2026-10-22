@@ -23,6 +23,20 @@
     .info-item > span { display: block; font-size: 16px; color: var(--muted); font-weight: 700; }
     .info-item > b { font-size: 19px; white-space: nowrap; }
     .info-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+    /* 좁은 화면: 스냅샷을 화면 폭 그대로(16:9) 위에, 탐지 결과를 그 아래에 */
+    @media (max-width: 1100px) {
+      .main { grid-template-rows: auto auto; }
+      .cam-row { grid-template-columns: minmax(0, 1fr); }
+      .cam-row .cam { height: auto; aspect-ratio: 16 / 9; }
+    }
+    @media (max-width: 700px) {
+      .info-bar { padding: 12px; }
+      .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+      .info-item > b { white-space: normal; overflow-wrap: anywhere; font-size: 18px; }
+      .info-acts { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+      .info-acts .btn { justify-content: center; text-align: center; }
+      .info-acts .btn.primary { grid-column: 1 / -1; }
+    }
   </style>
 </head>
 <body>

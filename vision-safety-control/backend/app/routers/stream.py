@@ -24,7 +24,10 @@ class StreamStatus(BaseModel):
 
 
 @router.get("/status", response_model=StreamStatus)
-async def stream_status(_: CurrentUser):
+async def stream_status(db: DB, _: CurrentUser):
+    # 처음 부르면 모델을 여느라 수십 초 걸린다. 그동안 로그인 확인에 쓴 DB 연결을 붙잡고 있으면,
+    # 화면 여러 개가 동시에 기다릴 때 연결 풀(15개)이 바닥나 다른 API 가 모두 멈춘다 → 먼저 돌려준다
+    db.close()
     ok, reason = await asyncio.to_thread(vision.status)
     return StreamStatus(enabled=ok, reason=reason, model=settings.yolo_model if ok else None)
 

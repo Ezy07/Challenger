@@ -32,7 +32,8 @@
     .col.peak i { background: var(--orange); }
     .col { cursor: pointer; }
     /* 날짜 · 시간대를 누르면 뜨는 이벤트 목록 팝업 */
-    #ev-pop .pop-card { width: min(860px, 100%); max-height: calc(100vh - 84px); display: flex; flex-direction: column; }
+    #ev-pop .pop-card { width: min(860px, 100%); max-height: calc(100vh - 84px); max-height: calc(100dvh - 84px); display: flex; flex-direction: column; overflow: hidden; }
+    @media (max-width: 700px) { #ev-pop .pop-card { max-height: calc(100dvh - 24px); } }
     #ev-pop .ev-body { min-height: 0; overflow: auto; }
     #ev-rows tr[data-href] { cursor: pointer; }
   </style>

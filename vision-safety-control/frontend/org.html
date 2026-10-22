@@ -38,6 +38,11 @@
     .org-info div span { display: block; font-size: 16.5px; color: var(--muted); font-weight: 700; }
     .org-info div b { font-size: 20px; }
     @media (max-width: 1100px) { .org-info { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 700px) {
+      .org-info { gap: 8px 12px; padding: 12px; }
+      .org-info div b { font-size: 18px; overflow-wrap: anywhere; }
+      .org-info > .btn { grid-column: 1 / -1; justify-self: start; }
+    }
   </style>
 </head>
 <body>

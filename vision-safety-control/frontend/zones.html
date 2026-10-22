@@ -54,6 +54,15 @@
     .stat4 span { display: block; font-size: 16px; color: var(--muted); font-weight: 700; }
     .stat4 b { font-size: 25px; font-variant-numeric: tabular-nums; }
     @media (prefers-reduced-motion: reduce) { #shapes .zone.alarm { animation: none; } }
+    /* 휴대폰: 도면이 작아지므로 이름표는 이름만 작게 (작업 · 인원은 구역을 눌러 아래 목록에서 본다) */
+    @media (max-width: 700px) {
+      .plan-wrap { padding: 10px; }
+      .zone-tag { max-width: 34%; padding: 3px 6px; border-radius: 7px; gap: 0; }
+      .zone-tag b { font-size: 14px; }
+      .zone-tag small, .zone-tag .status { display: none; }
+      .stat4 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .stat4 b { font-size: 21px; }
+    }
   </style>
 </head>
 <body>

@@ -22,7 +22,12 @@
     .pick .person small { display: block; color: var(--muted); font-size: 16.5px; }
     .sp { font-size: 15.5px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); margin-left: 4px; }
     .empty { padding: 16px; text-align: center; color: var(--muted); font-size: 17.5px; border: 1px dashed var(--line); border-radius: 10px; }
-    @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .main { grid-template-columns: minmax(0, 1fr); } }
+    /* 휴대폰: 두 칸 입력(시작일 · 끝일 등)을 한 줄씩, 입력칸이 칸 밖으로 나가지 않게 */
+    @media (max-width: 700px) {
+      .two { grid-template-columns: minmax(0, 1fr); }
+      .main .input { min-width: 0; max-width: 100%; }
+    }
   </style>
 </head>
 <body>
