@@ -268,6 +268,8 @@
         + row("관제화면", c.view_slot ? `${c.view_page}페이지 ${c.view_slot}번 칸` : "표시 안 함")
         + row("영상", videoSrc(c.stream_url) ? "📁 " + esc(c.stream_url.slice(7)) : c.stream_url ? "RTSP" : "-")
         + row("화면", yolo.enabled ? `YOLO 탐지 영상 (${esc(yolo.model)})` : `원본 영상 <small class="muted">${esc(yolo.reason || "")}</small>`)
+        + (yolo.enabled ? row("탐지 해상도", !c.fine_detect ? `일반 (${yolo.imgsz})`
+          : yolo.fine_error ? `일반 (${yolo.imgsz}) <small class="muted">정밀 탐지 모델을 열지 못함</small>` : `정밀 (${yolo.fine_imgsz})`) : "")
         + row("사용", c.is_active ? '<span class="status ok">사용</span>' : '<span class="status mute">사용 안 함</span>');
       $("to-edit").href = "camera-edit.html?id=" + c.id;
       $("roi-edit").href = "roi-draw.html?camera=" + c.id;

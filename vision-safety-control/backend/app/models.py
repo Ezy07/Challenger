@@ -224,6 +224,7 @@ class Camera(Base):
     stream_url: Mapped[str | None] = mapped_column(String(500))
     location_desc: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    fine_detect: Mapped[bool] = mapped_column(Boolean, default=False)  # 정밀 탐지 (입력 크기 YOLO_FINE_IMGSZ, 멀리 보는 카메라)
     plan_x: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # 도면 위 위치 (왼쪽 0 ~ 오른쪽 1)
     plan_y: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))  # (위 0 ~ 아래 1)
     plan_dir: Mapped[int | None] = mapped_column(SmallInteger)     # 보는 방향 (0 = 위쪽, 시계 방향 도)

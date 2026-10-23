@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     yolo_seg_model: str = ""        # 시험용: 세그 모델을 하나 더 돌려 윤곽을 칠함 (예: excavator_seg_openvino_model). 비우면 안 씀
     yolo_conf: float = 0.50       # 이 confidence 미만인 탐지 박스는 그리지 않음
     yolo_imgsz: int = 640           # 바꾸면 OpenVINO 모델 폴더를 지우고 다시 변환해야 함 (변환할 때 크기가 고정됨)
+    yolo_fine_imgsz: int = 960      # 정밀 탐지로 설정한 카메라의 입력 크기 (멀리 작게 보이는 물체용. 640 의 약 2배 느림)
     yolo_device: str = "intel:gpu"  # OpenVINO: Intel 내장 그래픽 (없으면 알아서 CPU). .pt 모델이면 비우거나 cpu · cuda:0
     stream_fps: int = 8             # 화면으로 보내는 초당 장수 (탐지는 CPU 가 되는 만큼만). 노트북 기준으로 낮춤
     stream_max_width: int = 960     # 이보다 큰 영상은 줄여서 보냄 (탐지도 줄인 영상으로 함)

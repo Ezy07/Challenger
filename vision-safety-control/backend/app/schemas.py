@@ -182,6 +182,7 @@ class CameraIn(BaseModel):
     stream_url: str | None = Field(default=None, max_length=500)
     location_desc: str | None = Field(default=None, max_length=255)
     is_active: bool = True
+    fine_detect: bool = False
     plan_x: float | None = Field(default=None, ge=0, le=1)
     plan_y: float | None = Field(default=None, ge=0, le=1)
     plan_dir: int | None = Field(default=None, ge=0, le=359)
@@ -200,6 +201,7 @@ class CameraUpdate(BaseModel):
     stream_url: str | None = Field(default=None, max_length=500)
     location_desc: str | None = Field(default=None, max_length=255)
     is_active: bool | None = None
+    fine_detect: bool | None = None  # 정밀 탐지 (멀리 작게 보이는 물체까지, 탐지가 느려짐)
     plan_x: float | None = Field(default=None, ge=0, le=1)  # 셋 다 null 로 보내면 배치도에서 뺀다
     plan_y: float | None = Field(default=None, ge=0, le=1)
     plan_dir: int | None = Field(default=None, ge=0, le=359)
@@ -220,6 +222,7 @@ class CameraOut(Out):
     stream_url: str | None
     location_desc: str | None
     is_active: bool
+    fine_detect: bool = False
     plan_x: float | None = None
     plan_y: float | None = None
     plan_dir: int | None = None

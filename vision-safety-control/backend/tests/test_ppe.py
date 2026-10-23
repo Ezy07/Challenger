@@ -97,7 +97,7 @@ def test_live_only_with_ppe_model(client, admin, monkeypatch):
 def test_detector_adds_only_ppe_parts(monkeypatch):
     from app import vision
 
-    def fake_run(model, frame, conf):
+    def fake_run(model, frame, conf, imgsz=None):
         if model == "ppe":  # PPE 모델의 사람은 버리고 안전모 · 조끼만 (낮은 confidence 도 받음)
             assert conf <= settings.ppe_part_conf
             return [person(conf=0.9), helmet(), vest()]
@@ -163,7 +163,7 @@ def test_ppe_model_every_other_detection(monkeypatch):
 
     calls = []
 
-    def fake_run(model, frame, conf):
+    def fake_run(model, frame, conf, imgsz=None):
         calls.append(model)
         return [helmet(), vest()] if model == "ppe" else [person(conf=0.9)]
 
@@ -210,7 +210,7 @@ def test_one_model_with_helmet_and_vest(monkeypatch):
 
     seen = []
 
-    def fake_run(model, frame, conf):
+    def fake_run(model, frame, conf, imgsz=None):
         seen.append(conf)
         return [person(conf=0.9), Box(0, 0, 9, 9, "truck", 0.35), helmet(), vest()]  # 안전모 · 조끼 · 트럭 모두 0.35~0.4
 
@@ -237,7 +237,7 @@ def test_ppe_model_wins_over_base_helmets(monkeypatch):
     """PPE 모델도 주면 기본 모델의 안전모 · 조끼는 버린다 (같은 안전모가 두 번 잡히지 않게)"""
     from app import vision
 
-    def fake_run(model, frame, conf):
+    def fake_run(model, frame, conf, imgsz=None):
         return [person(conf=0.9), helmet()] if model == "base" else [helmet(x=201), vest()]
 
     d = vision.Detector()

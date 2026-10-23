@@ -54,3 +54,40 @@ def test_rois_at_follows_keyframes_and_enabled():
     assert vision.rois_at(rows, "CAM_A", 0.5) == [(1, "위험구역", sq, "크레인 하부"), (3, "관리구역", moved, "관리구역")]
     assert vision.rois_at(rows, "CAM_A", 2.5) == [(1, "위험구역", moved, "크레인 하부"), (3, "관리구역", moved, "관리구역")]
     assert vision.rois_at(rows, "CAM_B", 0) == [(1, "관리구역", sq, "관리구역")]
+
+
+def test_fine_model_path(monkeypatch):
+    monkeypatch.setattr(settings, "yolo_fine_imgsz", 960)
+    assert vision.fine_model_path("site6c_openvino_model/") == "site6c_960_openvino_model"
+    assert vision.fine_model_path("site6c.pt") == "site6c.pt"  # .pt 는 같은 모델을 크기만 바꿔 돌린다
+
+
+def test_fine_camera_uses_fine_model_and_size(monkeypatch):
+    calls = []
+
+    class Fake:
+        names = {0: "person"}
+        model_name = "fake_openvino_model"
+
+    det = vision.Detector()
+    det._model, det._fine = Fake(), Fake()
+    monkeypatch.setattr(vision.Detector, "_run", staticmethod(lambda m, f, c, imgsz=None: calls.append((m, imgsz)) or []))
+    monkeypatch.setattr(settings, "yolo_fine_imgsz", 960)
+    det.detect(None)
+    det.detect(None, fine=True)
+    assert calls == [(det._model, None), (det._fine, 960)]
+
+
+def test_fine_falls_back_while_model_loads(monkeypatch):
+    calls = []
+
+    class Fake:
+        names = {0: "person"}
+        model_name = "fake_openvino_model"
+
+    det = vision.Detector()
+    det._model = Fake()
+    det.fine_error = "없음"  # 열지 못한 경우: 보통 모델로 탐지
+    monkeypatch.setattr(vision.Detector, "_run", staticmethod(lambda m, f, c, imgsz=None: calls.append((m, imgsz)) or []))
+    det.detect(None, fine=True)
+    assert calls == [(det._model, None)]

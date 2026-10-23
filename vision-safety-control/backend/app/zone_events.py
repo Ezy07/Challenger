@@ -232,8 +232,8 @@ def _record_loop() -> None:
             log.exception("이벤트를 기록하지 못했습니다")
 
 
-def watched_cameras(db) -> dict[tuple[int, str], tuple[str, bool]]:
-    """판정할 구역이 있는 카메라 → {(카메라 번호, 주소): (카메라 이름, 영상 파일인지)}"""
+def watched_cameras(db) -> dict[tuple[int, str], tuple[str, bool, bool]]:
+    """판정할 구역이 있는 카메라 → {(카메라 번호, 주소): (카메라 이름, 영상 파일인지, 정밀 탐지)}"""
     from .routers.stream import source_of
 
     names = {r["camera"] for r in vision.roi_rows()
@@ -247,7 +247,7 @@ def watched_cameras(db) -> dict[tuple[int, str], tuple[str, bool]]:
     for cam in cams:
         found = source_of(cam.stream_url)
         if found:
-            out[(cam.id, found[0])] = (cam.name, found[1])
+            out[(cam.id, found[0])] = (cam.name, found[1], cam.fine_detect)
     return out
 
 
@@ -269,9 +269,9 @@ def _watch_loop() -> None:
                 wanted = watched_cameras(db) if settings.event_watch else {}
             for key in [k for k, f in pinned.items() if k not in wanted or f.stopped]:
                 pinned.pop(key).leave()
-            for key, (name, is_file) in wanted.items():
+            for key, (name, is_file, fine) in wanted.items():
                 if key not in pinned:
-                    pinned[key] = vision.open_feed(key[0], key[1], is_file, name)
+                    pinned[key] = vision.open_feed(key[0], key[1], is_file, name, fine)
                     log.info("ROI 이벤트 감시를 시작합니다: %s", name)
         except Exception:
             log.exception("ROI 이벤트 감시 설정을 읽지 못했습니다")

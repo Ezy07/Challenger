@@ -161,6 +161,7 @@ CREATE TABLE camera (
   stream_url     VARCHAR(500) NULL,                           -- RTSP 주소 등
   location_desc  VARCHAR(255) NULL,
   is_active      TINYINT(1)   NOT NULL DEFAULT 1,
+  fine_detect    TINYINT(1)   NOT NULL DEFAULT 0,              -- 정밀 탐지 (입력 크기 960, 멀리 작게 보이는 물체까지 · 느림)
   plan_x         DECIMAL(5,4) NULL,                           -- 도면 위 위치 (왼쪽 0 ~ 오른쪽 1)
   plan_y         DECIMAL(5,4) NULL,                           -- (위 0 ~ 아래 1)
   plan_dir       SMALLINT UNSIGNED NULL,                      -- 보는 방향 (0 = 위쪽, 시계 방향 도)

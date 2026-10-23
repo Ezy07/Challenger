@@ -86,6 +86,7 @@ pip install -r requirements-yolo.txt   # ultralytics (torch · opencv 포함, �
 - 탐지는 지금 보고 있는 카메라만 합니다. 관제화면은 보이는 페이지(1페이지 현장 CAM / 2페이지 TC CAM)의 4대만 받습니다. CPU 에서는 카메라 4대가 탐지 한 번씩을 나눠 쓰므로 박스가 영상보다 조금 늦게 따라옵니다.
 - 발밑(박스 아래 가운데)이 ROI 안에 있으면 박스를 그 구역 색으로 그리고 `· 위험구역` 처럼 구역 이름을 붙입니다.
 - 영상 주소: `GET /api/stream/{카메라번호}.mjpg?token=로그인토큰&roi=1` (`roi=0` 이면 박스만). RTSP 카메라도 이 주소로 볼 수 있습니다.
+- **정밀 탐지 (카메라별)**: 카메라 설정에서 `정밀 탐지` 를 켜면 그 카메라만 입력 크기 `YOLO_FINE_IMGSZ`(기본 960)로 탐지해, 멀리 작게 보이는 작업자 · 장비까지 잡습니다. 처음 켤 때 모델을 `…_960_openvino_model` 로 한 번 따로 변환하고(1분쯤, 그동안은 보통 크기로 탐지), 원래 `.pt` 를 `…_960.pt` 로 복사해 씁니다. 그 카메라의 탐지는 약 2배 느려집니다 (노트북 내장 그래픽 32ms → 59ms). 현장 영상에서 3배 멀리 보이는 물체를 다시 잡은 비율이 28% → 52% 였고, 원본 장면에서 새로 잡은 박스 41개 중 35개가 640 이 놓친 진짜 물체 · 2개가 오탐이었습니다 ([`docs/eval/small-objects.md`](docs/eval/small-objects.md)). 멀리 보는 카메라에만 켜는 것을 권장합니다 (카메라 4대 중 2대를 켜면 카메라당 초당 약 5번 탐지).
 
 ### ROI 이벤트 (YOLO → 이벤트 로그 · 스냅샷 · 통계)
 
@@ -175,7 +176,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `139 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `143 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -192,6 +193,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 2026-10-07 | 카메라 배치도 화각 색 (`camera.plan_color`) | `ALTER TABLE camera ADD COLUMN plan_color CHAR(7) NULL AFTER plan_dir;` |
 | 2026-10-13 | 카메라 배치도 화각 폭 · 길이 (`camera.plan_fov` · `plan_range`, 360° 회전 카메라는 원으로) | `ALTER TABLE camera ADD COLUMN plan_fov SMALLINT UNSIGNED NULL AFTER plan_color, ADD COLUMN plan_range SMALLINT UNSIGNED NULL AFTER plan_fov;` |
 | 2026-10-22 | 웹 푸시 알림 받을 기기 (`push_subscription` 새 테이블) | 아래 SQL |
+| 2026-10-23 | 카메라별 정밀 탐지 (`camera.fine_detect`) | `ALTER TABLE camera ADD COLUMN fine_detect TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active;` |
 
 ```sql
 -- 2026-10-22 웹 푸시 알림 받을 기기

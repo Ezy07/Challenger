@@ -64,3 +64,15 @@ def test_video_files_list_and_camera_link(client, admin, tmp_path, monkeypatch):
     # RTSP 주소는 그대로 저장
     rtsp = client.patch(f"/api/cameras/{cam['id']}", json={"stream_url": "rtsp://10.0.0.5:554/s1"}, headers=admin)
     assert rtsp.status_code == 200
+
+
+def test_fine_detect_saved_and_applied_to_live_feed(client, admin, monkeypatch):
+    from app import vision
+
+    cam = client.post("/api/cameras", json={"name": "CAM_0010", "view_page": 1}, headers=admin).json()
+    assert cam["fine_detect"] is False
+    feed = vision.Feed((cam["id"], "x.mp4"), "x.mp4", True, "CAM_0010")  # 탐지 중인 영상 (스레드는 안 돌림)
+    monkeypatch.setitem(vision._feeds, feed.key, feed)
+    res = client.patch(f"/api/cameras/{cam['id']}", json={"fine_detect": True}, headers=admin)
+    assert res.json()["fine_detect"] is True
+    assert feed.fine is True

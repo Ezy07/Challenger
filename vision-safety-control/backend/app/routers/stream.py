@@ -21,6 +21,9 @@ class StreamStatus(BaseModel):
     enabled: bool       # False 면 화면은 원본 영상을 튼다
     reason: str | None  # 못 쓰는 이유
     model: str | None
+    imgsz: int              # 보통 카메라의 탐지 입력 크기
+    fine_imgsz: int         # 정밀 탐지 카메라의 입력 크기
+    fine_error: str | None  # 정밀 탐지 모델을 못 열었으면 그 이유 (그 카메라도 보통 크기로 탐지)
 
 
 @router.get("/status", response_model=StreamStatus)
@@ -29,7 +32,8 @@ async def stream_status(db: DB, _: CurrentUser):
     # 화면 여러 개가 동시에 기다릴 때 연결 풀(15개)이 바닥나 다른 API 가 모두 멈춘다 → 먼저 돌려준다
     db.close()
     ok, reason = await asyncio.to_thread(vision.status)
-    return StreamStatus(enabled=ok, reason=reason, model=settings.yolo_model if ok else None)
+    return StreamStatus(enabled=ok, reason=reason, model=settings.yolo_model if ok else None, imgsz=settings.yolo_imgsz,
+                        fine_imgsz=settings.yolo_fine_imgsz, fine_error=vision.detector.fine_error)
 
 
 class PpeCount(BaseModel):
@@ -96,7 +100,7 @@ async def stream(camera_id: int, db: DB, _: StreamUser, roi: bool = True, boxes:
     """카메라 영상에 YOLO 탐지 박스와 ROI 를 그려 보낸다 (roi=false · boxes=false 면 그것만 뺀다. 탐지 · 판정은 그대로).
     주소에 ?token=로그인토큰"""
     cam = get_camera(db, camera_id)
-    name, url = cam.name, cam.stream_url
+    name, url, fine = cam.name, cam.stream_url, cam.fine_detect
     db.close()  # 영상은 오래 이어지므로 DB 연결을 먼저 돌려준다
     if not url:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "이 카메라에는 영상 소스가 없습니다.")
@@ -108,6 +112,6 @@ async def stream(camera_id: int, db: DB, _: StreamUser, roi: bool = True, boxes:
     ok, reason = await asyncio.to_thread(vision.status)
     if not ok:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, reason)
-    feed = vision.open_feed(camera_id, source, is_file, name)
+    feed = vision.open_feed(camera_id, source, is_file, name, fine)
     return StreamingResponse(frames(feed, name, roi, boxes), media_type="multipart/x-mixed-replace; boundary=frame",
                              headers={"Cache-Control": "no-store"})

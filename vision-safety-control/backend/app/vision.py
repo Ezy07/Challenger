@@ -12,6 +12,7 @@ ultralytics · opencv 는 requirements-yolo.txt 로 따로 설치한다. 없으�
 
 import json
 import logging
+import shutil
 import threading
 import time
 from dataclasses import dataclass, field, replace
@@ -118,18 +119,30 @@ class Box:
     track_id: int | None = None  # 추적기가 붙인 번호 (같은 카메라 안에서 같은 물체면 프레임이 바뀌어도 같음)
 
 
-def _open_model(path: str):
-    """모델 열기. "…_openvino_model" 폴더가 없으면 같은 이름의 .pt 를 (없으면 내려받아) 한 번 변환해 둔다."""
+OV = "_openvino_model"
+
+
+def _open_model(path: str, imgsz: int | None = None):
+    """모델 열기. "…_openvino_model" 폴더가 없으면 같은 이름의 .pt 를 (없으면 내려받아) imgsz(기본 YOLO_IMGSZ)로 한 번 변환해 둔다."""
     from ultralytics import YOLO
 
     path = path.rstrip("/\\")
-    if path.endswith("_openvino_model") and not Path(path).exists():
-        pt = path[: -len("_openvino_model")] + ".pt"
+    if path.endswith(OV) and not Path(path).exists():
+        pt = path[: -len(OV)] + ".pt"
         log.info("OpenVINO 모델이 없어 %s 를 변환합니다 (처음 한 번, 1분쯤)", pt)
-        path = YOLO(pt).export(format="openvino", imgsz=settings.yolo_imgsz)
+        path = YOLO(pt).export(format="openvino", imgsz=imgsz or settings.yolo_imgsz)
     model = YOLO(path)
     log.info("YOLO 모델을 열었습니다: %s (%s)", path, model.task)
     return model
+
+
+def fine_model_path(path: str) -> str:
+    """정밀 탐지 모델 경로. OpenVINO 는 변환할 때 입력 크기가 고정되므로 "…_960_openvino_model" 로 따로 두고,
+    .pt 는 같은 파일을 크기만 바꿔 돌린다"""
+    path = path.rstrip("/\\")
+    if not path.endswith(OV):
+        return path
+    return f"{path[: -len(OV)]}_{settings.yolo_fine_imgsz}{OV}"
 
 
 class Detector:
@@ -142,6 +155,9 @@ class Detector:
         self._model = None
         self._seg = None
         self._ppe = None
+        self._fine = None           # 정밀 탐지 모델 (정밀 탐지 카메라가 처음 탐지할 때 따로 연다)
+        self._fine_loading = False
+        self.fine_error: str | None = None
         self.error: str | None = None
         self._lock = threading.Lock()
 
@@ -193,12 +209,40 @@ class Detector:
         """기본 · 세그 모델이 이 클래스를 잡는지 (PPE 모델은 안전모 · 조끼만 쓰므로 빼고 본다)"""
         return any(name in getattr(m, "names", {}).values() for m in (self._model, self._seg) if m is not None)
 
+    def _fine_model(self):
+        """정밀 탐지 모델. 처음 부르면 따로 열기 시작하고(변환하면 1분쯤), 그동안과 열지 못했으면 None (보통 모델로 탐지)"""
+        if self._fine is None and not self._fine_loading and self.fine_error is None:
+            self._fine_loading = True
+            threading.Thread(target=self._load_fine, daemon=True, name="yolo-fine").start()
+        return self._fine
+
+    def _load_fine(self) -> None:
+        base = settings.yolo_model.rstrip("/\\")
+        path = fine_model_path(base)
+        try:
+            if path == base:  # .pt: 같은 모델을 입력 크기만 바꿔 돌린다
+                self._fine = self._model
+                return
+            fine_pt = Path(path[: -len(OV)] + ".pt")
+            if not Path(path).exists() and not fine_pt.exists():  # 원래 .pt 를 복사해 그 이름으로 변환 (원래 폴더를 덮지 않게)
+                base_pt = Path(base[: -len(OV)] + ".pt")
+                if not base_pt.exists():
+                    from ultralytics import YOLO
+                    YOLO(str(base_pt))  # yolov8n 등은 내려받는다
+                shutil.copyfile(base_pt, fine_pt)
+            self._fine = _open_model(path, settings.yolo_fine_imgsz)
+        except Exception as exc:  # 못 열면 정밀 탐지 카메라도 보통 모델로 탐지
+            log.exception("정밀 탐지 모델(%s)을 열지 못했습니다", path)
+            self.fine_error = f"정밀 탐지 모델({path})을 열지 못했습니다: {exc}"
+        finally:
+            self._fine_loading = False
+
     @staticmethod
-    def _run(model, frame, conf: float) -> list[Box]:
+    def _run(model, frame, conf: float, imgsz: int | None = None) -> list[Box]:
         device = settings.yolo_device or None
         if device and device.startswith("intel") and "openvino" not in str(model.model_name):
             device = None  # intel:gpu 는 OpenVINO 모델에서만 (.pt 로 바꿨으면 자동)
-        result = model.predict(frame, conf=conf, imgsz=settings.yolo_imgsz, device=device, verbose=False)[0]
+        result = model.predict(frame, conf=conf, imgsz=imgsz or settings.yolo_imgsz, device=device, verbose=False)[0]
         names = result.names
         masks = result.masks.xy if result.masks is not None else [None] * len(result.boxes)
         return [Box(int(x1), int(y1), int(x2), int(y2), str(names[int(c)]), float(p),
@@ -206,16 +250,20 @@ class Detector:
                 for (x1, y1, x2, y2), p, c, m in zip(result.boxes.xyxy.tolist(), result.boxes.conf.tolist(),
                                                       result.boxes.cls.tolist(), masks)]
 
-    def detect(self, frame, floor: float | None = None, with_ppe: bool = True) -> list[Box]:
+    def detect(self, frame, floor: float | None = None, with_ppe: bool = True, fine: bool = False) -> list[Box]:
         """floor 를 주면 그 confidence 까지 낮춰 받는다 (추적기가 낮은 박스로도 이어 붙이게)
-        with_ppe=False 면 PPE 모델을 건너뛴다 (PPE_EVERY 번에 한 번만 돌리려고)"""
+        with_ppe=False 면 PPE 모델을 건너뛴다 (PPE_EVERY 번에 한 번만 돌리려고)
+        fine=True 면 기본 모델을 YOLO_FINE_IMGSZ 로 돌린다 (정밀 탐지 카메라. 세그 · PPE 모델은 그대로)"""
         conf = keep_conf() if floor is None else min(keep_conf(), floor)
+        model, imgsz = self._model, None
+        if fine and (m := self._fine_model()) is not None:
+            model, imgsz = m, settings.yolo_fine_imgsz
         if self._ppe is None and self.builtin_ppe:
             # 모델 하나: 안전모 · 조끼는 PPE_PART_CONF 까지 낮춰 받고 (놓치면 미착용 오탐), 나머지는 원래 기준
             low = min(conf, settings.ppe_part_conf)
-            boxes = [b for b in self._run(self._model, frame, low) if b.conf >= conf or b.name in PPE_PARTS]
+            boxes = [b for b in self._run(model, frame, low, imgsz) if b.conf >= conf or b.name in PPE_PARTS]
         else:
-            boxes = self._run(self._model, frame, conf)
+            boxes = self._run(model, frame, conf, imgsz)
         if self._seg is not None:
             segs = self._run(self._seg, frame, settings.yolo_conf if floor is None else conf)
             # 기본 모델이 같은 물체를 트럭 등으로 또 잡은 박스는 뺀다 (많이 겹치면 같은 물체로 봄)
@@ -358,6 +406,7 @@ class Feed:
         self.detected_seq = -1  # 탐지 스레드가 마지막으로 본 프레임
         self.detections = 0     # 탐지한 횟수 (PPE 모델은 PPE_EVERY 번에 한 번)
         self.ppe_boxes: list[Box] = []  # 마지막으로 PPE 모델을 돌린 프레임의 안전모 · 조끼 박스
+        self.fine = False  # 정밀 탐지 (카메라 설정 fine_detect. open_feed · set_fine 이 바꾼다)
         self.tracker = make_tracker() if detector.ready else None
         self._people: dict[int, float] = {}  # 추적 번호 → 마지막으로 본 시각 (작업자 수를 프레임마다 흔들리지 않게)
         self.viewers = 0
@@ -511,7 +560,7 @@ def _detect_loop() -> None:
             ran_ppe = feed.ppe_turn()
             try:
                 tracker = feed.tracker
-                boxes = detector.detect(snap.frame, tracker.low if tracker else None, with_ppe=ran_ppe)
+                boxes = detector.detect(snap.frame, tracker.low if tracker else None, with_ppe=ran_ppe, fine=feed.fine)
                 if tracker:
                     # 낮은 박스는 추적을 잇는 데만 쓰고, 화면 · 판정에는 예전처럼 기준 이상만 넘긴다
                     boxes = [b for b in tracker.update(boxes, snap.frame) if keep_box(b)]
@@ -534,8 +583,9 @@ def _detect_loop() -> None:
             time.sleep(0.01)
 
 
-def open_feed(camera_id: int, source: str, is_file: bool, camera_name: str) -> Feed:
-    """그 카메라 영상을 보는 사람을 하나 늘린다 (다 보면 Feed.leave). 이벤트 감시도 보는 사람 하나로 센다."""
+def open_feed(camera_id: int, source: str, is_file: bool, camera_name: str, fine: bool = False) -> Feed:
+    """그 카메라 영상을 보는 사람을 하나 늘린다 (다 보면 Feed.leave). 이벤트 감시도 보는 사람 하나로 센다.
+    fine = 카메라의 정밀 탐지 설정 (열 때마다 DB 의 지금 값으로 맞춘다)"""
     global _detect_thread
     key = (camera_id, source)
     with _feeds_lock:
@@ -543,11 +593,20 @@ def open_feed(camera_id: int, source: str, is_file: bool, camera_name: str) -> F
         if feed is None:
             feed = _feeds[key] = Feed(key, source, is_file, camera_name)
             feed.thread.start()
+        feed.fine = fine
         feed.join()
         if _detect_thread is None or not _detect_thread.is_alive():
             _detect_thread = threading.Thread(target=_detect_loop, daemon=True, name="yolo-detect")
             _detect_thread.start()
     return feed
+
+
+def set_fine(camera_id: int, fine: bool) -> None:
+    """카메라 설정을 바꾸면 지금 탐지 중인 영상에도 바로 반영한다"""
+    with _feeds_lock:
+        for feed in _feeds.values():
+            if feed.camera_id == camera_id:
+                feed.fine = fine
 
 
 def live_feeds() -> list[Feed]:

@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
+from .. import vision
 from ..deps import DB, Admin, CurrentUser
 from ..models import Camera, CameraType, Equipment, EquipType, WorkZone
 from ..schemas import CameraIn, CameraOut, CameraUpdate
@@ -81,6 +82,8 @@ def update_camera(camera_id: int, body: CameraUpdate, db: DB, _: Admin):
     check_refs(db, cam, check_video="stream_url" in data)
     commit_or_409(db)
     db.refresh(cam)
+    if "fine_detect" in data:
+        vision.set_fine(cam.id, cam.fine_detect)  # 지금 탐지 중이면 바로 바꿔 탐지
     return to_out(cam)
 
 
