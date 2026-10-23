@@ -163,11 +163,13 @@
         const el = $("hit");
         el.dataset.tipValue = `${d.count}건`;
         el.dataset.tipLabel = d.key.replaceAll("-", ".");
-        el.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: r.left + x(i), clientY: r.top + y(d.count) }));
+        el.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: r.left + x(i) * r.width / W, clientY: r.top + y(d.count) * r.height / H }));
       };
       const nearest = (clientX) => {
+        // 마우스는 화면 좌표, 차트는 그린 좌표(0~W). 글자 크기(zoom)로 화면에서 커져 있으면 둘이 다르므로 비율로 바꾼다
         const r = svg.getBoundingClientRect();
-        return Math.max(0, Math.min(n - 1, Math.round(((clientX - r.left - L) / (W - L - R)) * (n - 1))));
+        const sx = (clientX - r.left) * W / r.width;
+        return Math.max(0, Math.min(n - 1, Math.round(((sx - L) / (W - L - R)) * (n - 1))));
       };
       let focusIdx = n - 1;
       $("hit").addEventListener("pointermove", (e) => { if (e.isTrusted) tip(nearest(e.clientX)); });
