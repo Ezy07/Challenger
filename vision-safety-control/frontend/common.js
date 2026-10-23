@@ -1317,7 +1317,7 @@ function stepTcHooks() {
   }
 }
 
-// 순간풍속 10m/s. 한 프레임 25ms × 2400 = 1분마다, 그중 200~519프레임(약 8초)만 강풍.
+// 순간풍속 15m/s. 한 프레임 25ms × 2400 = 1분마다, 그중 200~519프레임(약 8초)만 강풍.
 // TC 패널을 누른 시각을 같이 써서, 다른 화면에서도 그 구간에 들어가면 경고창과 이벤트가 생긴다.
 const WIND_CYCLE = 2400;
 const WIND_GUST_FROM = 200;
@@ -1338,8 +1338,8 @@ function windWarnHtml() {
         <div class="pop-head">
           <div>
             <span class="status info">강풍</span>
-            <h2 id="wind-warn-title">순간풍속 10m/s</h2>
-            <p id="wind-warn-text">순간풍속 10m/s. 인양을 멈추세요.</p>
+            <h2 id="wind-warn-title">순간풍속 15m/s</h2>
+            <p id="wind-warn-text">순간풍속 15m/s. 인양을 멈추세요.</p>
           </div>
         </div>
         <div class="row end" style="margin-top:16px">

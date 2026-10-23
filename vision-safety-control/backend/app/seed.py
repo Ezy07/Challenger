@@ -222,7 +222,7 @@ DEMO_ROIS = [
 DEMO_EVENTS = [
     ("09:05", 4, True, "ZONE_DWELL", Severity.MEDIUM, "0.74", EventStatus.DONE, "자재 정리 인원 5분 초과 체류. 작업 반장에게 교대 지시"),
     ("10:12", 2, False, "EQUIPMENT_PROXIMITY", Severity.HIGH, "0.87", EventStatus.DONE, "펌프카 붐 하부 출입 인원 이격, 유도원 배치"),
-    ("11:40", 0, False, "WEATHER", Severity.MEDIUM, None, EventStatus.DONE, "순간풍속 10m/s. 인양 작업 20분 중지 후 재개"),
+    ("11:40", 0, False, "WEATHER", Severity.MEDIUM, None, EventStatus.DONE, "순간풍속 15m/s. 인양 작업 20분 중지 후 재개"),
     ("13:22", 1, False, "NO_VEST", Severity.LOW, "0.88", EventStatus.DONE, "현장 지적 후 착용 확인"),
     ("13:41", 4, False, "NO_HELMET", Severity.LOW, "0.91", EventStatus.FALSE, "자재 위 둥근 물체를 사람 머리로 오인. 학습 데이터로 보냄"),
     ("13:58", 1, True, "ZONE_INTRUSION", Severity.MEDIUM, "0.78", EventStatus.DONE, "갱폼 하부 출입 인원 퇴거 조치"),

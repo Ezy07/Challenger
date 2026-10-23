@@ -179,7 +179,7 @@ def tc_hook_overlap(db: DB, _: CurrentUser):
 
 @router.post("/wind-gust", response_model=EventIngestOut)
 def wind_gust(db: DB, _: CurrentUser):
-    """순간풍속 10m/s 경고가 뜰 때마다 이벤트 로그에 남긴다.
+    """순간풍속 15m/s 경고가 뜰 때마다 이벤트 로그에 남긴다.
     창이 여러 개여도 같은 강풍은 한 줄이고, 다음 강풍은 다시 남긴다. 기상 경보 기본 쿨다운(30분)은 쓰지 않는다."""
     return create_event(db, EventIn(detection_type="WEATHER", confidence=1), cooldown_sec=10)
 
