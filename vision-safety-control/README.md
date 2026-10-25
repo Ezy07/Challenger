@@ -92,7 +92,7 @@ pip install -r requirements-yolo.txt   # ultralytics (torch · opencv 포함, �
 
 YOLO 를 쓸 수 있으면 서버가 켜질 때부터 ROI 를 판정해 이벤트를 만듭니다 (`backend/app/zone_events.py`). 이벤트 목록 · 통계 · 관제화면 알림에 그대로 쌓입니다.
 
-- **ROI 목록**에서 구역마다 저장한 설정을 씁니다. **침입 탐지 대상**(사람 · 트럭)을 저장하지 않았거나 비워 둔 구역은 판정하지 않습니다.
+- **ROI 목록**에서 구역마다 저장한 설정을 씁니다. **침입 탐지 대상**(사람 · 트럭 · 굴삭기 · 지게차. 굴삭기 · 지게차는 그 클래스를 학습한 모델(`site6c`)에서만 잡힘)을 저장하지 않았거나 비워 둔 구역은 판정하지 않습니다.
   - 체류 시간 `0초` → 들어오자마자 **ROI 침범**(`ZONE_INTRUSION`), `N초` → N초 넘게 머물면 **ROI 체류 초과**(`ZONE_DWELL`)
   - 체류 시간 `사용안함` · 구역 사용 스위치 · 적용 시간이 꺼져 있으면 판정하지 않습니다.
 - **판정 기준(8-8)** 값을 그대로 씁니다: confidence 가 기준 미만인 박스는 세지 않고, `사용`을 끄면 판정하지 않습니다. 쿨다운 · 심각도(8-9)는 이벤트를 만들 때 적용합니다. 저장하면 5초 안에 반영됩니다.
@@ -176,7 +176,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `143 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `144 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -248,7 +248,7 @@ ALTER TABLE camera
 | 회원 관리 (관리자) | `GET/POST /api/users` · `POST /api/users/{id}/approve` · `/reject` · `/reset-password` · `PATCH/DELETE /api/users/{id}` | `users.html` · `user-approval.html` · `user-edit.html` |
 | 조직 · 부서 | `GET/POST /api/orgs` · `PATCH/DELETE /api/orgs/{id}` (회사 아래 부서 최대 2단계) | `org.html` · 회원가입 |
 | 작업구역 | `GET/POST /api/work-zones` · `PATCH/DELETE /api/work-zones/{id}` · `GET /api/work-zones/summary` (배치도 영역 `plan_polygon` = 도면 기준 0~1 꼭짓점 3~40개, null 이면 표시 안 함) | `zones.html` (도면 위에서 다각형 그리기 · 고치기) |
-| 작업자 · 교육 | `GET/POST /api/workers` · `GET/PATCH/DELETE /api/workers/{id}` · `POST/DELETE /api/workers/{id}/special` · `GET /api/educations` · `POST /api/workers/{id}/educations` · `DELETE …/educations/{기록 id}` | `workers.html` · `worker-special.html` |
+| 작업자 · 교육 | `GET/POST /api/workers` · `GET /api/workers/summary` (오늘 출력 인원 · 특별관리 사유별 인원, 관제화면) · `GET/PATCH/DELETE /api/workers/{id}` · `POST/DELETE /api/workers/{id}/special` · `GET /api/educations` · `POST /api/workers/{id}/educations` · `DELETE …/educations/{기록 id}` | `workers.html` · `worker-special.html` · `monitor.html`(특별관리근로자 출력) |
 | 작업 · 배정 | `GET/POST /api/works` (`?on=날짜`, `?upcoming=true`) · `GET/PATCH/DELETE /api/works/{id}` · `PUT /api/works/{id}/workers` · `GET /api/users/staff` | `works.html` · `zone-works.html` · `work-workers.html` |
 | 장비 · 일일 기록 | `GET/POST /api/equipment` · `GET/PATCH/DELETE /api/equipment/{id}` · `PUT /api/equipment/{id}/logs/{날짜}` · `POST /api/equipment/daily` | `equipment.html` · `equipment-detail.html` · `equipment-assign.html` · `work-workers.html`(작업 구역의 투입 장비) |
 | 판정 · 심각도 기준 | `GET /api/detection-types` · `PATCH /api/detection-types/{id}/rule` · `POST /api/detection-types/reset-rules` | `alert-threshold.html` · `alert-severity.html` |
@@ -280,7 +280,7 @@ ALTER TABLE camera
 - [x] 조직 · 부서 관리, 작업자 · 특별관리 · 교육, 작업 · 배정, 장비 · 일일 기록, 작업구역, 판정 · 심각도 기준 화면 연결
 - [x] ROI 그리기 저장 (`storage/roi-zones.json`) · 카메라 목록 DB 연결
 - [ ] ROI별 규칙 API (`roi-rules.html` 은 아직 예시. 그린 구역을 DB `roi` · `roi_rule` 과 이을지 정하기)
-- [ ] 관제화면 패널(TC/작업구역 · 섹터 감지경보 · 특별관리근로자)을 실제 데이터로 (알림 팝업은 30초 조회로 연결됨)
+- [ ] 관제화면 패널(TC/작업구역)을 실제 데이터로 (섹터 감지경보는 이벤트 · 탐지 인원, 특별관리근로자 출력은 오늘 배정된 작업자 기준으로 연결됨)
 - [x] 이벤트 내보내기(CSV · 엑셀 · 스냅샷 묶음) · 스냅샷 조회 · 통계(요약 · 추이 · 리포트 PDF) 화면 연결
 - [ ] 카메라 배치도 · 단일 카메라 확대 화면 연결
 - [x] 웹 푸시 알림: 이벤트 → 알림을 켠 휴대폰 · PC (`push.py` · `sw.js`)

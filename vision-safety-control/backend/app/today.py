@@ -23,6 +23,18 @@ def age_on(birth: date | None, day: date) -> int | None:
     return day.year - birth.year - ((day.month, day.day) < (birth.month, birth.day))
 
 
+def active_reasons(w: Worker, day: date) -> list[SpecialReason]:
+    """지금 유효한 특별관리 사유. 신규 투입은 투입 후 7일까지만"""
+    if not w.is_special_care:
+        return []
+    out = []
+    for reason in w.special_reasons or []:
+        if reason == SpecialReason.NEW and w.start_date and not 0 <= (day - w.start_date).days <= NEW_WORKER_DAYS:
+            continue
+        out.append(SpecialReason(reason))
+    return out
+
+
 def special_tags(w: Worker, day: date) -> list[str]:
     """지금 유효한 특별관리 사유를 화면용 글자로. 신규 투입은 7일이 지나면 자동으로 빠진다"""
     if not w.is_special_care:

@@ -463,6 +463,16 @@ class WorkerOut(BaseModel):
     today_work: TodayWork | None          # 오늘 배정된 작업
 
 
+class WorkerSummary(BaseModel):
+    """관제화면 특별관리근로자 출력: 오늘 배정된 작업이 있는(출력한) 작업자 기준"""
+    present: int       # 오늘 출력 인원
+    special: int       # 그중 특별관리 대상 (사유가 여럿이어도 한 명)
+    elderly: int       # 고령
+    hypertension: int  # 고혈압
+    new: int           # 신규 투입 (7일 이내)
+    etc: int           # 기타
+
+
 # ---------------------------------------------------------------- 작업 · 배정
 class WorkIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)

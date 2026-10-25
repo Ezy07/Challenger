@@ -974,20 +974,21 @@
       </aside>
       <aside class="cell safe" aria-label="특별관리근로자 출력 현황" data-fold="safe">
         <div class="label"><button type="button" class="fold-btn" aria-expanded="true"><i class="chev">▾</i>특별관리근로자 출력</button><a href="worker-special.html" data-need="MANAGER">명단 →</a></div>
-        <div class="kpi">
-          <div class="ring" style="--p:62"><span>12<i>명</i></span></div>
+        <!-- 오늘 배정된 작업이 있는 작업자(출력) 중 특별관리 사유별 인원 (/api/workers/summary). 고리 = 출력 인원 중 비율 -->
+        <div class="kpi" title="오늘 출력 인원 중 비율">
+          <div class="ring" id="safe-elderly" style="--p:0"><span>-<i>명</i></span></div>
           <div class="cap">고령자<em>만 60세 이상</em></div>
         </div>
-        <div class="kpi">
-          <div class="ring" style="--p:38"><span>7<i>명</i></span></div>
+        <div class="kpi" title="오늘 출력 인원 중 비율">
+          <div class="ring" id="safe-hypertension" style="--p:0"><span>-<i>명</i></span></div>
           <div class="cap">고혈압<em>건강 주의</em></div>
         </div>
-        <div class="kpi">
-          <div class="ring" style="--p:24"><span>4<i>명</i></span></div>
+        <div class="kpi" title="오늘 출력 인원 중 비율">
+          <div class="ring" id="safe-new" style="--p:0"><span>-<i>명</i></span></div>
           <div class="cap">신규 투입<em>7일 이내</em></div>
         </div>
-        <div class="kpi gold">
-          <div class="ring"><span>127<i>명</i></span></div>
+        <div class="kpi gold" title="오늘 작업에 배정된 작업자">
+          <div class="ring" id="safe-present"><span>-<i>명</i></span></div>
           <div class="cap">전체<em>출력 인원</em></div>
         </div>
       </aside>
@@ -1937,6 +1938,21 @@
         + '<div class="item-top"><b>' + esc(c.name) + '</b><span class="status ' + level + '">' + TC_WORD[level] + "</span></div>"
         + '<div class="desc">' + esc(desc) + '</div><div class="bar ' + level + '"><i></i></div>' + crewLine(people) + "</a>";
     }
+    // 특별관리근로자 출력: 오늘 출력 인원과 그중 사유별 인원. 고리는 출력 인원 중 비율
+    function paintSafe(s) {
+      if (!s) return;
+      const put = (id, n, pct) => {
+        const ring = document.getElementById(id);
+        ring.querySelector("span").firstChild.textContent = n;
+        if (pct != null) ring.style.setProperty("--p", pct);
+      };
+      const pct = (n) => (s.present ? Math.round((n / s.present) * 100) : 0);
+      put("safe-elderly", s.elderly, pct(s.elderly));
+      put("safe-hypertension", s.hypertension, pct(s.hypertension));
+      put("safe-new", s.new, pct(s.new));
+      put("safe-present", s.present, null);
+    }
+
     async function pollLive() {
       if (!liveCams) {
         liveCams = (await alertFetch("/api/cameras")).filter((c) => c.is_active)
@@ -1944,10 +1960,12 @@
         setCamAlarm(false); // 예시 경보(CAM_0002 · TC03)는 끄고 실제 이벤트만 보여 준다
         setTc3Alarm(false);
       }
-      const [page, people] = await Promise.all([
+      const [page, people, crew] = await Promise.all([
         alertFetch("/api/events?status=NEW&status=ACK&sort=severity&size=200"), // 심한 것 → 최신 순
         alertFetch("/api/stream/people").catch(() => []), // 작업자 수 · 착용 (탐지를 못 쓰면 빈 목록)
+        alertFetch("/api/workers/summary").catch(() => null), // 특별관리근로자 출력
       ]);
+      paintSafe(crew);
       const peopleBy = new Map(people.map((p) => [p.camera_id, p]));
       const byCam = new Map();
       page.items.forEach((r) => {

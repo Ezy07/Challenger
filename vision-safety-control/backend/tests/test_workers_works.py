@@ -161,3 +161,13 @@ def test_staff_list_for_any_logged_in_user(client, manager):
     assert "윤가람" not in names  # 조회 전용 · 잠금
     assert "이수진" not in names  # 승인 대기
     assert set(staff[0]) == {"id", "name", "position", "role"}
+
+
+def test_worker_summary_counts_today_present_special(client, manager):
+    rows = [w for w in client.get("/api/workers", headers=manager).json() if w["today_work"]]
+    tagged = lambda word: sum(any(t.startswith(word) for t in w["special_tags"]) for w in rows)  # noqa: E731
+    s = client.get("/api/workers/summary", headers=manager).json()
+    assert s["present"] == len(rows) > 0
+    assert s["special"] == sum(bool(w["special_tags"]) for w in rows)
+    assert (s["elderly"], s["hypertension"], s["new"]) == (tagged("고령"), tagged("고혈압"), tagged("신규 투입"))
+    assert "name" not in s  # 이름 · 건강 메모는 내보내지 않는다

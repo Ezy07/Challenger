@@ -5,9 +5,9 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import delete, or_, select, update
 
 from ..deps import DB, CurrentUser, Manager
-from ..models import Education, Equipment, Work, WorkAssignment, Worker, WorkerEducation, WorkStatus
-from ..schemas import EducationOut, SpecialIn, WorkerEducationIn, WorkerIn, WorkerOut, WorkerUpdate
-from ..today import today_works, worker_load, worker_out
+from ..models import Education, Equipment, SpecialReason, Work, WorkAssignment, Worker, WorkerEducation, WorkStatus
+from ..schemas import EducationOut, SpecialIn, WorkerEducationIn, WorkerIn, WorkerOut, WorkerSummary, WorkerUpdate
+from ..today import active_reasons, today_works, worker_load, worker_out
 
 router = APIRouter(prefix="/api", tags=["작업자 · 교육"])
 
@@ -47,6 +47,19 @@ def list_workers(
     if special is not None:
         rows = [r for r in rows if bool(r.special_tags) == special]
     return rows
+
+
+@router.get("/workers/summary", response_model=WorkerSummary)
+def worker_summary(db: DB, _: CurrentUser):
+    """오늘 출력 인원(배정된 작업이 있는 작업자)과 그중 특별관리 사유별 인원. 이름 · 건강 메모는 내보내지 않는다"""
+    day = date.today()
+    present_ids = set(today_works(db, day))
+    workers = db.scalars(select(Worker).where(Worker.is_active, Worker.id.in_(present_ids))).all() if present_ids else []
+    reasons = [set(active_reasons(w, day)) for w in workers]
+    count = lambda r: sum(r in rs for rs in reasons)  # noqa: E731
+    return WorkerSummary(present=len(workers), special=sum(bool(rs) for rs in reasons),
+                         elderly=count(SpecialReason.ELDERLY), hypertension=count(SpecialReason.HYPERTENSION),
+                         new=count(SpecialReason.NEW), etc=count(SpecialReason.ETC))
 
 
 @router.get("/workers/{worker_id}", response_model=WorkerOut)
