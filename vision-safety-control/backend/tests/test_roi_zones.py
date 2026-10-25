@@ -67,9 +67,10 @@ def test_dwell_seconds_round_trip(client, admin):
 
 
 def test_targets_round_trip(client, admin):
-    saved = client.put("/api/roi-zones", json=[{**ROW, "targets": ["truck", "person", "person"]}], headers=admin).json()
-    assert saved[0]["targets"] == ["truck", "person"]
-    assert client.get("/api/roi-zones", headers=admin).json()[0]["targets"] == ["truck", "person"]
+    saved = client.put("/api/roi-zones", json=[{**ROW, "targets": ["truck", "person", "person", "excavator", "forklift"]}],
+                       headers=admin).json()
+    assert saved[0]["targets"] == ["truck", "person", "excavator", "forklift"]
+    assert client.get("/api/roi-zones", headers=admin).json()[0]["targets"] == ["truck", "person", "excavator", "forklift"]
     empty = client.put("/api/roi-zones", json=[{**ROW, "targets": []}], headers=admin).json()
     assert empty[0]["targets"] == []
     assert client.put("/api/roi-zones", json=[{**ROW, "targets": ["bus"]}], headers=admin).status_code == 422

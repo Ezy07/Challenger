@@ -20,7 +20,7 @@ from ..deps import Admin, CurrentUser
 router = APIRouter(prefix="/api/roi-zones", tags=["ROI 구역"])
 
 Day = Literal["월", "화", "수", "목", "금", "토", "일"]
-TargetClass = Literal["person", "truck"]  # 침입 탐지 대상. 목록이 늘면 여기도 함께 늘린다
+TargetClass = Literal["person", "truck", "excavator", "forklift"]  # 침입 탐지 대상 (frontend/roi-store.js 의 ROI_TARGETS 와 같게)
 HHMM = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
 

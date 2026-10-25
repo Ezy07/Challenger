@@ -27,6 +27,8 @@ const ROI_ORPHAN = "cam:"; // 영상 파일이 없는 줄의 books 열쇠 앞머
 const ROI_TARGETS = [
   { id: "person", label: "사람" },
   { id: "truck", label: "트럭" },
+  { id: "excavator", label: "굴삭기" }, // 굴삭기 · 지게차는 그 클래스를 학습한 모델(site6c)에서만 잡힘
+  { id: "forklift", label: "지게차" },
 ];
 
 function roiTargets(list) {

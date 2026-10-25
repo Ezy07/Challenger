@@ -115,8 +115,8 @@
         </section>
         <section class="set-block">
           <div class="set-head"><b>체류 시간</b></div>
-          <p class="set-note">작업자가 구역 안에 이 시간 이상 머무르면 경고가 뜹니다. 0초면 들어오자마자 경고입니다.</p>
-          <div class="sched-time">작업자가 <input class="input" id="sched-dwell" type="number" min="0" max="86400" step="1" value="0" /> 초 이상</div>
+          <p class="set-note">대상 객체가 구역 안에 이 시간 이상 머무르면 경고가 뜹니다. 0초면 들어오자마자 경고입니다.</p>
+          <div class="sched-time">대상 객체가 <input class="input" id="sched-dwell" type="number" min="0" max="86400" step="1" value="0" /> 초 이상</div>
           <label class="dwell-off"><input type="checkbox" id="dwell-off" /> 사용안함</label>
           <div class="row end"><button class="btn primary" type="button" id="dwell-save">체류 시간 저장</button></div>
         </section>
@@ -126,6 +126,8 @@
           <div class="chips" id="sched-targets">
             <span class="chip" data-target="person">사람</span>
             <span class="chip" data-target="truck">트럭</span>
+            <span class="chip" data-target="excavator">굴삭기</span>
+            <span class="chip" data-target="forklift">지게차</span>
           </div>
           <div class="row end"><button class="btn primary" type="button" id="targets-save">탐지 대상 저장</button></div>
         </section>
