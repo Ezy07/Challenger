@@ -109,6 +109,7 @@
             <div><span>경보</span><b id="z-alarm">0</b></div>
           </div>
           <div class="muted" id="z-cams" style="font-size:17px"></div>
+          <div class="muted" id="z-push" style="font-size:17px"></div>
           <button class="btn block" type="button" id="edit" data-need="MANAGER">✏ 이름 · 배치도 영역 수정</button>
         </div>
 
@@ -273,6 +274,10 @@
         : '📷 이 구역에 설치된 카메라가 없습니다 <a href="camera-edit.html" data-need="ADMIN" style="color:var(--orange)">카메라 등록 →</a>';
       $("z-alarm").textContent = z.open_events;
       $("z-alarm").style.color = z.open_events ? "var(--red)" : "";
+      // 이 구역에 높음 경보가 나면 휴대폰 · PC 로 받는 기기 (각자 회원정보 수정에서 켬). 없으면 알림 공백
+      $("z-push").innerHTML = z.high_alert_devices
+        ? `📱 이 구역의 높음 경보를 받는 기기 ${z.high_alert_devices}대`
+        : '<span style="color:var(--red)">⚠ 이 구역의 높음 경보를 받는 기기가 없습니다</span> · 헤더 내 이름 → 회원정보 수정에서 켤 수 있습니다';
       setMode(mode === "edit" ? "edit" : "view"); // 고치는 중에 다른 구역을 고르면 그 구역을 고친다
     }
 

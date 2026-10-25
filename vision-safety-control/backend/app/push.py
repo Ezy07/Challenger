@@ -2,7 +2,8 @@
 
 - 기기에서 알림을 켜면 서비스 워커(frontend/sw.js)가 브라우저 푸시 서비스에 구독하고, 그 주소를
   PUT /api/push/subscriptions 로 저장한다 (push_subscription, 기기마다 한 줄).
-- create_event 가 이벤트를 새로 만들면 notify_event → 기기마다 받을 심각도(min_severity) 이상이면 보낸다.
+- create_event 가 이벤트를 새로 만들면 notify_event → 기기마다 받을 심각도(min_severity) 이상이고 받을 구역이면 보낸다
+  (wants: 받을 구역을 비웠거나 · 구역이 없는 경보이거나 · 높음인데 high_any_zone 이면 구역과 상관없이).
   쿨다운 · 작업 허가 대기로 이벤트를 만들지 않은 경우는 보내지 않으므로 같은 경보가 쌓이지 않는다.
 - 보내기는 구글 · 애플 · 모질라 푸시 서비스로 나가는 HTTPS 요청이라 따로 스레드에서 한다 (탐지 · API 가 기다리지 않게).
   우리 서버가 바깥에서 접속될 필요는 없다. 기기가 알림을 켜고 알림을 눌러 화면을 열 때만 우리 서버에 닿으면 된다.
@@ -90,6 +91,22 @@ def event_payload(event: Event, role: Role) -> dict:
     }
 
 
+def event_zone_id(event: Event) -> int | None:
+    """이벤트의 작업구역: ROI 의 구역, 없으면 카메라의 구역 (이벤트 목록의 구역 필터와 같은 기준)"""
+    return (event.roi and event.roi.work_zone_id) or (event.camera and event.camera.work_zone_id) or None
+
+
+def wants(sub: PushSubscription, severity: Severity, zone_id: int | None) -> bool:
+    """이 기기가 이 경보를 받는지"""
+    if RANK[severity] > RANK[sub.min_severity]:
+        return False
+    if not sub.zones or zone_id is None:  # 전체 구역 · 어느 구역인지 모르는 경보(TC 후크 겹침 · 기상 등)는 모두 받는다
+        return True
+    if severity == Severity.HIGH and sub.high_any_zone:
+        return True
+    return zone_id in sub.zone_ids
+
+
 def notify_event(db: Session, event_id: int) -> int:
     """새 이벤트를 받을 기기로 보낸다 (보내기는 다른 스레드). 보낼 기기 수"""
     if unavailable():
@@ -98,9 +115,11 @@ def notify_event(db: Session, event_id: int) -> int:
         selectinload(Event.camera), selectinload(Event.roi), selectinload(Event.detection_type), selectinload(Event.snapshots)))
     if event is None:
         return 0
-    rows = db.execute(select(PushSubscription, User.role).join(User).where(User.status == UserStatus.ACTIVE)).all()
+    rows = db.execute(select(PushSubscription, User.role).join(User).where(User.status == UserStatus.ACTIVE)
+                      .options(selectinload(PushSubscription.zones))).all()
+    zone_id = event_zone_id(event)
     jobs = [(sub.id, _info(sub), event_payload(event, role)) for sub, role in rows
-            if RANK[event.severity] <= RANK[sub.min_severity]]
+            if wants(sub, event.severity, zone_id)]
     if jobs:
         _dispatch(db.get_bind(), jobs)
     return len(jobs)

@@ -29,8 +29,10 @@ class Settings(BaseSettings):
     frontend_dir: Path = ROOT_DIR / "frontend"
     weather_dir: Path = ROOT_DIR / "tools" / "weather"
     snapshot_dir: Path = ROOT_DIR / "storage" / "snapshots"
+    photo_dir: Path = ROOT_DIR / "storage" / "photos"  # 회원 · 작업자 프로필 사진 (공개 폴더 아님, /api/.../photo 로만)
     plan_dir: Path = ROOT_DIR / "storage" / "plans"  # 현장 도면 그림 (site_plan.image_path 는 "plans/...")
     max_plan_mb: int = 15
+    max_photo_mb: int = 10  # 프로필 사진 (올리면 긴 변 640px 로 줄여 저장)
     roi_zones_file: Path = ROOT_DIR / "storage" / "roi-zones.json"  # ROI 그리기 화면이 그린 구역 (AI 탐지 프로그램이 읽음)
     video_dir: Path = ROOT_DIR / "storage" / "videos"  # 시연 · 개발용 영상 (카메라 대신)  # event_snapshot.image_path 는 이 폴더 기준 "snapshots/..." 경로
 

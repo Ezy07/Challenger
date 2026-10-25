@@ -28,6 +28,7 @@ GROUPS = [
         ("organization", "조직 · 부서"),
         ("users", "회원"),
         ("push_subscription", "웹 푸시 받는 기기"),
+        ("push_subscription_zone", "기기 ↔ 받을 구역"),
     ]),
     ("구역 · 카메라 · ROI", "현장 CAM · TC CAM", "green", [
         ("work_zone", "작업구역"),
@@ -65,7 +66,8 @@ CHANGED = {
     "worker_education": None,
     "site_plan": None,
     "push_subscription": None,
-    "camera": {"plan_x", "plan_y", "plan_dir", "plan_color", "plan_fov", "plan_range"},
+    "push_subscription_zone": None,
+    "camera": {"plan_x", "plan_y", "plan_dir", "plan_color", "plan_fov", "plan_range", "fine_detect"},
     "users": {"status", "failed_login_count", "locked_until"},
     "worker": {"start_date", "special_reasons", "special_memo", "special_since", "special_by", "is_active"},
     "equipment": {"equip_type", "reg_no", "spec", "company", "status"},
@@ -76,7 +78,8 @@ CHANGED = {
 CHANGE_NOTES = [
     ("education · worker_education", "새 테이블: 안전교육 목록과 작업자별 이수 이력"),
     ("site_plan · camera", "새 테이블: 현장 도면 한 장 (구역 표시 · 카메라 배치도 배경), 카메라 도면 위 위치 · 방향 · 화각 색"),
-    ("push_subscription", "새 테이블: 웹 푸시를 켠 기기 (휴대폰 · PC 브라우저) · 받을 심각도"),
+    ("push_subscription · push_subscription_zone", "새 테이블: 웹 푸시를 켠 기기 (휴대폰 · PC 브라우저) · 받을 심각도 · 받을 구역"),
+    ("camera", "정밀 탐지(fine_detect): 멀리 보는 카메라만 입력 크기 960 으로 탐지"),
     ("worker", "특별관리 사유 여러 개(JSON) · 메모 · 지정일 · 지정한 사람, 현장 투입일"),
     ("users", "DELETED 상태 추가 (처리 기록 때문에 행은 남김), 5번 틀리면 15분 잠금(locked_until)"),
     ("equipment", "등록번호 · 제원 · 소속 회사, 레미콘 · 덤프 유형, 상태 OUT → BROKEN(고장)"),

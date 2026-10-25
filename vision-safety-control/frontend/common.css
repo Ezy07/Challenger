@@ -173,6 +173,22 @@ body.nav-open #wx-sky { display: none; }
 .push-box select.input { width: auto; height: 34px; padding: 0 8px; font-size: 17px; }
 .push-box small { flex-basis: 100%; font-size: 16px; }
 .push-box small:empty { display: none; }
+/* 프로필 사진 (회원 · 작업자): 동그란 사진을 누르면 크게 본다 */
+.has-photo { overflow: hidden; padding: 0; cursor: zoom-in; }
+.has-photo img, .gnb-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.has-photo:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.photo-field { display: flex; align-items: center; gap: 14px; }
+.photo-field:empty { display: none; }
+.photo-big { flex: none; width: 88px; height: 88px; border-radius: 50%; background: #243044; display: grid; place-items: center; font-size: 36px; font-weight: 800; color: var(--ink); }
+.photo-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.photo-acts label.btn { cursor: pointer; }
+.photo-acts small { flex-basis: 100%; font-size: 15px; }
+.photo-pop .pop-card { width: min(560px, 100%); }
+.photo-pop #photo-img { display: block; max-width: 100%; max-height: 70vh; margin: 0 auto; border-radius: 12px; }
+.gnb-photo { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; }
+.push-zones { flex-basis: 100%; display: grid; gap: 6px; }
+.push-zones .chip { font-size: 16px; }
+.push-high { display: flex; align-items: center; gap: 6px; font-size: 16px; color: var(--muted); cursor: pointer; }
 @media (max-width: 1100px) { #alert-pop { place-items: center; padding: 16px; } }
 
 /* 1호기 · 3호기 후크가 겹친 순간 (어느 화면에서든) */
@@ -309,11 +325,13 @@ a.dgroup-btn.on i { background: var(--orange); color: #1a1206; }
 }
 .page > .rail-toggle:hover { color: var(--ink); background: #243044; }
 .page > .rail-toggle:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
-.page > .rail-right { right: calc(340px + 12px); border-right: 0; border-radius: 10px 0 0 10px; }
-.page.rail-hidden > .rail-right { right: 12px; color: var(--orange); }
+/* 관제화면(monitor.html)과 같은 자리: 펼치면 패널 가장자리에 5px 걸쳐 붙고, 접으면 화면 끝(.page 안쪽 여백 12px)에 붙는다.
+   이 버튼의 기준은 .page 의 격자 영역(여백 안쪽)이라 패널 폭만큼만 띄운다 */
+.page > .rail-right { right: calc(340px - 5px); border-right: 0; border-radius: 10px 0 0 10px; }
+.page.rail-hidden > .rail-right { right: -12px; color: var(--orange); }
 .page:not(.rail-hidden) > .rail-right { color: var(--muted); border-color: var(--line); }
-.page > .rail-left { left: calc(300px + 12px); border-left: 0; border-radius: 0 10px 10px 0; }
-.page.left-hidden > .rail-left { left: 12px; color: var(--orange); }
+.page > .rail-left { left: calc(300px - 5px); border-left: 0; border-radius: 0 10px 10px 0; box-shadow: 6px 0 16px rgba(0, 0, 0, 0.25); }
+.page.left-hidden > .rail-left { left: -12px; color: var(--orange); }
 .page:not(.left-hidden) > .rail-left { color: var(--muted); border-color: var(--line); }
 
 .main { min-height: 0; display: grid; gap: 10px; grid-auto-rows: minmax(0, auto); }

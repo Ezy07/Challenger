@@ -56,7 +56,7 @@
       </section>
       <section class="cell" style="padding:0 6px 6px">
         <table class="tbl">
-          <thead><tr><th>이름</th><th>아이디</th><th>휴대폰</th><th>역할</th><th>소속</th><th>마지막 접속</th><th>상태</th><th class="acts"></th></tr></thead>
+          <thead><tr><th>이름</th><th>아이디</th><th>휴대폰</th><th>역할</th><th>소속</th><th>마지막 접속</th><th title="각자 회원정보 수정에서 켠 기기 · 받을 심각도 · 받을 구역">알림</th><th>상태</th><th class="acts"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </section>
@@ -132,6 +132,16 @@
       render();
     }
 
+    // 알림 기기 요약: 📱 중간 이상 · 101동 외 1 (높음은 전체). 켠 기기가 없으면 꺼짐
+    const PUSH_SEV = { HIGH: "높음만", MEDIUM: "중간 이상", LOW: "전체" };
+    function pushText(devices) {
+      if (!devices || !devices.length) return '<span class="muted">꺼짐</span>';
+      return devices.map((d) => {
+        const zones = !d.zone_names.length ? "전체 구역"
+          : d.zone_names[0] + (d.zone_names.length > 1 ? ` 외 ${d.zone_names.length - 1}` : "") + (d.high_any_zone ? " (높음은 전체)" : "");
+        return `<div title="${esc(d.zone_names.join(", ") || "전체 구역")}">📱 ${PUSH_SEV[d.min_severity]} · ${esc(zones)}</div>`;
+      }).join("");
+    }
     function render() {
       const members = users.filter((u) => u.status === "ACTIVE" || u.status === "LOCKED");
       $("n-all").textContent = members.length;
@@ -148,12 +158,13 @@
         const lastLogin = self ? "지금 접속 중" : u.last_login_at ? fmtTime(u.last_login_at).slice(0, 16) : "접속 기록 없음";
         const del = self ? '<button class="icon-btn del" disabled title="본인 계정은 삭제할 수 없습니다" aria-label="삭제">🗑️</button>' : '<button class="icon-btn del" data-del title="삭제" aria-label="삭제">🗑️</button>';
         return `<tr data-id="${u.id}">
-          <td><span class="av">${esc(u.name[0])}</span><b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
+          <td>${avatarHtml(u)}<b>${esc(u.name)} ${esc(u.position || "")}</b></td><td>${esc(u.login_id)}</td>
           <td class="num">${esc(u.phone || "-")}</td>
           <td>${badge("role", u.role)}</td><td>${esc(orgs[u.org_id] || "-")}</td><td>${lastLogin}</td>
+          <td>${pushText(u.push_devices)}</td>
           <td>${badge("userStatus", u.status)}</td>
           <td class="acts"><div class="row-acts"><a class="icon-btn" href="user-edit.html?id=${u.id}" title="수정" aria-label="수정">✏️</a>${del}</div></td></tr>`;
-      }).join("") : '<tr><td colspan="8" class="muted" style="text-align:center; padding:28px">해당하는 회원이 없습니다</td></tr>';
+      }).join("") : '<tr><td colspan="9" class="muted" style="text-align:center; padding:28px">해당하는 회원이 없습니다</td></tr>';
     }
 
     $("rows").addEventListener("click", (e) => {

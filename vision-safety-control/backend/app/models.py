@@ -8,6 +8,7 @@ from sqlalchemy import (
     JSON,
     Boolean,
     CheckConstraint,
+    Column,
     Date,
     DateTime,
     Enum,
@@ -16,6 +17,7 @@ from sqlalchemy import (
     Numeric,
     SmallInteger,
     String,
+    Table,
     UniqueConstraint,
     func,
 )
@@ -23,6 +25,7 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
+from .photos import url_of
 
 # MySQL 에서는 BIGINT UNSIGNED, SQLite(테스트)에서는 자동 증가가 되는 INTEGER
 Id = mysql.BIGINT(unsigned=True).with_variant(Integer, "sqlite")
@@ -149,6 +152,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(50))
     position: Mapped[str | None] = mapped_column(String(30))
     phone: Mapped[str | None] = mapped_column(String(20))
+    photo_path: Mapped[str | None] = mapped_column(String(255))  # 프로필 사진 "users/3-....jpg" (storage/photos 기준)
     role: Mapped[Role] = mapped_column(enum_col(Role), default=Role.VIEWER)
     status: Mapped[UserStatus] = mapped_column(enum_col(UserStatus), default=UserStatus.PENDING)
     approved_by: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))
@@ -161,9 +165,22 @@ class User(Base):
 
     org: Mapped[Organization | None] = relationship()
 
+    @property
+    def photo_url(self) -> str | None:
+        return url_of("users", self.id, self.photo_path)
+
+
+# 기기마다 받을 구역 (없으면 전체 구역). 기기나 구역을 지우면 같이 지워진다
+push_subscription_zone = Table(
+    "push_subscription_zone",
+    Base.metadata,
+    Column("subscription_id", Id, ForeignKey("push_subscription.id", ondelete="CASCADE"), primary_key=True),
+    Column("work_zone_id", Id, ForeignKey("work_zone.id", ondelete="CASCADE"), primary_key=True),
+)
+
 
 class PushSubscription(Base):
-    """웹 푸시를 켠 기기 (브라우저마다 한 줄). 이벤트가 생기면 min_severity 이상만 보낸다 (push.py)"""
+    """웹 푸시를 켠 기기 (브라우저마다 한 줄). 이벤트가 생기면 min_severity 이상 · 받을 구역만 보낸다 (push.py)"""
 
     __tablename__ = "push_subscription"
 
@@ -173,11 +190,17 @@ class PushSubscription(Base):
     p256dh: Mapped[str] = mapped_column(String(120))
     auth: Mapped[str] = mapped_column(String(60))
     min_severity: Mapped[Severity] = mapped_column(enum_col(Severity), default=Severity.MEDIUM)
+    high_any_zone: Mapped[bool] = mapped_column(Boolean, default=True)  # 높음은 받을 구역과 상관없이 받음
     device: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
     last_sent_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     user: Mapped[User] = relationship()
+    zones: Mapped[list["WorkZone"]] = relationship(secondary=push_subscription_zone, order_by="WorkZone.id")
+
+    @property
+    def zone_ids(self) -> list[int]:
+        return [z.id for z in self.zones]
 
 
 # ---------------------------------------------------------------- 구역 · 카메라 · ROI
@@ -362,6 +385,7 @@ class Worker(Base):
     special_memo: Mapped[str | None] = mapped_column(String(200))  # 건강정보 = 민감정보
     special_since: Mapped[date | None] = mapped_column(Date)  # 지정일
     special_by: Mapped[int | None] = mapped_column(Id, ForeignKey("users.id"))  # 지정한 사람
+    photo_path: Mapped[str | None] = mapped_column(String(255))  # 프로필 사진 "workers/3-....jpg" (storage/photos 기준)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)  # 삭제하면 0 (배정 이력은 남김)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, server_default=func.now())
 

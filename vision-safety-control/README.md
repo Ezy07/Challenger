@@ -61,6 +61,7 @@ uvicorn app.main:app --reload
 - 화면: <http://localhost:8000> → 로그인 화면 (`choi.dh` / 위에서 정한 비밀번호)
 - `--demo` 로 넣는 시연 데이터: 회원 9명(승인 대기 3 · 잠금 1 포함) · 작업자 13명(특별관리 6 · 교육 이력 포함) · 작업 7건과 배정 · 구역 6곳(배치도 위치 포함) · 장비 10대와 3일치 일일 기록 · 카메라 8대 · ROI 4개와 ROI별 규칙 · 이벤트 9건(처리 기록 · 예시 스냅샷 포함). 날짜는 실행한 날 기준으로 들어갑니다. 통계 화면용으로 **지난 30일 이벤트(약 300건)**도 함께 들어가며, `--history-days 0` 으로 빼거나 일수를 바꿀 수 있습니다.
   시연 회원(`oh.sy`, `park.jw` 등)도 관리자와 같은 비밀번호로 로그인됩니다. 예시 스냅샷은 `storage/snapshots/` 에 만들어집니다.
+  작업자에게는 예시 프로필 사진(안전모 · 조끼를 입은 작업자 그림, 신호수는 빨간 조끼)도 넣습니다. 이미 만든 DB 에 사진만 넣으려면 `python -m app.seed --demo-photos` (사진이 없는 작업자만).
 - API 문서(직접 눌러 보기): <http://localhost:8000/docs>
 
 > MySQL 없이 빨리 보고 싶으면 `.env` 에 `DATABASE_URL=sqlite:///./dev.db` 를 넣고
@@ -157,7 +158,11 @@ YOLO 를 쓸 수 있으면 서버가 켜질 때부터 ROI 를 판정해 이벤�
 
 이벤트가 새로 생기면 **알림을 켠 기기**(휴대폰 · PC 브라우저)로 바로 알림을 보냅니다. 화면을 닫아 두거나 휴대폰이 잠겨 있어도 옵니다 (`backend/app/push.py` · `frontend/sw.js`). 별도 앱이나 서버 없이 지금 서버가 보냅니다.
 
-- **켜는 법**: 헤더 🔔 알림 → 팝업 위 `📱 이 기기로 알림 받기` 에서 받을 심각도(높음만 · 중간 이상 · 전체)를 고르고 `켜기` → 브라우저 알림 허용 → `테스트` 로 확인합니다. 기기마다 따로 켜고, 로그인한 계정의 기기로 저장됩니다 (`push_subscription`).
+- **켜는 법**: 헤더 내 이름 → **회원정보 수정** → `📱 이 기기로 알림 받기` 에서 받을 심각도(높음만 · 중간 이상 · 전체)를 고르고 `켜기` → 브라우저 알림 허용 → `테스트` 로 확인합니다. 기기마다 따로 켜고, 로그인한 계정의 기기로 저장됩니다 (`push_subscription`).
+- **받을 구역**: 같은 자리에서 `전체` 또는 작업구역을 여러 개 고르면 그 구역의 경보만 받습니다 (기기마다 · 누구나 자유롭게, `push_subscription_zone`). 이벤트의 구역은 ROI 의 구역, 없으면 카메라의 구역입니다.
+  - 구역이 없는 경보(TC 후크 겹침 · 기상 · 구역을 안 정한 카메라)는 어느 구역인지 모르므로 모두 받습니다.
+  - `높음은 구역과 상관없이 받기`(기본 켬)면 심각도 높음은 다른 구역 것도 받습니다.
+- 누가 어떤 기기로 받는지는 **회원 목록의 `알림` 열**(관리자)에, 구역마다 높음 경보를 받는 기기 수는 **작업구역 화면**에 보입니다 (0대면 `⚠ 받는 기기가 없습니다`). 설정은 각자 회원정보 수정에서만 하므로 따로 알림 대상 화면은 두지 않습니다.
 - 알림을 누르면 **그 카메라의 카메라 상세(1-2, 지금 영상)** 가 열려 현장을 바로 봅니다. 카메라가 없는 경보(TC 후크 겹침 · 기상)는 이벤트 처리 화면(관리자 · 안전관리자) 또는 상세 화면(조회 전용)이 열립니다. 안드로이드는 스냅샷 사진도 크게 보이고, 심각도 높음은 PC 에서 닫을 때까지 남습니다.
 - 쿨다운 · 「작업 허가 대기」로 이벤트를 새로 만들지 않은 경우는 알림도 보내지 않아, 같은 경보가 계속 쌓이지 않습니다.
 - 서버는 구글 · 애플 · 모질라 푸시 서비스로 **나가는 요청만** 하므로 서버가 바깥에서 접속될 필요는 없습니다. 다만 **기기가 알림을 켤 때와 알림을 눌러 화면을 열 때는 우리 서버에 HTTPS 로 접속**돼야 합니다 (브라우저가 HTTPS · `localhost` 에서만 알림을 허용).
@@ -176,7 +181,7 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 .venv\Scripts\python -m pytest
 ```
 
-마지막 줄에 `144 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
+마지막 줄에 `151 passed` 가 나오면 정상입니다. (가상환경을 활성화했다면 `pytest` 만 쳐도 됩니다)
 
 > 끝날 때 임시 폴더를 지우다 `PermissionError` 가 나면(Windows) 테스트 결과와는 상관없습니다.
 > `--basetemp=..\..\pytest-tmp` 처럼 다른 폴더를 주면 사라집니다.
@@ -194,6 +199,20 @@ cd backend                      # 저장소 최상위 폴더에서 시작
 | 2026-10-13 | 카메라 배치도 화각 폭 · 길이 (`camera.plan_fov` · `plan_range`, 360° 회전 카메라는 원으로) | `ALTER TABLE camera ADD COLUMN plan_fov SMALLINT UNSIGNED NULL AFTER plan_color, ADD COLUMN plan_range SMALLINT UNSIGNED NULL AFTER plan_fov;` |
 | 2026-10-22 | 웹 푸시 알림 받을 기기 (`push_subscription` 새 테이블) | 아래 SQL |
 | 2026-10-23 | 카메라별 정밀 탐지 (`camera.fine_detect`) | `ALTER TABLE camera ADD COLUMN fine_detect TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active;` |
+| 2026-10-25 | 알림 받을 구역 (`push_subscription.high_any_zone` · `push_subscription_zone` 새 테이블) | 아래 SQL |
+| 2026-10-25 | 회원 · 작업자 프로필 사진 (`users.photo_path` · `worker.photo_path`) | `ALTER TABLE users ADD COLUMN photo_path VARCHAR(255) NULL AFTER phone; ALTER TABLE worker ADD COLUMN photo_path VARCHAR(255) NULL AFTER special_by;` |
+
+```sql
+-- 2026-10-25 알림 받을 구역
+ALTER TABLE push_subscription ADD COLUMN high_any_zone TINYINT(1) NOT NULL DEFAULT 1 AFTER min_severity;
+CREATE TABLE push_subscription_zone (
+  subscription_id BIGINT UNSIGNED NOT NULL,
+  work_zone_id BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (subscription_id, work_zone_id),
+  CONSTRAINT fk_push_zone_sub FOREIGN KEY (subscription_id) REFERENCES push_subscription (id) ON DELETE CASCADE,
+  CONSTRAINT fk_push_zone_zone FOREIGN KEY (work_zone_id) REFERENCES work_zone (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+```
 
 ```sql
 -- 2026-10-22 웹 푸시 알림 받을 기기
@@ -260,7 +279,8 @@ ALTER TABLE camera
 | 이벤트 내보내기 | `GET /api/events/export?format=csv\|xlsx\|zip&columns=…` (목록과 같은 조건) · `GET /api/events/export/preview` | `event-export.html` |
 | 통계 | `GET /api/stats/summary` (기간 · 앞 기간 비교) · `GET /api/stats/trend?date_from=&date_to=` (없으면 `days=14`) · `GET /api/stats/report` | `stats.html` · `stats-trend.html` · `stats-report.html` (PDF 는 브라우저 인쇄 → PDF로 저장) |
 | 이벤트 처리 | `POST /api/events/{id}/actions` | `event-handle.html` |
-| 웹 푸시 알림 | `GET /api/push/key` · `GET/PUT/DELETE /api/push/subscriptions` (이 기기 켜기 · 받을 심각도 · 끄기) · `POST /api/push/test` | 모든 화면 헤더 🔔 알림 팝업 · `sw.js` |
+| 프로필 사진 | `GET/PUT/DELETE /api/users/{id}/photo` (본인 · 관리자가 바꿈) · `GET/PUT/DELETE /api/workers/{id}/photo` (관리자 · 안전관리자가 바꿈) — 본문 = 사진 파일 그대로 (JPG · PNG · WebP 10MB). 긴 변 640px JPEG 로 줄이고 촬영 위치(EXIF)는 지워 `storage/photos` 에 저장. 보기는 로그인한 사람만 (`<img>` 는 `&token=`) | 헤더 회원정보 수정 · `user-edit.html` · `users.html` · `workers.html` (사진을 누르면 크게 보기) |
+| 웹 푸시 알림 | `GET /api/push/key` · `GET/PUT/DELETE /api/push/subscriptions` (이 기기 켜기 · 받을 심각도 · 받을 구역 `zone_ids` · `high_any_zone` · 끄기) · `POST /api/push/test` | 모든 화면 헤더 회원정보 수정 팝업 · `sw.js` · `users.html`(알림 열) · `zones.html`(높음 받는 기기 수) |
 
 나머지 화면은 아직 예시 데이터로 보입니다. 화면에 API 를 붙일 때는 `api.js` 를 `common.js` 앞에 넣고 `api("/api/...")` 로 부르면 됩니다.
 
@@ -284,7 +304,7 @@ ALTER TABLE camera
 - [x] 이벤트 내보내기(CSV · 엑셀 · 스냅샷 묶음) · 스냅샷 조회 · 통계(요약 · 추이 · 리포트 PDF) 화면 연결
 - [ ] 카메라 배치도 · 단일 카메라 확대 화면 연결
 - [x] 웹 푸시 알림: 이벤트 → 알림을 켠 휴대폰 · PC (`push.py` · `sw.js`)
-- [ ] 알림 대상 화면(`alert-targets.html`)을 실제 데이터로 (누가 어떤 기기로 받는지 · 관리자가 보기)
+- [x] 알림 받을 구역 · 관리자가 보는 알림 현황 (회원 목록 · 작업구역. 따로 두던 알림 대상 화면은 지움)
 - [x] YOLO 탐지 영상 (관제화면 · 단일 카메라 확대에 탐지 박스 · ROI 표시)
 - [x] YOLO 탐지 결과 → ROI 침범 · 체류 이벤트 · 스냅샷 (`zone_events.py`)
 - [x] 객체 추적(ByteTrack · BoT-SORT) → 장비 근접 이벤트 · 스냅샷 (`proximity.py`)

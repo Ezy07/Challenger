@@ -8,6 +8,7 @@ bcrypt>=4.2
 pyjwt>=2.9
 openpyxl>=3.1         # 이벤트 엑셀 내보내기
 pywebpush>=2.0        # 휴대폰 · 브라우저 웹 푸시 알림
+pillow>=10            # 프로필 사진 줄이기 · 위치정보(EXIF) 지우기
 
 # 테스트
 pytest>=8

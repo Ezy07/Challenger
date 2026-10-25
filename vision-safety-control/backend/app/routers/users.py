@@ -4,10 +4,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from ..deps import DB, Admin, CurrentUser
-from ..models import Organization, Role, User, UserStatus
-from ..schemas import ApproveIn, StaffOut, TempPasswordOut, UserCreate, UserOut, UserUpdate
+from ..models import Organization, PushSubscription, Role, User, UserStatus
+from ..schemas import ApproveIn, PushDeviceBrief, StaffOut, TempPasswordOut, UserCreate, UserOut, UserUpdate
 from ..security import hash_password
 
 router = APIRouter(prefix="/api/users", tags=["회원 관리 (관리자)"])
@@ -39,7 +40,18 @@ def list_users(db: DB, _: Admin, status_: Annotated[UserStatus | None, Query(ali
     """회원 목록. ?status=PENDING 이면 회원가입 승인 대기 목록. 삭제한 회원은 빼고 보여 준다."""
     q = select(User).order_by(User.created_at.desc(), User.id.desc())
     q = q.where(User.status == status_) if status_ else q.where(User.status != UserStatus.DELETED)
-    return db.scalars(q).all()
+    users = db.scalars(q).all()
+    # 누가 어떤 기기로 알림을 받는지 (관리자가 알림 공백을 보도록. 설정은 각자 🔔 팝업에서)
+    devices: dict[int, list[PushDeviceBrief]] = {}
+    for sub in db.scalars(select(PushSubscription).options(selectinload(PushSubscription.zones)).order_by(PushSubscription.id)):
+        devices.setdefault(sub.user_id, []).append(PushDeviceBrief(
+            min_severity=sub.min_severity, zone_names=[z.name for z in sub.zones], high_any_zone=sub.high_any_zone))
+    out = []
+    for u in users:
+        row = UserOut.model_validate(u)
+        row.push_devices = devices.get(u.id, [])
+        out.append(row)
+    return out
 
 
 @router.get("/staff", response_model=list[StaffOut])

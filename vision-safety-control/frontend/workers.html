@@ -18,6 +18,7 @@
     .main { grid-template-rows: auto auto minmax(0, 1fr); }
     .sum-strip { grid-template-columns: 150px 150px minmax(0, 1fr); }
     .tbl td { vertical-align: middle; }
+    .av { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #243044; font-weight: 800; font-size: 18px; margin-right: 8px; vertical-align: middle; }
     .sp { font-size: 16px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: rgba(255, 154, 31, 0.16); color: var(--orange); white-space: nowrap; }
   </style>
 </head>
@@ -68,6 +69,7 @@
         <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
       </div>
       <form class="pop-body" id="form">
+        <div class="photo-field" id="w-photo"></div>
         <div class="two">
           <label class="field">이름<input class="input" id="w-name" placeholder="예: 홍길동" required /></label>
           <label class="field">협력사<input class="input" id="w-co" list="companies" placeholder="예: 대한골조" /></label>
@@ -133,7 +135,7 @@
         && (!onlyNoEdu || !w.general_edu) && (!q || (w.name + " " + (w.job_type || "")).includes(q)));
       $("n-shown").textContent = rows.length + "명";
       $("rows").innerHTML = rows.length ? rows.map((w) => `
-        <tr data-id="${w.id}"><td><b>${esc(w.name)}</b></td><td>${esc(w.company || "-")}</td><td>${esc(w.job_type || "-")}</td>
+        <tr data-id="${w.id}"><td>${avatarHtml(w)}<b>${esc(w.name)}</b></td><td>${esc(w.company || "-")}</td><td>${esc(w.job_type || "-")}</td>
           <td class="num">${esc(w.phone || "-")}</td><td>${spTags(w)}</td>
           <td>${w.general_edu ? '<span class="status ok">이수</span>' : '<span class="status stop">미이수</span>'}</td>
           <td>${w.today_work ? esc(w.today_work.name) : '<span class="muted">배정 없음</span>'}</td>
@@ -159,6 +161,11 @@
       $("w-birth").value = w ? w.birth_date || "" : "";
       $("w-start").value = w ? w.start_date || "" : todayStr();
       $("edu-box").hidden = !w;
+      if (w) {
+        mountPhotoField($("w-photo"), { path: `/api/workers/${w.id}/photo`, person: w, onChange: (url) => { w.photo_url = url; load(); } });
+      } else {
+        $("w-photo").innerHTML = '<div class="hint">사진은 작업자를 등록한 뒤 올릴 수 있습니다.</div>';
+      }
       $("edu-date").value = todayStr();
       if (w) renderEdu(w);
       $("pop").hidden = false;

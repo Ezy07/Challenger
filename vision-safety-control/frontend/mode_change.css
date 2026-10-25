@@ -155,7 +155,8 @@ html[data-mode="light"] .sum-strip .check {
   border-color: rgba(0, 0, 0, 0.12);
 }
 html[data-mode="light"] .av,
-html[data-mode="light"] .who .av {
+html[data-mode="light"] .who .av,
+html[data-mode="light"] .photo-big {
   background: #fff;
   color: #111;
   border: 1.5px solid #111;

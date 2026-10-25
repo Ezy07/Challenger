@@ -46,6 +46,8 @@
     <main class="main scroll">
       <section class="cell"><div class="pad">
         <div class="who"><span class="av" id="ue-av"></span><div><b id="ue-title">불러오는 중…</b><small id="ue-sub"></small></div></div>
+        <div class="label" style="margin-top:6px">프로필 사진</div>
+        <div class="photo-field" id="ue-photo"></div>
         <div class="label" style="margin-top:6px">기본 정보</div>
         <div class="two">
           <label class="field">이름<input class="input" id="ue-name" /></label>
@@ -132,7 +134,11 @@
       if (!u) return;
       history.replaceState(null, "", "?id=" + u.id);
       const by = users.find((x) => x.id === u.approved_by);
-      $("ue-av").textContent = u.name[0];
+      $("ue-av").outerHTML = avatarHtml(u).replace('class="av', 'id="ue-av" class="av');
+      mountPhotoField($("ue-photo"), { path: `/api/users/${u.id}/photo`, person: u, onChange: (url) => {
+        u.photo_url = url;
+        $("ue-av").outerHTML = avatarHtml(u).replace('class="av', 'id="ue-av" class="av');
+      } });
       $("ue-title").textContent = `${u.name} ${u.position || ""}`;
       $("ue-sub").textContent = [u.login_id, "가입 " + fmtTime(u.created_at, { time: false }), by ? "승인 " + by.name : ""].filter(Boolean).join(" · ");
       $("ue-name").value = u.name;

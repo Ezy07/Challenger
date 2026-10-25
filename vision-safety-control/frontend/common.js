@@ -71,7 +71,6 @@ const MENU = [
     ["", "알림 규칙"],
     ["alert-threshold.html", "판정 기준", "감지 유형별 confidence 기준과 다시 알리기까지의 쿨다운", 1],
     ["alert-severity.html", "심각도 기준", "감지 유형별 심각도 기본값 (ROI별 규칙이 없을 때 적용)", 1],
-    ["alert-targets.html", "알림", "누가 어떤 수단으로 알림을 받을지 (후순위)", 1],
   ] },
 ];
 MENU.forEach((g, i) => { g.no = String(i + 1); });
@@ -254,7 +253,7 @@ function renderShell(file, found) {
         <button type="button" class="gnb-btn" id="gnb-alert" title="실시간 알림" aria-haspopup="dialog" aria-controls="alert-pop">🔔<span class="gnb-label">알림</span> <span class="badge zero" id="alert-badge" hidden>0</span></button>
         <div class="gnb-me">
           <button type="button" class="gnb-btn gnb-me-btn" id="me-btn" title="내 계정" aria-haspopup="menu" aria-expanded="false" aria-controls="me-menu">
-            <span class="gnb-ico" aria-hidden="true">👤</span><span class="gnb-user"><b>${USER.name}</b><small>${USER.role}</small></span><i class="chev" aria-hidden="true">▾</i>
+            <span class="gnb-ico" id="me-ico" aria-hidden="true">👤</span><span class="gnb-user"><b>${USER.name}</b><small>${USER.role}</small></span><i class="chev" aria-hidden="true">▾</i>
           </button>
           <div class="me-menu" id="me-menu" role="menu" hidden>
             <button type="button" role="menuitem" id="me-edit">👤 회원정보 수정</button>
@@ -269,11 +268,28 @@ function renderShell(file, found) {
           <div>
             <span class="role">내 계정</span>
             <h2 id="me-title">회원정보 수정</h2>
-            <p>이름 · 전화번호 · 비밀번호만 바꿀 수 있습니다.</p>
+            <p>사진 · 휴대폰 알림 · 이름 · 전화번호 · 비밀번호를 바꿀 수 있습니다. 사진 · 알림은 고르면 바로 저장됩니다.</p>
           </div>
           <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
         </div>
         <form class="pop-body" id="me-form">
+          <div class="photo-field" id="me-photo"></div>
+          <div class="push-box" id="push-box">
+            <b>📱 이 기기로 알림 받기</b>
+            <select class="input" id="push-sev" aria-label="받을 심각도">
+              <option value="HIGH">높음만</option>
+              <option value="MEDIUM" selected>중간 이상</option>
+              <option value="LOW">전체</option>
+            </select>
+            <button type="button" class="mini-btn primary" id="push-toggle" disabled>켜기</button>
+            <button type="button" class="mini-btn" id="push-test" hidden>테스트</button>
+            <div class="push-zones">
+              <span class="muted">받을 구역</span>
+              <div class="chips" id="push-zones" role="group" aria-label="받을 구역"></div>
+              <label class="push-high" id="push-high-row" hidden><input type="checkbox" id="push-high" checked /> 높음은 구역과 상관없이 받기</label>
+            </div>
+            <small class="muted" id="push-note"></small>
+          </div>
           <label class="field">이름<input class="input" id="me-name" maxlength="50" required /></label>
           <label class="field">전화번호<input class="input" id="me-phone" maxlength="20" placeholder="010-0000-0000" autocomplete="tel" /></label>
           <label class="field">비밀번호<input class="input" id="me-pw" type="password" maxlength="72" placeholder="바꾸지 않으면 비워 두세요" autocomplete="new-password" /></label>
@@ -323,6 +339,7 @@ function renderShell(file, found) {
   }));
   wireMeMenu();
   wireMeEdit();
+  paintMeIcon((savedAuthUser() || {}).photo_url);
   wireTextSize();
   document.getElementById("gnb-alert").addEventListener("click", () => {
     if (document.getElementById("alert-pop").hidden) openAlerts(); else closeAlerts();
@@ -388,6 +405,21 @@ function savedAuthUser() {
 }
 
 function fillMeForm(user) {
+  const box = document.getElementById("me-photo");
+  if (user && user.id) {
+    mountPhotoField(box, { path: `/api/users/${user.id}/photo`, person: user, onChange: (url) => {
+      user.photo_url = url;
+      try {
+        const auth = JSON.parse(localStorage.getItem("safety.auth"));
+        auth.user.photo_url = url;
+        localStorage.setItem("safety.auth", JSON.stringify(auth));
+      } catch (err) { /* 다음 로그인 때 반영 */ }
+      paintMeIcon(url);
+      document.dispatchEvent(new CustomEvent("profile-changed", { detail: user }));
+    } });
+  } else {
+    box.innerHTML = "";
+  }
   document.getElementById("me-name").value = (user && user.name) || ME_FALLBACK.name;
   document.getElementById("me-phone").value = (user && user.phone) || ME_FALLBACK.phone;
   document.getElementById("me-pw").value = "";
@@ -402,6 +434,7 @@ function wireMeEdit() {
   btn.addEventListener("click", async () => {
     fillMeForm(savedAuthUser());
     pop.hidden = false;
+    loadPush();
     if (!authToken()) return;
     try { fillMeForm(await alertFetch("/api/auth/me")); } catch (e) { /* 저장해 둔 값을 유지 */ }
   });
@@ -481,6 +514,100 @@ function authToken() {
 }
 const escHtml = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+/* ---------------------------------------------------------------- 프로필 사진 (회원 · 작업자)
+   사진은 로그인한 사람만 열리는 주소(photo_url)라 <img> 에 토큰을 붙인다 (헤더를 못 붙이므로 ?token=).
+   [data-photo] 를 누르면 크게 본다. 올리기 · 지우기는 mountPhotoField 로 만든 칸에서 한다. */
+function photoSrc(url) {
+  return url ? `${url}&token=${encodeURIComponent(authToken() || "")}` : "";
+}
+
+// 동그란 사진 (없으면 이름 첫 글자). 크기는 cls(.av 등)를 쓰는 화면이 정한다
+function avatarHtml(person, cls = "av") {
+  const name = person.name || "";
+  if (!person.photo_url) return `<span class="${cls}">${escHtml(name[0] || "?")}</span>`;
+  const src = escHtml(photoSrc(person.photo_url));
+  return `<span class="${cls} has-photo" role="button" tabindex="0" data-photo="${src}" data-photo-name="${escHtml(name)}" title="${escHtml(name)} 사진 크게 보기"><img src="${src}" alt="${escHtml(name)}" loading="lazy" /></span>`;
+}
+
+function openPhoto(src, name) {
+  let pop = document.getElementById("photo-pop");
+  if (!pop) {
+    document.body.insertAdjacentHTML("beforeend", `
+      <div class="pop photo-pop" id="photo-pop" hidden>
+        <div class="pop-card" role="dialog" aria-modal="true" aria-labelledby="photo-title">
+          <div class="pop-head">
+            <div><span class="role">프로필 사진</span><h2 id="photo-title"></h2></div>
+            <button type="button" class="x-btn" data-close title="닫기" aria-label="닫기">✕</button>
+          </div>
+          <img id="photo-img" alt="" />
+        </div>
+      </div>`);
+    pop = document.getElementById("photo-pop");
+    pop.addEventListener("click", (e) => { if (e.target === pop || e.target.closest("[data-close]")) pop.hidden = true; });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") pop.hidden = true; });
+  }
+  document.getElementById("photo-title").textContent = name;
+  const img = document.getElementById("photo-img");
+  img.src = src;
+  img.alt = name;
+  pop.hidden = false;
+}
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-photo]");
+  if (el) openPhoto(el.dataset.photo, el.dataset.photoName);
+});
+document.addEventListener("keydown", (e) => {
+  const el = e.target.closest && e.target.closest("[data-photo]");
+  if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openPhoto(el.dataset.photo, el.dataset.photoName); }
+});
+
+async function sendPhoto(path, file) {
+  const headers = { Authorization: "Bearer " + authToken() };
+  if (file) headers["Content-Type"] = file.type || "application/octet-stream";
+  const res = await fetch(path, { method: file ? "PUT" : "DELETE", headers, body: file || undefined });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "사진을 저장하지 못했습니다.");
+  return file ? (await res.json()).photo_url : null;
+}
+
+/* 사진 칸: 큰 사진 + [사진 올리기] [사진 삭제]. path = "/api/users/3/photo" · "/api/workers/5/photo"
+   고르면 바로 올리고 onChange(새 photo_url) 를 부른다. editable=false 면 보기만 */
+function mountPhotoField(box, { path, person, editable = true, onChange }) {
+  let url = person.photo_url || null;
+  const paint = (note) => {
+    box.innerHTML = avatarHtml({ name: person.name, photo_url: url }, "photo-big")
+      + `<div class="photo-acts">${editable
+        ? `<label class="btn sm">📷 ${url ? "사진 바꾸기" : "사진 올리기"}<input type="file" accept="image/jpeg,image/png,image/webp" hidden /></label>`
+          + (url ? '<button type="button" class="btn sm del-text" data-photo-del>사진 삭제</button>' : "")
+          + `<small class="muted">${escHtml(note || "JPG · PNG · WebP, 10MB 까지. 작게 줄여 저장하고 촬영 위치 정보는 지웁니다.")}</small>`
+        : ""}</div>`;
+  };
+  const done = (next, msg) => {
+    url = next;
+    paint();
+    toast(msg);
+    if (onChange) onChange(url);
+  };
+  paint();
+  box.onchange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    paint("올리는 중…");
+    try { done(await sendPhoto(path, file), "사진을 저장했습니다."); } catch (err) { paint(); toast(err.message); }
+  };
+  box.onclick = async (e) => {
+    if (!e.target.closest("[data-photo-del]")) return;
+    try { done(await sendPhoto(path, null), "사진을 지웠습니다."); } catch (err) { toast(err.message); }
+  };
+}
+
+// 헤더 👤 자리에 내 사진
+function paintMeIcon(url) {
+  const ico = document.getElementById("me-ico");
+  if (!ico) return;
+  ico.classList.toggle("gnb-photo", Boolean(url));
+  ico.innerHTML = url ? `<img src="${escHtml(photoSrc(url))}" alt="" />` : "👤";
+}
+
 // YOLO 탐지 영상: 서버가 탐지 박스 · ROI 를 그려 넣은 MJPEG. 관제화면(1-1) · 카메라 상세(1-2)만 쓰고,
 // 나머지 화면은 원본 영상(/videos/...)을 튼다. 서버에 YOLO 가 없으면 enabled = false
 let detectStatusOnce = null;
@@ -544,17 +671,6 @@ function alertPopHtml() {
             <p>처리가 끝나지 않은 이벤트 · 30초마다 새로 고침</p>
           </div>
           <button type="button" class="x-btn" id="alert-close" title="닫기" aria-label="닫기">✕</button>
-        </div>
-        <div class="push-box" id="push-box">
-          <b>📱 이 기기로 알림 받기</b>
-          <select class="input" id="push-sev" aria-label="받을 심각도">
-            <option value="HIGH">높음만</option>
-            <option value="MEDIUM" selected>중간 이상</option>
-            <option value="LOW">전체</option>
-          </select>
-          <button type="button" class="mini-btn primary" id="push-toggle" disabled>켜기</button>
-          <button type="button" class="mini-btn" id="push-test" hidden>테스트</button>
-          <small class="muted" id="push-note"></small>
         </div>
         <div class="feed" id="feed"></div>
         <div class="feed-foot">
@@ -628,7 +744,6 @@ function openAlerts() {
   document.getElementById("gnb-alert").setAttribute("aria-expanded", "true");
   document.getElementById("alert-close").focus();
   loadAlerts();
-  loadPush();
 }
 
 function closeAlerts() {
@@ -639,7 +754,7 @@ function closeAlerts() {
 }
 
 /* ---------------------------------------------------------------- 웹 푸시 (휴대폰 · PC 알림)
-   실시간 알림 팝업 위쪽에서 이 기기 알림을 켜고 끈다. 켜면 서비스 워커(sw.js)가 브라우저 푸시 서비스에 구독하고,
+   헤더 회원정보 수정 팝업에서 이 기기 알림을 켜고 끈다. 켜면 서비스 워커(sw.js)가 브라우저 푸시 서비스에 구독하고,
    그 주소를 서버에 저장한다 → 이벤트가 생기면 서버가 보낸다 (backend/app/push.py). 화면을 닫아 둬도 온다.
    - HTTPS 주소(또는 이 PC 의 localhost)에서만 된다. 휴대폰은 서버를 HTTPS 로 열어야 한다 (README 「웹 푸시」)
    - 아이폰은 Safari 공유 → 「홈 화면에 추가」 한 앱에서만 된다 (iOS 16.4 이상) */
@@ -687,6 +802,7 @@ async function loadPush() {
     const mine = sub ? await alertFetch("/api/push/subscriptions") : [];
     const saved = sub && mine.find((d) => d.endpoint === sub.endpoint);
     pushSub = saved ? sub : null;
+    await paintPushZones(saved);
     if (saved) document.getElementById("push-sev").value = saved.min_severity;
     showPush(Boolean(saved));
   } catch (err) {
@@ -694,8 +810,28 @@ async function loadPush() {
   }
 }
 
+// 받을 구역: 「전체」 또는 작업구역 여러 개. 구역을 고르면 「높음은 구역과 상관없이 받기」(기본 켬)가 보인다
+let pushZoneList = null;
+async function paintPushZones(saved) {
+  if (!pushZoneList) pushZoneList = await alertFetch("/api/work-zones").catch(() => []);
+  const picked = new Set(saved ? saved.zone_ids : []);
+  document.getElementById("push-zones").innerHTML = `<span class="chip${picked.size ? "" : " on"}" data-zone="">전체</span>`
+    + pushZoneList.map((z) => `<span class="chip${picked.has(z.id) ? " on" : ""}" data-zone="${z.id}">${escHtml(z.name)}</span>`).join("");
+  document.getElementById("push-high").checked = saved ? saved.high_any_zone : true;
+  document.getElementById("push-high-row").hidden = !picked.size;
+}
+
+function pickedPushZones() {
+  return [...document.querySelectorAll("#push-zones .chip.on[data-zone]")].map((c) => Number(c.dataset.zone)).filter(Boolean);
+}
+
 async function savePush(sub) {
-  const body = { ...sub.toJSON(), min_severity: document.getElementById("push-sev").value };
+  const body = {
+    ...sub.toJSON(),
+    min_severity: document.getElementById("push-sev").value,
+    zone_ids: pickedPushZones(),
+    high_any_zone: document.getElementById("push-high").checked,
+  };
   await alertFetch("/api/push/subscriptions", { method: "PUT", body: JSON.stringify(body) });
 }
 
@@ -755,6 +891,29 @@ function wirePush() {
       toast(err.message);
     }
   });
+  const saveZones = async (what) => {
+    if (!pushSub) return; // 켜기 전이면 켤 때 같이 저장한다
+    try {
+      await savePush(pushSub);
+      toast(what);
+    } catch (err) {
+      toast(err.message);
+    }
+  };
+  document.getElementById("push-zones").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const all = document.querySelector('#push-zones .chip[data-zone=""]');
+    if (chip === all) {
+      document.querySelectorAll("#push-zones .chip").forEach((c) => c.classList.toggle("on", c === all));
+    } else {
+      chip.classList.toggle("on");
+      all.classList.toggle("on", !pickedPushZones().length);
+    }
+    document.getElementById("push-high-row").hidden = !pickedPushZones().length;
+    saveZones("받을 구역을 바꿨습니다.");
+  });
+  document.getElementById("push-high").addEventListener("change", () => saveZones("높음 알림 설정을 바꿨습니다."));
   document.getElementById("push-test").addEventListener("click", async (e) => {
     e.target.disabled = true;
     try {

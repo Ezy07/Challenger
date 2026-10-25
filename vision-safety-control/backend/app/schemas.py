@@ -70,6 +70,13 @@ class ProfileUpdate(BaseModel):
     password: str | None = Field(default=None, min_length=8, max_length=72)
 
 
+class PushDeviceBrief(BaseModel):
+    """회원 목록(관리자)에 보이는 알림 기기 요약"""
+    min_severity: Severity
+    zone_names: list[str]  # 비어 있으면 전체 구역
+    high_any_zone: bool
+
+
 class UserOut(Out):
     id: int
     login_id: str
@@ -85,6 +92,8 @@ class UserOut(Out):
     locked_until: datetime | None = None
     last_login_at: datetime | None
     created_at: datetime
+    photo_url: str | None = None  # 프로필 사진 (<img> 에는 &token= 을 붙임)
+    push_devices: list[PushDeviceBrief] = []  # 회원 목록에서만 채운다 (알림을 켠 기기)
 
 
 class StaffOut(Out):
@@ -150,15 +159,23 @@ class PushSubIn(BaseModel):
     endpoint: str = Field(pattern=r"^https://", max_length=700)
     keys: PushKeys
     min_severity: Severity = Severity.MEDIUM
+    zone_ids: list[int] = []    # 받을 작업구역 (비우면 전체 구역)
+    high_any_zone: bool = True  # 심각도 높음은 받을 구역과 상관없이 받음
 
 
 class PushSubOut(Out):
     id: int
     endpoint: str
     min_severity: Severity
+    zone_ids: list[int]
+    high_any_zone: bool
     device: str | None
     created_at: datetime
     last_sent_at: datetime | None
+
+
+class PhotoOut(BaseModel):
+    photo_url: str | None
 
 
 class PushTestOut(BaseModel):
@@ -391,6 +408,7 @@ class ZoneSummary(WorkZoneOut):
     cameras_off: list[str] = []  # 설치는 됐지만 사용 안 함
     open_events: int           # 미처리 · 확인중 이벤트
     open_high: int             # 그중 높음
+    high_alert_devices: int = 0  # 이 구역의 높음 경보를 받는 기기 수 (0 이면 아무도 못 받음)
 
 
 # ---------------------------------------------------------------- 작업자 · 교육
@@ -458,6 +476,7 @@ class WorkerOut(BaseModel):
     special_memo: str | None
     special_since: date | None
     special_by_name: str | None
+    photo_url: str | None = None          # 프로필 사진 (<img> 에는 &token= 을 붙임)
     general_edu: bool                     # 기초 이수 교육 4종을 모두 받았는지
     educations: list[WorkerEducationOut]
     today_work: TodayWork | None          # 오늘 배정된 작업

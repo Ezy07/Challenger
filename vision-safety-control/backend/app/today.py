@@ -6,6 +6,7 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from .models import REQUIRED_GENERAL_EDU, SpecialReason, Work, WorkAssignment, Worker, WorkStatus, WorkerEducation
+from .photos import url_of
 from .schemas import TodayWork, WorkerEducationOut, WorkerOut
 
 NEW_WORKER_DAYS = 7  # 신규 투입은 투입 후 7일까지만 특별관리 사유로 본다
@@ -99,6 +100,7 @@ def worker_out(w: Worker, day: date, works: dict[int, TodayWork]) -> WorkerOut:
         special_memo=w.special_memo,
         special_since=w.special_since,
         special_by_name=w.special_user.name if w.special_user else None,
+        photo_url=url_of("workers", w.id, w.photo_path),
         general_edu=all(name in {e.education.name for e in w.educations} for name in REQUIRED_GENERAL_EDU),
         educations=[
             WorkerEducationOut(id=e.id, edu_id=e.edu_id, edu_type=e.education.edu_type,

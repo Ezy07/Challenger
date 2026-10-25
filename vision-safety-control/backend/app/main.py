@@ -12,7 +12,8 @@ from .clock import now_kst
 from .config import DEV_JWT_SECRET, settings
 from .deps import CurrentUser
 from . import vision, zone_events
-from .routers import auth, cameras, equipment, events, meta, push, roi_zones, site_plan, stats, stream, users, videos, workers, works, zones
+from .routers import (auth, cameras, equipment, events, meta, photos, push, roi_zones, site_plan, stats, stream, users, videos,
+                      workers, works, zones)
 from .routers.roi_zones import sync_stored_zones
 
 
@@ -45,7 +46,8 @@ STARTED_AT = int(time.time() * 1000)
 if settings.jwt_secret == DEV_JWT_SECRET:
     logging.getLogger("uvicorn.error").warning("JWT_SECRET 이 개발용 기본값입니다. 운영 전에 .env 에서 꼭 바꾸세요.")
 
-for r in (auth, users, meta, zones, site_plan, cameras, roi_zones, videos, stream, workers, works, equipment, events, stats, push):
+for r in (auth, users, meta, zones, site_plan, cameras, roi_zones, videos, stream, workers, works, equipment, events, stats, push,
+          photos):
     app.include_router(r.router)
 
 

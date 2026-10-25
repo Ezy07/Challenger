@@ -3,6 +3,7 @@
     python -m app.seed --admin-password '비밀번호'            # 기본 데이터 + 첫 관리자
     python -m app.seed --admin-password '비밀번호' --demo     # + 화면 시연용 예시 데이터 (시연 회원도 같은 비밀번호)
     python -m app.seed --create-tables ...                    # schema.sql 대신 모델로 테이블 만들기 (개발용)
+    python -m app.seed --demo-photos                          # 사진이 없는 작업자에게 예시 사진(그림) 넣기
 
 이미 있는 데이터(같은 code · 이름)는 건너뛰므로 여러 번 실행해도 된다.
 """
@@ -443,6 +444,19 @@ def seed_history(db: Session, days: int) -> int:
     return made
 
 
+def seed_worker_photos(db: Session) -> int:
+    """사진이 없는 작업자에게 예시 프로필 사진(안전모 · 조끼를 입은 작업자 그림)을 넣는다. 신호수는 빨간 조끼"""
+    from . import photos
+    from .demo_photos import draw_worker
+
+    made = 0
+    for w in db.scalars(select(Worker).where(Worker.is_active, Worker.photo_path.is_(None)).order_by(Worker.id)):
+        w.photo_path = photos.save("workers", w.id, draw_worker(w.id, signalman="신호" in (w.job_type or "")))
+        made += 1
+    db.flush()
+    return made
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--create-tables", action="store_true", help="모델로 테이블 만들기 (없는 테이블만)")
@@ -450,6 +464,7 @@ def main() -> None:
     p.add_argument("--admin-password", help="첫 관리자 비밀번호 (주면 관리자 계정을 만듦)")
     p.add_argument("--demo", action="store_true", help="시연용 구역 · 카메라 · 이벤트 넣기")
     p.add_argument("--history-days", type=int, default=30, help="--demo 때 넣을 지난 이벤트 일수 (통계 화면용, 0 이면 안 넣음)")
+    p.add_argument("--demo-photos", action="store_true", help="사진이 없는 작업자에게 예시 프로필 사진 넣기 (--demo 때는 저절로)")
     args = p.parse_args()
     if args.demo and not args.admin_password:
         p.error("--demo 는 --admin-password 와 같이 써야 합니다 (시연 회원 비밀번호로도 씀)")
@@ -465,6 +480,10 @@ def main() -> None:
             made = seed_history(db, args.history_days)
             if made:
                 print(f"지난 {args.history_days}일 이벤트 {made}건을 넣었습니다")
+        if args.demo or args.demo_photos:
+            made = seed_worker_photos(db)
+            if made:
+                print(f"작업자 {made}명에게 예시 프로필 사진을 넣었습니다")
         db.commit()
     print("완료")
 

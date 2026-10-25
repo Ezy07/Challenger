@@ -4,10 +4,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, HTTPException, Query, status
 from sqlalchemy import delete, select
+from sqlalchemy.orm import selectinload
 
 from .. import push
 from ..deps import DB, CurrentUser
-from ..models import PushSubscription
+from ..models import PushSubscription, WorkZone
 from ..schemas import PushKeyOut, PushSubIn, PushSubOut, PushTestOut
 
 router = APIRouter(prefix="/api/push", tags=["웹 푸시"])
@@ -29,13 +30,19 @@ def key(_: CurrentUser):
 @router.get("/subscriptions", response_model=list[PushSubOut])
 def my_devices(db: DB, user: CurrentUser):
     """내 계정으로 알림을 켠 기기"""
-    return db.scalars(select(PushSubscription).where(PushSubscription.user_id == user.id).order_by(PushSubscription.id)).all()
+    return db.scalars(select(PushSubscription).where(PushSubscription.user_id == user.id)
+                      .options(selectinload(PushSubscription.zones)).order_by(PushSubscription.id)).all()
 
 
 @router.put("/subscriptions", response_model=PushSubOut)
 def subscribe(body: PushSubIn, db: DB, user: CurrentUser, user_agent: Annotated[str | None, Header()] = None):
-    """이 기기로 알림 받기 (같은 기기면 받을 심각도만 바꾼다). 다른 계정으로 켜 둔 기기면 지금 계정으로 옮긴다"""
+    """이 기기로 알림 받기 (같은 기기면 받을 심각도 · 구역만 바꾼다). 다른 계정으로 켜 둔 기기면 지금 계정으로 옮긴다.
+    받을 구역은 누구나(조회 전용 포함) 자유롭게 고른다"""
     _need_push()
+    ids = sorted(set(body.zone_ids))
+    zones = db.scalars(select(WorkZone).where(WorkZone.id.in_(ids))).all() if ids else []
+    if len(zones) != len(ids):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "없는 작업구역이 있습니다.")
     sub = db.scalar(select(PushSubscription).where(PushSubscription.endpoint == body.endpoint))
     if sub is None:
         sub = PushSubscription(endpoint=body.endpoint)
@@ -43,6 +50,8 @@ def subscribe(body: PushSubIn, db: DB, user: CurrentUser, user_agent: Annotated[
     sub.user_id = user.id
     sub.p256dh, sub.auth = body.keys.p256dh, body.keys.auth
     sub.min_severity = body.min_severity
+    sub.zones = sorted(zones, key=lambda z: z.id)
+    sub.high_any_zone = body.high_any_zone
     sub.device = (user_agent or "")[:255] or None
     db.commit()
     db.refresh(sub)

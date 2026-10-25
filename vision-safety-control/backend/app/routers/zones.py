@@ -7,7 +7,9 @@ from sqlalchemy.orm import selectinload
 
 from ..deps import DB, CurrentUser, Manager
 from ..event_query import ZONE_ID
-from ..models import Camera, Equipment, Event, EventStatus, Roi, Severity, Work, WorkAssignment, WorkZone
+from .. import push
+from ..models import (Camera, Equipment, Event, EventStatus, PushSubscription, Roi, Severity, User, UserStatus, Work,
+                      WorkAssignment, WorkZone)
 from ..schemas import NamedRef, WorkZoneIn, WorkZoneOut, WorkZoneUpdate, ZoneSummary
 from ..today import OPEN_WORK, special_tags, work_active_on, worker_load
 
@@ -59,6 +61,8 @@ def zone_summary(db: DB, _: CurrentUser):
         .where(Event.status.in_([EventStatus.NEW, EventStatus.ACK]))
         .group_by(ZONE_ID, Event.severity)
     )
+    subs = db.scalars(select(PushSubscription).join(User).where(User.status == UserStatus.ACTIVE)
+                      .options(selectinload(PushSubscription.zones))).all()
     open_events: dict[int, list[tuple[Severity, int]]] = {}
     for zone_id, sev, n in db.execute(open_q):
         open_events.setdefault(zone_id, []).append((sev, n))
@@ -81,6 +85,7 @@ def zone_summary(db: DB, _: CurrentUser):
             cameras_off=[c.name for c in cameras if c.work_zone_id == z.id and not c.is_active],
             open_events=sum(n for _, n in counts),
             open_high=sum(n for sev, n in counts if sev == Severity.HIGH),
+            high_alert_devices=sum(push.wants(s, Severity.HIGH, z.id) for s in subs),
         ))
     return result
 

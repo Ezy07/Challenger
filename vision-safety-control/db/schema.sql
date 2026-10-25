@@ -32,6 +32,7 @@ CREATE TABLE users (
   name                VARCHAR(50)  NOT NULL,
   position            VARCHAR(30)  NULL,                      -- 직급 (과장, 대리 ...)
   phone               VARCHAR(20)  NULL,
+  photo_path          VARCHAR(255) NULL,                      -- 프로필 사진 users/번호-시각.jpg (storage/photos 기준)
   role                ENUM('ADMIN', 'MANAGER', 'VIEWER') NOT NULL DEFAULT 'VIEWER',
   status              ENUM('PENDING', 'ACTIVE', 'REJECTED', 'LOCKED', 'DELETED') NOT NULL DEFAULT 'PENDING',  -- DELETED: 처리 기록 때문에 행은 남김
   approved_by         BIGINT UNSIGNED NULL,                   -- 승인한 관리자
@@ -55,6 +56,7 @@ CREATE TABLE push_subscription (
   p256dh         VARCHAR(120) NOT NULL,                       -- 내용 암호화용 공개키 (브라우저가 줌)
   auth           VARCHAR(60)  NOT NULL,
   min_severity   ENUM('HIGH', 'MEDIUM', 'LOW') NOT NULL DEFAULT 'MEDIUM',  -- 이 심각도 이상만 받음
+  high_any_zone  TINYINT(1)   NOT NULL DEFAULT 1,              -- 높음은 받을 구역과 상관없이 받음
   device         VARCHAR(255) NULL,                           -- 어떤 기기인지 (브라우저 User-Agent)
   created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_sent_at   DATETIME     NULL,                           -- 마지막으로 보낸 시각
@@ -71,6 +73,15 @@ CREATE TABLE work_zone (
   name          VARCHAR(100) NOT NULL,                        -- 101동 갱폼 인양구역 등
   plan_polygon  JSON         NULL,                            -- 배치도 위 영역 [[x,y], ...] (도면 크기 기준 0~1)
   PRIMARY KEY (id)
+) ENGINE=InnoDB;
+
+-- 웹 푸시 기기마다 받을 작업구역 (한 줄도 없으면 전체 구역)
+CREATE TABLE push_subscription_zone (
+  subscription_id BIGINT UNSIGNED NOT NULL,
+  work_zone_id    BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (subscription_id, work_zone_id),
+  CONSTRAINT fk_push_zone_sub  FOREIGN KEY (subscription_id) REFERENCES push_subscription (id) ON DELETE CASCADE,
+  CONSTRAINT fk_push_zone_zone FOREIGN KEY (work_zone_id)    REFERENCES work_zone (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- 현장 도면 (한 장). 전체 구역 표시 · 카메라 배치도의 배경. 그림 파일은 storage/plans
@@ -103,6 +114,7 @@ CREATE TABLE worker (
   special_memo     VARCHAR(200) NULL,                         -- 건강정보 등 (민감정보)
   special_since    DATE         NULL,                         -- 특별관리 지정일
   special_by       BIGINT UNSIGNED NULL,                      -- 지정한 사람 (users)
+  photo_path       VARCHAR(255) NULL,                         -- 프로필 사진 workers/번호-시각.jpg (storage/photos 기준)
   is_active        TINYINT(1)   NOT NULL DEFAULT 1,           -- 삭제하면 0 (배정 이력은 남김)
   created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
